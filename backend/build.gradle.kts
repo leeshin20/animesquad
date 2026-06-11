@@ -31,8 +31,21 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("org.testcontainers:junit-jupiter:1.20.3")
-    testImplementation("org.testcontainers:postgresql:1.20.3")
+    testImplementation("org.testcontainers:junit-jupiter:1.21.4")
+    testImplementation("org.testcontainers:postgresql:1.21.4")
 }
 
-tasks.test { useJUnitPlatform() }
+tasks.test {
+    useJUnitPlatform()
+
+    // Docker Desktop on macOS: docker-java in Testcontainers defaults to API 1.32, which
+    // Docker Engine 29+ rejects. The proxy socket also returns a trampoline stub. Point
+    // at the raw daemon socket and pin a supported API version. The override path is
+    // what gets bind-mounted into Ryuk (raw.sock is outside Docker file-sharing).
+    val rawSock = "${System.getProperty("user.home")}/Library/Containers/com.docker.docker/Data/docker.raw.sock"
+    if (file(rawSock).exists()) {
+        environment("DOCKER_HOST", "unix://$rawSock")
+        environment("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", "/var/run/docker.sock")
+        systemProperty("api.version", "1.43")
+    }
+}
