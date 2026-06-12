@@ -24,3 +24,5 @@ app:
     domain: ${COOKIE_DOMAIN:}
     secure: ${COOKIE_SECURE:false}
     same-site: ${COOKIE_SAME_SITE:Lax}
+  anilist:
+    url: ${ANILIST_URL:https://graphql.anilist.co}
