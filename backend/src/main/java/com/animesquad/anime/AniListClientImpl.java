@@ -10,7 +10,7 @@ import java.util.Map;
 @Component
 public class AniListClientImpl implements AniListClient {
 
-    private static final String QUERY = """
+    private static final String SEARCH_QUERY = """
         query ($q: String) {
           Page(perPage: 20) {
             media(search: $q, type: ANIME) {
@@ -26,6 +26,20 @@ public class AniListClientImpl implements AniListClient {
         }
         """;
 
+    private static final String BY_ID_QUERY = """
+        query ($id: Int) {
+          Media(id: $id, type: ANIME) {
+            id
+            title { romaji native english }
+            coverImage { large }
+            episodes
+            status
+            format
+            seasonYear
+          }
+        }
+        """;
+
     private final RestClient client;
 
     public AniListClientImpl(@Value("${app.anilist.url}") String url) {
@@ -34,11 +48,7 @@ public class AniListClientImpl implements AniListClient {
 
     @Override
     public List<AniListMedia> search(String query) {
-        Map<?, ?> resp = client.post()
-            .body(Map.of("query", QUERY, "variables", Map.of("q", query)))
-            .retrieve()
-            .body(Map.class);
-
+        Map<?, ?> resp = post(SEARCH_QUERY, Map.of("q", query));
         if (resp == null) return List.of();
         Map<?, ?> data = (Map<?, ?>) resp.get("data");
         if (data == null) return List.of();
@@ -46,8 +56,25 @@ public class AniListClientImpl implements AniListClient {
         if (page == null) return List.of();
         List<?> media = (List<?>) page.get("media");
         if (media == null) return List.of();
-
         return media.stream().map(this::toMedia).toList();
+    }
+
+    @Override
+    public AniListMedia fetchById(int anilistId) {
+        Map<?, ?> resp = post(BY_ID_QUERY, Map.of("id", anilistId));
+        if (resp == null) return null;
+        Map<?, ?> data = (Map<?, ?>) resp.get("data");
+        if (data == null) return null;
+        Object media = data.get("Media");
+        if (media == null) return null;
+        return toMedia(media);
+    }
+
+    private Map<?, ?> post(String query, Map<String, Object> variables) {
+        return client.post()
+            .body(Map.of("query", query, "variables", variables))
+            .retrieve()
+            .body(Map.class);
     }
 
     @SuppressWarnings("unchecked")

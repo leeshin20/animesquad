@@ -7,9 +7,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class AnimeService {
 
     private final AnimeRepository animes;
+    private final AniListClient aniList;
 
-    public AnimeService(AnimeRepository animes) {
+    public AnimeService(AnimeRepository animes, AniListClient aniList) {
         this.animes = animes;
+        this.aniList = aniList;
     }
 
     @Transactional
@@ -23,5 +25,16 @@ public class AnimeService {
             .orElseGet(() -> animes.save(new Anime(
                 m.anilistId(), m.titleRomaji(), m.titleNative(), m.titleEnglish(),
                 m.coverImageUrl(), m.episodes(), m.status(), m.format(), m.seasonYear())));
+    }
+
+    @Transactional
+    public Anime findOrFetchByAnilistId(int anilistId) {
+        return animes.findByAnilistId(anilistId).orElseGet(() -> {
+            AniListMedia m = aniList.fetchById(anilistId);
+            if (m == null) {
+                throw new IllegalArgumentException("anime not found on AniList: " + anilistId);
+            }
+            return upsertFromAniList(m);
+        });
     }
 }
