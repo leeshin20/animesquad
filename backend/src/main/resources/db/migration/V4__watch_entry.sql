@@ -4,7 +4,7 @@ CREATE TABLE watch_entry (
     anime_id    BIGINT      NOT NULL REFERENCES anime(id),
     status      VARCHAR(20) NOT NULL,
     progress    INT         NOT NULL DEFAULT 0,
-    score       SMALLINT,
+    score       INT,
     comment     TEXT,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
