@@ -12,3 +12,8 @@
 - Membership-gated detail (404-equivalent for non-members)
 - `/api/**` now requires auth
 - Frontend `/squads` page with create & join forms
+
+## Plan 3 — 2026-06-12
+- `anime` cache table (V3)
+- AniList GraphQL proxy: `GET /api/anime/search?q=…`
+- `AnimeService.upsertFromAniList` (used by Plan 4 watch module)
