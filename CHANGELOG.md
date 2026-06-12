@@ -24,3 +24,9 @@
 - `AniListClient.fetchById` + `AnimeService.findOrFetchByAnilistId` for cache-miss adds
 - Frontend `/anime/search` with debounced query + add-to-list
 - Frontend `/my/list` with inline edit (status / progress / score / comment)
+
+## Plan 5 — 2026-06-12
+- `episode_rating` table (V5)
+- `PUT /api/watch/{animeId}/episodes/{ep}` (upsert, replace semantics)
+- `GET /api/watch/{animeId}/episodes`
+- Auto progress bump: rating episode N when current progress < N moves progress to N
