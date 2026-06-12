@@ -23,6 +23,16 @@ public class SquadService {
         return squad;
     }
 
+    @Transactional
+    public Squad joinByInviteCode(Long userId, String inviteCode) {
+        Squad squad = squads.findByInviteCode(inviteCode)
+            .orElseThrow(() -> new IllegalArgumentException("invite code not found"));
+        if (!memberships.existsByUserIdAndSquadId(userId, squad.getId())) {
+            memberships.save(new Membership(userId, squad.getId(), MembershipRole.MEMBER));
+        }
+        return squad;
+    }
+
     private String generateUniqueCode() {
         for (int attempt = 0; attempt < 5; attempt++) {
             String code = codes.next();

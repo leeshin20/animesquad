@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SquadServiceIT extends AbstractIntegrationTest {
 
@@ -27,5 +28,36 @@ class SquadServiceIT extends AbstractIntegrationTest {
 
         Membership m = memberships.findByUserIdAndSquadId(owner.getId(), s.getId()).orElseThrow();
         assertThat(m.getRole()).isEqualTo(MembershipRole.OWNER);
+    }
+
+    @Test
+    void joinByInviteCode_addsMembership() {
+        User owner = userService.upsertFromGoogle("g-o2", "o2@x.y", "O2", null);
+        User joiner = userService.upsertFromGoogle("g-j2", "j2@x.y", "J2", null);
+        Squad s = squadService.createSquad(owner.getId(), "S");
+
+        Squad joined = squadService.joinByInviteCode(joiner.getId(), s.getInviteCode());
+
+        assertThat(joined.getId()).isEqualTo(s.getId());
+        assertThat(memberships.existsByUserIdAndSquadId(joiner.getId(), s.getId())).isTrue();
+    }
+
+    @Test
+    void joinByInviteCode_isIdempotent_whenAlreadyMember() {
+        User u = userService.upsertFromGoogle("g-idem", "i@x.y", "I", null);
+        Squad s = squadService.createSquad(u.getId(), "S");
+
+        Squad again = squadService.joinByInviteCode(u.getId(), s.getInviteCode());
+
+        assertThat(again.getId()).isEqualTo(s.getId());
+        assertThat(memberships.findAllByUserId(u.getId())).hasSize(1);
+    }
+
+    @Test
+    void joinByInviteCode_throws_whenCodeUnknown() {
+        User u = userService.upsertFromGoogle("g-bad", "b@x.y", "B", null);
+
+        assertThatThrownBy(() -> squadService.joinByInviteCode(u.getId(), "NOPENOPE12"))
+            .isInstanceOf(IllegalArgumentException.class);
     }
 }
