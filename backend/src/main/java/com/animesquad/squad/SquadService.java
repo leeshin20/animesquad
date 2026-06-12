@@ -3,6 +3,8 @@ package com.animesquad.squad;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 public class SquadService {
 
@@ -31,6 +33,22 @@ public class SquadService {
             memberships.save(new Membership(userId, squad.getId(), MembershipRole.MEMBER));
         }
         return squad;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Squad> listMySquads(Long userId) {
+        List<Long> squadIds = memberships.findAllByUserId(userId).stream()
+            .map(Membership::getSquadId).toList();
+        return squads.findAllById(squadIds);
+    }
+
+    @Transactional(readOnly = true)
+    public Squad getSquadForMember(Long userId, Long squadId) {
+        if (!memberships.existsByUserIdAndSquadId(userId, squadId)) {
+            throw new IllegalArgumentException("squad not found");
+        }
+        return squads.findById(squadId)
+            .orElseThrow(() -> new IllegalArgumentException("squad not found"));
     }
 
     private String generateUniqueCode() {

@@ -6,6 +6,8 @@ import com.animesquad.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -58,6 +60,38 @@ class SquadServiceIT extends AbstractIntegrationTest {
         User u = userService.upsertFromGoogle("g-bad", "b@x.y", "B", null);
 
         assertThatThrownBy(() -> squadService.joinByInviteCode(u.getId(), "NOPENOPE12"))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void listMySquads_returnsOnlySquadsImIn() {
+        User me = userService.upsertFromGoogle("g-me", "me@x.y", "Me", null);
+        User other = userService.upsertFromGoogle("g-o", "o@x.y", "O", null);
+        Squad mine = squadService.createSquad(me.getId(), "Mine");
+        squadService.createSquad(other.getId(), "Theirs");
+
+        List<Squad> result = squadService.listMySquads(me.getId());
+
+        assertThat(result).extracting(Squad::getId).containsExactly(mine.getId());
+    }
+
+    @Test
+    void getSquadForMember_returnsSquad_whenMember() {
+        User me = userService.upsertFromGoogle("g-gm", "gm@x.y", "GM", null);
+        Squad s = squadService.createSquad(me.getId(), "S");
+
+        Squad got = squadService.getSquadForMember(me.getId(), s.getId());
+
+        assertThat(got.getId()).isEqualTo(s.getId());
+    }
+
+    @Test
+    void getSquadForMember_throws_whenNotMember() {
+        User owner = userService.upsertFromGoogle("g-own", "own@x.y", "Own", null);
+        User stranger = userService.upsertFromGoogle("g-str", "str@x.y", "Str", null);
+        Squad s = squadService.createSquad(owner.getId(), "S");
+
+        assertThatThrownBy(() -> squadService.getSquadForMember(stranger.getId(), s.getId()))
             .isInstanceOf(IllegalArgumentException.class);
     }
 }
