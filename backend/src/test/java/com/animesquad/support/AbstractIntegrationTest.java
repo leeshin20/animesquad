@@ -35,6 +35,6 @@ public abstract class AbstractIntegrationTest {
 
     @BeforeEach
     void cleanDatabase() {
-        jdbc.execute("TRUNCATE TABLE membership, squad, users RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE TABLE membership, squad, anime, users RESTART IDENTITY CASCADE");
     }
 }
