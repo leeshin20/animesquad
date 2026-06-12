@@ -17,3 +17,10 @@
 - `anime` cache table (V3)
 - AniList GraphQL proxy: `GET /api/anime/search?q=…`
 - `AnimeService.upsertFromAniList` (used by Plan 4 watch module)
+
+## Plan 4 — 2026-06-12
+- `watch_entry` table (V4) with per-user uniqueness + score/progress checks
+- `POST/GET /api/watch`, `PATCH /api/watch/{animeId}`
+- `AniListClient.fetchById` + `AnimeService.findOrFetchByAnilistId` for cache-miss adds
+- Frontend `/anime/search` with debounced query + add-to-list
+- Frontend `/my/list` with inline edit (status / progress / score / comment)
