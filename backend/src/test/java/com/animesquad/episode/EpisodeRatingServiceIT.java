@@ -107,4 +107,22 @@ class EpisodeRatingServiceIT extends AbstractIntegrationTest {
 
         assertThat(all).extracting(EpisodeRating::getEpisodeNumber).containsExactly(1, 2);
     }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    com.animesquad.activity.ActivityRepository activityRepo3;
+    @org.springframework.beans.factory.annotation.Autowired
+    com.animesquad.squad.SquadService squadServiceForEvents3;
+
+    @Test
+    void upsertRating_emitsEpisodeRated_andProgressUpdatedOnBump_whenInSquad() {
+        Seeded s = seed("evt", 9001);
+        squadServiceForEvents3.createSquad(s.user().getId(), "S");
+        // progress starts at 0; rating ep 5 should bump it → ProgressUpdated also fires
+
+        service.upsertRating(s.user().getId(), s.anime().getId(), 5, 7, null);
+
+        assertThat(activityRepo3.findAll())
+            .extracting(a -> a.getType().name())
+            .containsExactlyInAnyOrder("EPISODE_RATED", "PROGRESS_UPDATED");
+    }
 }

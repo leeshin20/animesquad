@@ -1,5 +1,7 @@
 package com.animesquad.squad;
 
+import com.animesquad.squad.events.SquadJoinedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,11 +13,14 @@ public class SquadService {
     private final SquadRepository squads;
     private final MembershipRepository memberships;
     private final InviteCodeGenerator codes;
+    private final ApplicationEventPublisher events;
 
-    public SquadService(SquadRepository squads, MembershipRepository memberships, InviteCodeGenerator codes) {
+    public SquadService(SquadRepository squads, MembershipRepository memberships,
+                        InviteCodeGenerator codes, ApplicationEventPublisher events) {
         this.squads = squads;
         this.memberships = memberships;
         this.codes = codes;
+        this.events = events;
     }
 
     @Transactional
@@ -31,6 +36,7 @@ public class SquadService {
             .orElseThrow(() -> new IllegalArgumentException("invite code not found"));
         if (!memberships.existsByUserIdAndSquadId(userId, squad.getId())) {
             memberships.save(new Membership(userId, squad.getId(), MembershipRole.MEMBER));
+            events.publishEvent(new SquadJoinedEvent(userId, squad.getId()));
         }
         return squad;
     }

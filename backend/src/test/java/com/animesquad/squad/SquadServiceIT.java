@@ -94,4 +94,21 @@ class SquadServiceIT extends AbstractIntegrationTest {
         assertThatThrownBy(() -> squadService.getSquadForMember(stranger.getId(), s.getId()))
             .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    com.animesquad.activity.ActivityRepository activityRepo;
+
+    @Test
+    void joinByInviteCode_emitsActivity_butCreateDoesNot() {
+        User owner = userService.upsertFromGoogle("g-evt-o", "evto@x.y", "EvtO", null);
+        User joiner = userService.upsertFromGoogle("g-evt-j", "evtj@x.y", "EvtJ", null);
+        Squad s = squadService.createSquad(owner.getId(), "S");
+        assertThat(activityRepo.count()).isZero();
+
+        squadService.joinByInviteCode(joiner.getId(), s.getInviteCode());
+
+        assertThat(activityRepo.count()).isEqualTo(1);
+        assertThat(activityRepo.findAll().get(0).getType())
+            .isEqualTo(com.animesquad.activity.ActivityType.JOINED_SQUAD);
+    }
 }

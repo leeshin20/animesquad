@@ -118,4 +118,24 @@ class WatchServiceIT extends AbstractIntegrationTest {
         assertThat(mine).hasSize(1);
         assertThat(mine.get(0).getUserId()).isEqualTo(me.getId());
     }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    com.animesquad.activity.ActivityRepository activityRepo2;
+    @org.springframework.beans.factory.annotation.Autowired
+    com.animesquad.squad.SquadService squadServiceForEvents;
+
+    @Test
+    void addThenUpdate_writesActivityRows_whenActorInSquad() {
+        User me = userService.upsertFromGoogle("g-evt", "evt@x.y", "Evt", null);
+        squadServiceForEvents.createSquad(me.getId(), "S");
+        animeService.upsertFromAniList(media(80));
+
+        WatchEntry added = watchService.addToList(me.getId(), 80, WatchStatus.WATCHING);
+        watchService.updateEntry(me.getId(), added.getAnimeId(),
+            WatchStatus.COMPLETED, 12, 9, null);
+
+        assertThat(activityRepo2.findAll())
+            .extracting(a -> a.getType().name())
+            .containsExactlyInAnyOrder("ANIME_ADDED", "STATUS_CHANGED", "PROGRESS_UPDATED", "RATED");
+    }
 }

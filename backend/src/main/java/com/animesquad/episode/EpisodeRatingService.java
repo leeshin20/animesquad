@@ -1,8 +1,10 @@
 package com.animesquad.episode;
 
+import com.animesquad.episode.events.EpisodeRatedEvent;
 import com.animesquad.watch.WatchEntry;
 import com.animesquad.watch.WatchEntryRepository;
 import com.animesquad.watch.WatchService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,13 +16,16 @@ public class EpisodeRatingService {
     private final EpisodeRatingRepository ratings;
     private final WatchEntryRepository watches;
     private final WatchService watchService;
+    private final ApplicationEventPublisher events;
 
     public EpisodeRatingService(EpisodeRatingRepository ratings,
                                 WatchEntryRepository watches,
-                                WatchService watchService) {
+                                WatchService watchService,
+                                ApplicationEventPublisher events) {
         this.ratings = ratings;
         this.watches = watches;
         this.watchService = watchService;
+        this.events = events;
     }
 
     @Transactional
@@ -40,6 +45,7 @@ public class EpisodeRatingService {
             watchService.updateEntry(userId, animeId, null, episodeNumber, null, null);
         }
 
+        events.publishEvent(new EpisodeRatedEvent(userId, animeId, episodeNumber, score));
         return rating;
     }
 
