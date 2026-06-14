@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiGet, type FeedItem } from "@/app/lib/api";
 
 const PAGE_SIZE = 30;
@@ -11,6 +11,7 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const didInit = useRef(false);
 
   async function loadMore() {
     setLoading(true);
@@ -25,7 +26,12 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { loadMore(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => {
+    if (didInit.current) return;
+    didInit.current = true;
+    loadMore();
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
 
   return (
     <main style={{ padding: 40, fontFamily: "sans-serif", maxWidth: 720 }}>
