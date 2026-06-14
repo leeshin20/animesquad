@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: animesquad
+  profiles:
+    active: local
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-change-me-please-at-least-32-bytes!!}
+    ttl-minutes: 1440
+  oauth:
+    success-redirect: ${OAUTH_SUCCESS_REDIRECT:http://localhost:3000/me}
+  cookie:
+    domain: ${COOKIE_DOMAIN:}
+    secure: ${COOKIE_SECURE:false}
+    same-site: ${COOKIE_SAME_SITE:Lax}
+  anilist:
+    url: ${ANILIST_URL:https://graphql.anilist.co}

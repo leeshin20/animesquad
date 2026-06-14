@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: animesquad-db
+    environment:
+      POSTGRES_DB: animesquad
+      POSTGRES_USER: animesquad
+      POSTGRES_PASSWORD: animesquad
+    ports:
+      - "5432:5432"
+    volumes:
+      - animesquad-pgdata:/var/lib/postgresql/data
+
+volumes:
+  animesquad-pgdata:
