@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { apiGet, apiPatch, type WatchEntry, type WatchStatus } from "@/app/lib/api";
 
 const STATUSES: WatchStatus[] = ["WATCHING", "COMPLETED", "ON_HOLD", "DROPPED", "PLAN_TO_WATCH"];
+
+const STATUS_LABEL: Record<WatchStatus, string> = {
+  WATCHING: "보는 중",
+  COMPLETED: "완료",
+  ON_HOLD: "보류",
+  DROPPED: "중단",
+  PLAN_TO_WATCH: "볼 예정",
+};
 
 export default function MyListPage() {
   const [entries, setEntries] = useState<WatchEntry[]>([]);
@@ -17,17 +26,33 @@ export default function MyListPage() {
   useEffect(() => { refresh(); }, []);
 
   return (
-    <main style={{ padding: 40, fontFamily: "sans-serif", maxWidth: 900 }}>
-      <h1>내 리스트</h1>
-      {status && <p style={{ color: "crimson" }}>{status}</p>}
-      {entries.length === 0 && <p style={{ color: "#666" }}>아직 리스트가 비어 있어요. <a href="/anime/search">검색하러 가기</a></p>}
+    <div className="space-y-6">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight">내 리스트</h1>
+        <p className="mt-1 text-sm text-neutral-500">상태·진도·평점을 한 줄에서 수정하세요</p>
+      </header>
 
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {entries.map((e) => (
-          <Row key={e.id} entry={e} onSaved={refresh} onError={setStatus} />
-        ))}
-      </ul>
-    </main>
+      {status && (
+        <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {status}
+        </div>
+      )}
+
+      {entries.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-neutral-300 px-6 py-10 text-center text-sm text-neutral-500">
+          아직 리스트가 비어 있어요.{" "}
+          <Link href="/anime/search" className="font-medium text-neutral-900 underline underline-offset-2">
+            검색하러 가기
+          </Link>
+        </div>
+      ) : (
+        <ul className="space-y-3">
+          {entries.map((e) => (
+            <Row key={e.id} entry={e} onSaved={refresh} onError={setStatus} />
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -58,40 +83,64 @@ function Row({
     finally { setSaving(false); }
   }
 
+  const inputCls =
+    "rounded-md border border-neutral-300 px-2 py-1 text-sm focus:border-neutral-900 focus:outline-none";
+
   return (
-    <li style={{ display: "flex", gap: 16, padding: 12, borderBottom: "1px solid #eee" }}>
-      {entry.anime.coverImageUrl && (
-        <img src={entry.anime.coverImageUrl} alt="" width={60} height={84} style={{ objectFit: "cover" }} />
+    <li className="flex gap-4 rounded-xl border border-neutral-200 p-4">
+      {entry.anime.coverImageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={entry.anime.coverImageUrl}
+          alt=""
+          className="h-24 w-16 flex-none rounded-md object-cover"
+        />
+      ) : (
+        <div className="h-24 w-16 flex-none rounded-md bg-neutral-100" />
       )}
-      <div style={{ flex: 1 }}>
-        <strong>{entry.anime.titleRomaji}</strong>
-        <div style={{ fontSize: 12, color: "#666" }}>
-          {entry.anime.format} · {entry.anime.episodes ?? "?"}화
+      <div className="flex flex-1 flex-col gap-2">
+        <div>
+          <div className="font-medium">{entry.anime.titleRomaji}</div>
+          <div className="text-xs text-neutral-500">
+            {entry.anime.format} · {entry.anime.episodes ?? "?"}화
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-          <select value={status} onChange={(e) => setStatus(e.target.value as WatchStatus)}>
-            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as WatchStatus)}
+            className={inputCls}
+          >
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+            ))}
           </select>
           <input
             type="number" min={0} value={progress}
             onChange={(e) => setProgress(e.target.value)}
             placeholder="진도"
-            style={{ width: 70 }}
+            className={`${inputCls} w-20`}
           />
           <input
             type="number" min={1} max={10} value={score}
             onChange={(e) => setScore(e.target.value)}
             placeholder="점수"
-            style={{ width: 70 }}
+            className={`${inputCls} w-20`}
           />
           <input
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="한줄평 (최대 280자)"
             maxLength={280}
-            style={{ flex: 1, minWidth: 200 }}
+            className={`${inputCls} min-w-[200px] flex-1`}
           />
-          <button onClick={save} disabled={saving}>저장</button>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+          >
+            {saving ? "저장 중…" : "저장"}
+          </button>
         </div>
       </div>
     </li>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { apiGet, apiPost, type Squad } from "@/app/lib/api";
 
 export default function SquadsPage() {
@@ -42,37 +43,74 @@ export default function SquadsPage() {
   }
 
   return (
-    <main style={{ padding: 40, fontFamily: "sans-serif", maxWidth: 600 }}>
-      <h1>내 스쿼드</h1>
-      {status && <p style={{ color: "crimson" }}>{status}</p>}
+    <div className="space-y-8">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight">내 스쿼드</h1>
+        <p className="mt-1 text-sm text-neutral-500">함께 추적하는 작은 그룹들</p>
+      </header>
 
-      <ul>
+      {status && (
+        <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {status}
+        </div>
+      )}
+
+      <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200">
         {squads.map((s) => (
           <li key={s.id}>
-            <a href={`/squads/${s.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-              <strong>{s.name}</strong>
-            </a>
-            {" "}— 초대 코드: <code>{s.inviteCode}</code>
+            <Link
+              href={`/squads/${s.id}`}
+              className="flex items-center justify-between px-4 py-3 hover:bg-neutral-50"
+            >
+              <span className="font-medium">{s.name}</span>
+              <span className="font-mono text-xs text-neutral-500">{s.inviteCode}</span>
+            </Link>
           </li>
         ))}
-        {squads.length === 0 && <li style={{ color: "#666" }}>아직 가입한 스쿼드가 없어요.</li>}
+        {squads.length === 0 && (
+          <li className="px-4 py-6 text-center text-sm text-neutral-500">
+            아직 가입한 스쿼드가 없어요.
+          </li>
+        )}
       </ul>
 
-      <section style={{ marginTop: 32 }}>
-        <h2>새 스쿼드 만들기</h2>
-        <form onSubmit={onCreate}>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="스쿼드 이름" />
-          <button type="submit" style={{ marginLeft: 8 }}>만들기</button>
-        </form>
-      </section>
+      <div className="grid gap-6 md:grid-cols-2">
+        <section className="rounded-xl border border-neutral-200 p-5">
+          <h2 className="text-sm font-semibold text-neutral-700">새 스쿼드 만들기</h2>
+          <form onSubmit={onCreate} className="mt-3 flex gap-2">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="스쿼드 이름"
+              className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
+            >
+              만들기
+            </button>
+          </form>
+        </section>
 
-      <section style={{ marginTop: 32 }}>
-        <h2>초대 코드로 참여</h2>
-        <form onSubmit={onJoin}>
-          <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="초대 코드" />
-          <button type="submit" style={{ marginLeft: 8 }}>참여</button>
-        </form>
-      </section>
-    </main>
+        <section className="rounded-xl border border-neutral-200 p-5">
+          <h2 className="text-sm font-semibold text-neutral-700">초대 코드로 참여</h2>
+          <form onSubmit={onJoin} className="mt-3 flex gap-2">
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="초대 코드"
+              className="flex-1 rounded-md border border-neutral-300 px-3 py-2 font-mono text-sm tracking-wider focus:border-neutral-900 focus:outline-none"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
+            >
+              참여
+            </button>
+          </form>
+        </section>
+      </div>
+    </div>
   );
 }

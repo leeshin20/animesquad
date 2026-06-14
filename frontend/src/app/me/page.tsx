@@ -11,14 +11,27 @@ export default function MePage() {
     apiGet<Me>("/api/me").then(setMe).catch((e) => setError(String(e)));
   }, []);
 
-  if (error) return <main style={{ padding: 40 }}>로그인이 필요해요. <a href="/">홈으로</a></main>;
-  if (!me) return <main style={{ padding: 40 }}>불러오는 중…</main>;
+  if (error)
+    return (
+      <p className="text-sm text-neutral-600">
+        로그인이 필요해요.{" "}
+        <a className="underline underline-offset-2 hover:text-neutral-900" href="/">
+          홈으로
+        </a>
+      </p>
+    );
+  if (!me) return <p className="text-sm text-neutral-500">불러오는 중…</p>;
 
   return (
-    <main style={{ padding: 40, fontFamily: "sans-serif" }}>
-      <h1>안녕하세요, {me.displayName}님</h1>
-      <p>{me.email}</p>
-      {me.avatarUrl && <img src={me.avatarUrl} alt="" width={64} height={64} style={{ borderRadius: 32 }} />}
-    </main>
+    <div className="flex items-center gap-4 rounded-xl border border-neutral-200 p-6">
+      {me.avatarUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={me.avatarUrl} alt="" className="h-16 w-16 rounded-full" />
+      )}
+      <div>
+        <h1 className="text-xl font-semibold">{me.displayName}</h1>
+        <p className="text-sm text-neutral-500">{me.email}</p>
+      </div>
+    </div>
   );
 }

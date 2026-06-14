@@ -34,31 +34,58 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
   }, []);
 
   return (
-    <main style={{ padding: 40, fontFamily: "sans-serif", maxWidth: 720 }}>
-      <h1>스쿼드 피드</h1>
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+    <div className="space-y-6">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight">스쿼드 피드</h1>
+        <p className="mt-1 text-sm text-neutral-500">최근 활동을 시간 역순으로 보여줍니다</p>
+      </header>
 
-      <ul style={{ listStyle: "none", padding: 0 }}>
+      {error && (
+        <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
+
+      <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200">
         {items.map((it) => (
-          <li key={it.id} style={{ display: "flex", gap: 12, padding: 10, borderBottom: "1px solid #eee" }}>
-            {it.anime?.coverImageUrl && (
-              <img src={it.anime.coverImageUrl} alt="" width={40} height={56} style={{ objectFit: "cover" }} />
+          <li key={it.id} className="flex gap-3 px-4 py-3">
+            {it.anime?.coverImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={it.anime.coverImageUrl}
+                alt=""
+                className="h-14 w-10 flex-none rounded-sm object-cover"
+              />
+            ) : (
+              <div className="h-14 w-10 flex-none rounded-sm bg-neutral-100" />
             )}
-            <div>
-              <div>{describe(it)}</div>
-              <div style={{ fontSize: 12, color: "#999" }}>{new Date(it.createdAt).toLocaleString()}</div>
+            <div className="flex min-w-0 flex-1 flex-col justify-center">
+              <p className="text-sm text-neutral-800">{describe(it)}</p>
+              <p className="mt-0.5 text-xs text-neutral-400">
+                {new Date(it.createdAt).toLocaleString()}
+              </p>
             </div>
           </li>
         ))}
+        {done && items.length === 0 && (
+          <li className="px-4 py-6 text-center text-sm text-neutral-500">
+            아직 활동이 없어요.
+          </li>
+        )}
       </ul>
 
       {!done && (
-        <button onClick={loadMore} disabled={loading} style={{ marginTop: 12 }}>
-          {loading ? "불러오는 중…" : "더 보기"}
-        </button>
+        <div className="text-center">
+          <button
+            onClick={loadMore}
+            disabled={loading}
+            className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
+          >
+            {loading ? "불러오는 중…" : "더 보기"}
+          </button>
+        </div>
       )}
-      {done && items.length === 0 && <p style={{ color: "#666" }}>아직 활동이 없어요.</p>}
-    </main>
+    </div>
   );
 }
 
