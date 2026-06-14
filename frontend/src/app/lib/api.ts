@@ -86,3 +86,14 @@ export type WatchEntry = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type FeedItem = {
+  id: number;
+  type:
+    | "ANIME_ADDED" | "STATUS_CHANGED" | "PROGRESS_UPDATED"
+    | "RATED" | "EPISODE_RATED" | "JOINED_SQUAD";
+  actor: { id: number; displayName: string; avatarUrl: string | null } | null;
+  anime: { id: number; titleRomaji: string; coverImageUrl: string | null } | null;
+  payload: Record<string, unknown>;
+  createdAt: string;
+};

@@ -49,7 +49,9 @@ export default function SquadsPage() {
       <ul>
         {squads.map((s) => (
           <li key={s.id}>
-            <strong>{s.name}</strong>
+            <a href={`/squads/${s.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+              <strong>{s.name}</strong>
+            </a>
             {" "}— 초대 코드: <code>{s.inviteCode}</code>
           </li>
         ))}
