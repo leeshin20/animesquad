@@ -30,3 +30,10 @@
 - `PUT /api/watch/{animeId}/episodes/{ep}` (upsert, replace semantics)
 - `GET /api/watch/{animeId}/episodes`
 - Auto progress bump: rating episode N when current progress < N moves progress to N
+
+## Plan 6 — 2026-06-12
+- `activity` table (V6) with jsonb payload
+- Domain events from squad / watch / episode services
+- ActivityListener fans out events to per-squad activity rows in the same tx
+- `GET /api/squads/{id}/feed?cursor=&limit=` with actor + anime hydration
+- Frontend `/squads/{id}` feed page with "더 보기" pagination
