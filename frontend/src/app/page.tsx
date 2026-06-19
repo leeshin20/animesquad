@@ -107,7 +107,7 @@ function Dashboard({ me }: { me: Me }) {
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="text-sm font-semibold text-neutral-700">최근 기록한 애니</h2>
             <Link
-              href="/my/list"
+              href="/watchlist"
               className="text-xs text-neutral-500 hover:text-neutral-900"
             >
               내 목록 →
@@ -158,7 +158,7 @@ function RecentList({ entries }: { entries: WatchEntry[] | null }) {
         text={
           <>
             아직 기록이 없어요.{" "}
-            <Link href="/anime/search" className="font-medium text-neutral-900 underline underline-offset-2">
+            <Link href="/search" className="font-medium text-neutral-900 underline underline-offset-2">
               검색하러 가기
             </Link>
           </>

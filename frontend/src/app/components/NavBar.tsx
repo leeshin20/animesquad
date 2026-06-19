@@ -6,10 +6,10 @@ import { useEffect, useState } from "react";
 import { apiGet, type Me } from "@/app/lib/api";
 
 const baseLinks = [
-  { href: "/anime/search", label: "탐색" },
-  { href: "/my/list", label: "내 목록" },
+  { href: "/search", label: "탐색" },
+  { href: "/watchlist", label: "내 목록" },
   { href: "/squads", label: "스쿼드" },
-  { href: "/me", label: "내 정보" },
+  { href: "/profile", label: "내 정보" },
 ];
 
 export default function NavBar() {

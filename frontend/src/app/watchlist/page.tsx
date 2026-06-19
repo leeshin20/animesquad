@@ -42,7 +42,7 @@ export default function MyListPage() {
       {entries.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-300 px-6 py-10 text-center text-sm text-neutral-500">
           아직 리스트가 비어 있어요.{" "}
-          <Link href="/anime/search" className="font-medium text-neutral-900 underline underline-offset-2">
+          <Link href="/search" className="font-medium text-neutral-900 underline underline-offset-2">
             검색하러 가기
           </Link>
         </div>
