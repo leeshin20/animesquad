@@ -26,3 +26,10 @@ export function aniFormat(f: string | null | undefined): string {
   if (!f) return "-";
   return FORMAT[f] ?? f;
 }
+
+export function displayTitle(a: {
+  titleKorean?: string | null;
+  titleRomaji: string;
+}): string {
+  return a.titleKorean ?? a.titleRomaji;
+}

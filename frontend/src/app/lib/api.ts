@@ -66,6 +66,7 @@ export type AnimeView = {
   titleRomaji: string;
   titleNative: string;
   titleEnglish: string | null;
+  titleKorean: string | null;
   coverImageUrl: string | null;
   episodes: number | null;
   status: string;
@@ -93,7 +94,7 @@ export type FeedItem = {
     | "ANIME_ADDED" | "STATUS_CHANGED" | "PROGRESS_UPDATED"
     | "RATED" | "EPISODE_RATED" | "JOINED_SQUAD";
   actor: { id: number; displayName: string; avatarUrl: string | null } | null;
-  anime: { id: number; titleRomaji: string; coverImageUrl: string | null } | null;
+  anime: { id: number; titleRomaji: string; titleKorean: string | null; coverImageUrl: string | null } | null;
   payload: Record<string, unknown>;
   createdAt: string;
 };

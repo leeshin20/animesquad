@@ -9,6 +9,7 @@ import {
   type Squad,
   type WatchEntry,
 } from "@/app/lib/api";
+import { displayTitle } from "@/app/lib/anilist-labels";
 
 export default function HomePage() {
   const [me, setMe] = useState<Me | null>(null);
@@ -180,7 +181,7 @@ function RecentList({ entries }: { entries: WatchEntry[] | null }) {
           )}
           <div className="flex min-w-0 flex-1 flex-col justify-center">
             <p className="truncate text-sm font-medium text-neutral-800">
-              {e.anime.titleRomaji}
+              {displayTitle(e.anime)}
             </p>
             <p className="mt-0.5 text-xs text-neutral-500">
               {e.progress}
@@ -220,7 +221,7 @@ function EmptyCard({ text }: { text: React.ReactNode }) {
 
 function describe(it: FeedItem): string {
   const who = it.actor?.displayName ?? "누군가";
-  const what = it.anime?.titleRomaji ?? "작품";
+  const what = it.anime ? displayTitle(it.anime) : "작품";
   const p = it.payload as Record<string, unknown>;
   switch (it.type) {
     case "ANIME_ADDED":

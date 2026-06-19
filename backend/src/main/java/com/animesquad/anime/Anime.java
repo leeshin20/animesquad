@@ -23,6 +23,9 @@ public class Anime {
     @Column(name = "title_english")
     private String titleEnglish;
 
+    @Column(name = "title_korean")
+    private String titleKorean;
+
     @Column(name = "cover_image_url")
     private String coverImageUrl;
 
@@ -75,6 +78,7 @@ public class Anime {
     public String getTitleRomaji() { return titleRomaji; }
     public String getTitleNative() { return titleNative; }
     public String getTitleEnglish() { return titleEnglish; }
+    public String getTitleKorean() { return titleKorean; }
     public String getCoverImageUrl() { return coverImageUrl; }
     public Integer getEpisodes() { return episodes; }
     public String getStatus() { return status; }

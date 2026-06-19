@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { apiGet, type FeedItem } from "@/app/lib/api";
+import { displayTitle } from "@/app/lib/anilist-labels";
 
 const PAGE_SIZE = 30;
 
@@ -91,7 +92,7 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
 
 function describe(it: FeedItem): string {
   const who = it.actor?.displayName ?? "누군가";
-  const what = it.anime?.titleRomaji ?? "작품";
+  const what = it.anime ? displayTitle(it.anime) : "작품";
   const p = it.payload as Record<string, unknown>;
   switch (it.type) {
     case "ANIME_ADDED":

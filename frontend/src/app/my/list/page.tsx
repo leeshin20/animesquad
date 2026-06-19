@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiGet, apiPatch, type WatchEntry, type WatchStatus } from "@/app/lib/api";
-import { aniFormat } from "@/app/lib/anilist-labels";
+import { aniFormat, displayTitle } from "@/app/lib/anilist-labels";
 
 const STATUSES: WatchStatus[] = ["WATCHING", "COMPLETED", "ON_HOLD", "DROPPED", "PLAN_TO_WATCH"];
 
@@ -101,7 +101,7 @@ function Row({
       )}
       <div className="flex flex-1 flex-col gap-2">
         <div>
-          <div className="font-medium">{entry.anime.titleRomaji}</div>
+          <div className="font-medium">{displayTitle(entry.anime)}</div>
           <div className="text-xs text-neutral-500">
             {aniFormat(entry.anime.format)} · {entry.anime.episodes ?? "?"}화
           </div>
