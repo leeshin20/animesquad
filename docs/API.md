@@ -40,27 +40,14 @@
 ## Anime (탐색)
 
 ### `GET /api/anime/search?q={query}`
-AniList GraphQL에 직접 질의해 결과를 반환 (DB 저장 X).
+**캐시 DB**에서 부분 일치 검색 (AniList 직접 호출 아님). 매칭 컬럼: `title_romaji`, `title_english`, `title_korean` (case-insensitive), `title_native` (그대로). 최대 20건, id 내림차순.
 
 **Query**
 - `q` (필수): 검색어. 공백이면 400.
 
-**응답 200** — `AniListMedia[]`
-```json
-[
-  {
-    "anilistId": 154587,
-    "titleRomaji": "Sousou no Frieren",
-    "titleNative": "葬送のフリーレン",
-    "titleEnglish": "Frieren: Beyond Journey's End",
-    "coverImageUrl": "https://...",
-    "episodes": 28,
-    "status": "FINISHED",
-    "format": "TV",
-    "seasonYear": 2023
-  }
-]
-```
+**참고:** 검색 결과는 캐시된 작품만 보입니다. 새 작품을 노출하려면 관리자가 `POST /api/admin/anime/bulk-cache-season` 등으로 먼저 캐싱해야 합니다.
+
+**응답 200** — `AnimeResponse[]` (Watch 섹션의 `WatchEntryResponse.anime` 동일 형식)
 
 ---
 
@@ -159,7 +146,7 @@ AniList GraphQL에 직접 질의해 결과를 반환 (DB 저장 X).
 
 ## Squads
 
-### `POST /api/squads`
+### `POST /api/squad`
 스쿼드 생성. 생성자는 자동 멤버. 8자 invite code 발급.
 
 **요청**
@@ -179,17 +166,17 @@ AniList GraphQL에 직접 질의해 결과를 반환 (DB 저장 X).
 }
 ```
 
-### `GET /api/squads`
+### `GET /api/squad`
 내가 멤버인 스쿼드 전체.
 
 **응답 200** — `SquadResponse[]`
 
-### `GET /api/squads/{id}`
+### `GET /api/squad/{id}`
 스쿼드 상세. **멤버여야 함** (아니면 400 — 존재 비공개).
 
 **응답 200** — `SquadResponse`
 
-### `POST /api/squads/join`
+### `POST /api/squad/join`
 초대코드로 참여. 이미 멤버면 멱등(같은 스쿼드 반환). 알 수 없는 코드면 400.
 
 **요청**
@@ -203,7 +190,7 @@ AniList GraphQL에 직접 질의해 결과를 반환 (DB 저장 X).
 
 ## Squad Feed
 
-### `GET /api/squads/{squadId}/feed?cursor={lastId}&limit={n}`
+### `GET /api/squad/{squadId}/feed?cursor={lastId}&limit={n}`
 스쿼드 활동 피드. id 내림차순. **멤버여야 함**.
 
 **Query**

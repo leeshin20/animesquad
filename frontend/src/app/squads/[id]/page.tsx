@@ -20,7 +20,7 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
     try {
       const cursor = items.length === 0 ? "" : `&cursor=${items[items.length - 1].id}`;
       const page = await apiGet<FeedItem[]>(
-        `/api/squads/${squadId}/feed?limit=${PAGE_SIZE}${cursor}`);
+        `/api/squad/${squadId}/feed?limit=${PAGE_SIZE}${cursor}`);
       setItems((cur) => [...cur, ...page]);
       if (page.length < PAGE_SIZE) setDone(true);
     } catch (e) { setError(String(e)); }

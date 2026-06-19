@@ -56,7 +56,7 @@ class FeedControllerIT extends AbstractIntegrationTest {
         watchService.updateEntry(me.getId(), anime.getId(), null, 5, null, null);
 
         ResponseEntity<Map[]> res = rest.exchange(
-            url("/api/squads/" + s.getId() + "/feed"), HttpMethod.GET,
+            url("/api/squad/" + s.getId() + "/feed"), HttpMethod.GET,
             new HttpEntity<>(cookieFor(me.getId())), Map[].class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -77,13 +77,13 @@ class FeedControllerIT extends AbstractIntegrationTest {
         watchService.updateEntry(me.getId(), anime.getId(), null, 2, null, null);
 
         ResponseEntity<Map[]> first = rest.exchange(
-            url("/api/squads/" + s.getId() + "/feed?limit=1"), HttpMethod.GET,
+            url("/api/squad/" + s.getId() + "/feed?limit=1"), HttpMethod.GET,
             new HttpEntity<>(cookieFor(me.getId())), Map[].class);
         assertThat(first.getBody()).hasSize(1);
         Integer firstId = (Integer) first.getBody()[0].get("id");
 
         ResponseEntity<Map[]> second = rest.exchange(
-            url("/api/squads/" + s.getId() + "/feed?limit=1&cursor=" + firstId),
+            url("/api/squad/" + s.getId() + "/feed?limit=1&cursor=" + firstId),
             HttpMethod.GET,
             new HttpEntity<>(cookieFor(me.getId())), Map[].class);
         assertThat(second.getBody()).hasSize(1);
@@ -97,7 +97,7 @@ class FeedControllerIT extends AbstractIntegrationTest {
         Squad s = squadService.createSquad(owner.getId(), "S");
 
         ResponseEntity<String> res = rest.exchange(
-            url("/api/squads/" + s.getId() + "/feed"), HttpMethod.GET,
+            url("/api/squad/" + s.getId() + "/feed"), HttpMethod.GET,
             new HttpEntity<>(cookieFor(stranger.getId())), String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -106,7 +106,7 @@ class FeedControllerIT extends AbstractIntegrationTest {
     @Test
     void feed_returns401_whenUnauthenticated() {
         ResponseEntity<String> res = rest.exchange(
-            url("/api/squads/1/feed"), HttpMethod.GET,
+            url("/api/squad/1/feed"), HttpMethod.GET,
             HttpEntity.EMPTY, String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);

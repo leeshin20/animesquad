@@ -12,7 +12,7 @@ export default function SquadsPage() {
 
   async function refresh() {
     try {
-      setSquads(await apiGet<Squad[]>("/api/squads"));
+      setSquads(await apiGet<Squad[]>("/api/squad"));
     } catch (e) {
       setStatus(String(e));
     }
@@ -25,7 +25,7 @@ export default function SquadsPage() {
     if (!name.trim()) return;
     setStatus(null);
     try {
-      await apiPost<Squad>("/api/squads", { name });
+      await apiPost<Squad>("/api/squad", { name });
       setName("");
       await refresh();
     } catch (e) { setStatus(String(e)); }
@@ -36,7 +36,7 @@ export default function SquadsPage() {
     if (!code.trim()) return;
     setStatus(null);
     try {
-      await apiPost<Squad>("/api/squads/join", { inviteCode: code });
+      await apiPost<Squad>("/api/squad/join", { inviteCode: code });
       setCode("");
       await refresh();
     } catch (e) { setStatus(String(e)); }

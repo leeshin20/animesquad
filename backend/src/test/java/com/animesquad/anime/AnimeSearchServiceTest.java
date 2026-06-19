@@ -1,26 +1,29 @@
 package com.animesquad.anime;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Limit;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class AnimeSearchServiceTest {
 
-    private final AniListClient client = mock(AniListClient.class);
-    private final AnimeSearchService service = new AnimeSearchService(client);
+    private final AnimeRepository animes = mock(AnimeRepository.class);
+    private final AnimeSearchService service = new AnimeSearchService(animes);
 
     @Test
-    void search_delegatesToClient() {
-        AniListMedia hit = new AniListMedia(1, "R", "N", "E", "img", 12, "FINISHED", "TV", 2024);
-        when(client.search(eq("frieren"))).thenReturn(List.of(hit));
+    void search_delegatesToRepository_withLowercasedLikePattern() {
+        Anime hit = new Anime(1, "Frieren", "葬送", "F", "img", 12, "FINISHED", "TV", 2024);
+        when(animes.searchByTitle(eq("%frieren%"), eq("%Frieren%"), any(Limit.class)))
+            .thenReturn(List.of(hit));
 
-        List<AniListMedia> result = service.search("frieren");
+        List<Anime> result = service.search("Frieren");
 
         assertThat(result).containsExactly(hit);
     }

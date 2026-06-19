@@ -55,13 +55,13 @@ function Dashboard({ me }: { me: Me }) {
     (async () => {
       try {
         const [squads, mine] = await Promise.all([
-          apiGet<Squad[]>("/api/squads"),
+          apiGet<Squad[]>("/api/squad"),
           apiGet<WatchEntry[]>("/api/watch"),
         ]);
         setEntries(mine.slice(0, 5));
 
         const pages = await Promise.all(
-          squads.map((s) => apiGet<FeedItem[]>(`/api/squads/${s.id}/feed?limit=10`))
+          squads.map((s) => apiGet<FeedItem[]>(`/api/squad/${s.id}/feed?limit=10`))
         );
         const merged = pages
           .flat()

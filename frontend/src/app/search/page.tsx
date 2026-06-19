@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet, apiPost, type AniListMedia, type WatchEntry, type WatchStatus } from "@/app/lib/api";
-import { aniFormat, aniStatus } from "@/app/lib/anilist-labels";
+import { apiGet, apiPost, type AnimeView, type WatchEntry, type WatchStatus } from "@/app/lib/api";
+import { aniFormat, aniStatus, displayTitle } from "@/app/lib/anilist-labels";
 
 const STATUSES: WatchStatus[] = ["WATCHING", "COMPLETED", "ON_HOLD", "DROPPED", "PLAN_TO_WATCH"];
 
@@ -16,7 +16,7 @@ const STATUS_LABEL: Record<WatchStatus, string> = {
 
 export default function AnimeSearchPage() {
   const [q, setQ] = useState("");
-  const [results, setResults] = useState<AniListMedia[]>([]);
+  const [results, setResults] = useState<AnimeView[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [added, setAdded] = useState<Record<number, true>>({});
 
@@ -25,7 +25,7 @@ export default function AnimeSearchPage() {
     const t = setTimeout(async () => {
       try {
         setStatus(null);
-        setResults(await apiGet<AniListMedia[]>(`/api/anime/search?q=${encodeURIComponent(q)}`));
+        setResults(await apiGet<AnimeView[]>(`/api/anime/search?q=${encodeURIComponent(q)}`));
       } catch (e) { setStatus(String(e)); }
     }, 300);
     return () => clearTimeout(t);
@@ -43,13 +43,13 @@ export default function AnimeSearchPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">작품 검색</h1>
-        <p className="mt-1 text-sm text-neutral-500">AniList에서 가져온 결과</p>
+        <p className="mt-1 text-sm text-neutral-500">캐시된 작품 중에서 찾습니다</p>
       </header>
 
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="제목을 입력하세요"
+        placeholder="제목을 입력하세요 (한국어/로마자/영어/일본어)"
         className="w-full rounded-lg border border-neutral-300 px-4 py-2.5 text-sm focus:border-neutral-900 focus:outline-none"
       />
 
@@ -57,6 +57,12 @@ export default function AnimeSearchPage() {
         <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
           {status}
         </div>
+      )}
+
+      {q.trim() && results.length === 0 && !status && (
+        <p className="rounded-xl border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-500">
+          검색 결과가 없어요.
+        </p>
       )}
 
       <ul className="space-y-3">
@@ -76,7 +82,10 @@ export default function AnimeSearchPage() {
               <div className="h-24 w-16 flex-none rounded-md bg-neutral-100" />
             )}
             <div className="flex flex-1 flex-col">
-              <div className="font-medium">{m.titleRomaji}</div>
+              <div className="font-medium">{displayTitle(m)}</div>
+              {m.titleKorean && (
+                <div className="text-sm text-neutral-500">{m.titleRomaji}</div>
+              )}
               {m.titleEnglish && (
                 <div className="text-sm text-neutral-500">{m.titleEnglish}</div>
               )}

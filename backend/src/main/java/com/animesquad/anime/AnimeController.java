@@ -1,5 +1,6 @@
 package com.animesquad.anime;
 
+import com.animesquad.anime.dto.AnimeResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,7 +19,7 @@ public class AnimeController {
     }
 
     @GetMapping("/search")
-    public List<AniListMedia> search(@RequestParam("q") String q) {
-        return searchService.search(q);
+    public List<AnimeResponse> search(@RequestParam("q") String q) {
+        return searchService.search(q).stream().map(AnimeResponse::from).toList();
     }
 }
