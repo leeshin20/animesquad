@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet, apiPatch, type AnimeView } from "@/app/lib/api";
+import { apiGet, apiPatch, apiPost, type AnimeView } from "@/app/lib/api";
 import { aniFormat } from "@/app/lib/anilist-labels";
 
 export default function AdminAnimePage() {
@@ -46,6 +46,8 @@ export default function AdminAnimePage() {
         </div>
       )}
 
+      <BulkCacheSection onDone={refresh} onError={setError} />
+
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -67,6 +69,80 @@ export default function AdminAnimePage() {
         </ul>
       )}
     </div>
+  );
+}
+
+const SEASONS = [
+  { value: "WINTER", label: "겨울" },
+  { value: "SPRING", label: "봄" },
+  { value: "SUMMER", label: "여름" },
+  { value: "FALL", label: "가을" },
+];
+
+function BulkCacheSection({
+  onDone,
+  onError,
+}: {
+  onDone: () => void;
+  onError: (s: string) => void;
+}) {
+  const now = new Date();
+  const [year, setYear] = useState<string>(String(now.getFullYear()));
+  const [season, setSeason] = useState<string>("FALL");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<number | null>(null);
+
+  async function go() {
+    setBusy(true);
+    setResult(null);
+    try {
+      const res = await apiPost<{ cached: number }>(
+        "/api/admin/anime/bulk-cache-season",
+        { year: Number(year), season }
+      );
+      setResult(res.cached);
+      onDone();
+    } catch (e) {
+      onError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="rounded-xl border border-neutral-200 p-5">
+      <h2 className="text-sm font-semibold text-neutral-700">시즌 일괄 캐싱</h2>
+      <p className="mt-1 text-xs text-neutral-500">
+        AniList에서 해당 시즌 작품을 인기순으로 가져와 캐시에 저장합니다 (최대 250개).
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <input
+          type="number"
+          value={year}
+          onChange={(e) => setYear(e.target.value)}
+          className="w-24 rounded-md border border-neutral-300 px-2 py-1.5 text-sm focus:border-neutral-900 focus:outline-none"
+        />
+        <select
+          value={season}
+          onChange={(e) => setSeason(e.target.value)}
+          className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm focus:border-neutral-900 focus:outline-none"
+        >
+          {SEASONS.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+        <button
+          onClick={go}
+          disabled={busy}
+          className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-40"
+        >
+          {busy ? "가져오는 중…" : "가져오기"}
+        </button>
+        {result != null && (
+          <span className="text-sm text-emerald-600">{result}개 캐시됨</span>
+        )}
+      </div>
+    </section>
   );
 }
 

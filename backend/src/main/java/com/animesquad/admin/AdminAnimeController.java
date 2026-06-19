@@ -2,6 +2,7 @@ package com.animesquad.admin;
 
 import com.animesquad.anime.Anime;
 import com.animesquad.anime.AnimeRepository;
+import com.animesquad.anime.AnimeService;
 import com.animesquad.anime.dto.AnimeResponse;
 import com.animesquad.auth.CurrentUser;
 import com.animesquad.user.User;
@@ -20,13 +21,21 @@ import java.util.List;
 public class AdminAnimeController {
 
     public record UpdateTitleKoreanRequest(String titleKorean) {}
+    public record BulkCacheSeasonRequest(Integer year, String season) {}
+    public record BulkCacheResult(int cached) {}
+
+    private static final java.util.Set<String> VALID_SEASONS =
+        java.util.Set.of("WINTER", "SPRING", "SUMMER", "FALL");
 
     private final AnimeRepository animes;
+    private final AnimeService animeService;
     private final UserService users;
     private final AdminProperties adminProperties;
 
-    public AdminAnimeController(AnimeRepository animes, UserService users, AdminProperties adminProperties) {
+    public AdminAnimeController(AnimeRepository animes, AnimeService animeService,
+                                UserService users, AdminProperties adminProperties) {
         this.animes = animes;
+        this.animeService = animeService;
         this.users = users;
         this.adminProperties = adminProperties;
     }
@@ -44,6 +53,23 @@ public class AdminAnimeController {
         return animes.findAll(Sort.by(Sort.Direction.DESC, "id")).stream()
             .map(AnimeResponse::from)
             .toList();
+    }
+
+    @PostMapping("/bulk-cache-season")
+    public BulkCacheResult bulkCacheSeason(
+        @AuthenticationPrincipal CurrentUser current,
+        @RequestBody BulkCacheSeasonRequest body
+    ) {
+        requireAdmin(current);
+        if (body.year() == null || body.year() < 1960 || body.year() > 2100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid year");
+        }
+        String season = body.season() == null ? "" : body.season().toUpperCase();
+        if (!VALID_SEASONS.contains(season)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "season must be WINTER/SPRING/SUMMER/FALL");
+        }
+        int n = animeService.bulkCacheSeason(body.year(), season);
+        return new BulkCacheResult(n);
     }
 
     @PatchMapping("/{id}")
