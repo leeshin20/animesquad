@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiGet, apiPost, type AniListMedia, type WatchEntry, type WatchStatus } from "@/app/lib/api";
+import { aniFormat, aniStatus } from "@/app/lib/anilist-labels";
 
 const STATUSES: WatchStatus[] = ["WATCHING", "COMPLETED", "ON_HOLD", "DROPPED", "PLAN_TO_WATCH"];
 
@@ -80,7 +81,7 @@ export default function AnimeSearchPage() {
                 <div className="text-sm text-neutral-500">{m.titleEnglish}</div>
               )}
               <div className="mt-1 text-xs text-neutral-500">
-                {m.format} · {m.seasonYear ?? "-"} · {m.episodes ?? "?"}화 · {m.status}
+                {aniFormat(m.format)} · {m.seasonYear ?? "-"} · {m.episodes ?? "?"}화 · {aniStatus(m.status)}
               </div>
               <div className="mt-auto pt-3">
                 {added[m.anilistId] ? (
