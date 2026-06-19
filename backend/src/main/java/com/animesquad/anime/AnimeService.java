@@ -29,10 +29,11 @@ public class AnimeService {
 
     @Transactional
     public int bulkCacheSeason(int year, String season) {
-        return aniList.fetchSeason(year, season).stream()
+        return (int) aniList.fetchSeason(year, season).stream()
+            .filter(m -> m.titleRomaji() != null && m.titleNative() != null
+                && m.status() != null && m.format() != null)
             .map(this::upsertFromAniList)
-            .toList()
-            .size();
+            .count();
     }
 
     @Transactional

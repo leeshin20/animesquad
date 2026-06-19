@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +28,12 @@ public class GlobalExceptionHandler {
         e.getBindingResult().getFieldErrors().forEach(f -> fields.put(f.getField(), f.getDefaultMessage()));
         return ResponseEntity.badRequest()
             .body(new ApiErrorResponse("VALIDATION_FAILED", "invalid input", fields));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiErrorResponse> responseStatus(ResponseStatusException e) {
+        return ResponseEntity.status(e.getStatusCode())
+            .body(ApiErrorResponse.of(e.getStatusCode().toString(), e.getReason()));
     }
 
     @ExceptionHandler(Exception.class)
