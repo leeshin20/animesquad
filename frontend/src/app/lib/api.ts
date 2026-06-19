@@ -26,6 +26,7 @@ export type Me = {
   email: string;
   displayName: string;
   avatarUrl: string | null;
+  isAdmin: boolean;
 };
 
 export type Squad = {

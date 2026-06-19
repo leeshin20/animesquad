@@ -26,3 +26,5 @@ app:
     same-site: ${COOKIE_SAME_SITE:Lax}
   anilist:
     url: ${ANILIST_URL:https://graphql.anilist.co}
+  admin:
+    emails: ${ADMIN_EMAILS:}

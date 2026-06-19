@@ -79,6 +79,7 @@ public class Anime {
     public String getTitleNative() { return titleNative; }
     public String getTitleEnglish() { return titleEnglish; }
     public String getTitleKorean() { return titleKorean; }
+    public void setTitleKorean(String titleKorean) { this.titleKorean = titleKorean; }
     public String getCoverImageUrl() { return coverImageUrl; }
     public Integer getEpisodes() { return episodes; }
     public String getStatus() { return status; }

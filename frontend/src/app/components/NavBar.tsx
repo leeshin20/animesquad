@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { apiGet, type Me } from "@/app/lib/api";
 
-const links = [
-  { href: "/", label: "홈" },
+const baseLinks = [
   { href: "/anime/search", label: "탐색" },
   { href: "/my/list", label: "내 목록" },
   { href: "/squads", label: "스쿼드" },
@@ -13,6 +14,16 @@ const links = [
 
 export default function NavBar() {
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    apiGet<Me>("/api/me").then((me) => setIsAdmin(!!me.isAdmin)).catch(() => {});
+  }, []);
+
+  const links = isAdmin
+    ? [...baseLinks, { href: "/admin/anime", label: "관리자" }]
+    : baseLinks;
+
   return (
     <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white/80 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
@@ -20,7 +31,7 @@ export default function NavBar() {
           AnimeSquad
         </Link>
         <nav className="flex items-center gap-1">
-          {links.slice(1).map((l) => {
+          {links.map((l) => {
             const active = pathname === l.href || pathname.startsWith(l.href + "/");
             return (
               <Link
