@@ -170,13 +170,19 @@ function ScoreFilterBar({
   counts: Record<ScoreFilter, number>;
   onChange: (f: ScoreFilter) => void;
 }) {
+  const starLabel = (n: number) => (
+    <span className="inline-flex items-center gap-1">
+      <Stars value={1} size="sm" />
+      <span>{n}</span>
+    </span>
+  );
   const tabs: { value: ScoreFilter; label: React.ReactNode }[] = [
     { value: "ALL", label: "평점 전체" },
-    { value: 5, label: <Stars value={5} size="sm" /> },
-    { value: 4, label: <Stars value={4} size="sm" /> },
-    { value: 3, label: <Stars value={3} size="sm" /> },
-    { value: 2, label: <Stars value={2} size="sm" /> },
-    { value: 1, label: <Stars value={1} size="sm" /> },
+    { value: 5, label: starLabel(5) },
+    { value: 4, label: starLabel(4) },
+    { value: 3, label: starLabel(3) },
+    { value: 2, label: starLabel(2) },
+    { value: 1, label: starLabel(1) },
     { value: "NONE", label: "미평가" },
   ];
   return <Pills tabs={tabs} current={current} counts={counts} onChange={onChange} />;
