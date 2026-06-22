@@ -125,50 +125,94 @@ function SquadRecentGrid({ items }: { items: SquadWatchItem[] | null }) {
   }
   return (
     <div className="grid grid-cols-2 gap-3">
-      {items.map((it) => <SquadRecentCard key={it.id} item={it} />)}
+      {groupByAnime(items).map((g) => <SquadRecentCard key={g.anime.id} group={g} />)}
     </div>
   );
 }
 
-function SquadRecentCard({ item }: { item: SquadWatchItem }) {
-  if (!item.anime) return null;
-  const title = displayTitle(item.anime);
+type SquadWatchGroup = {
+  anime: NonNullable<SquadWatchItem["anime"]>;
+  watchers: SquadWatchItem[];
+};
+
+/** Group entries by anime, preserving the incoming (recency) order of both
+ *  groups and watchers within each group. */
+function groupByAnime(items: SquadWatchItem[]): SquadWatchGroup[] {
+  const map = new Map<number, SquadWatchGroup>();
+  const order: number[] = [];
+  for (const it of items) {
+    if (!it.anime) continue;
+    let g = map.get(it.anime.id);
+    if (!g) {
+      g = { anime: it.anime, watchers: [] };
+      map.set(it.anime.id, g);
+      order.push(it.anime.id);
+    }
+    g.watchers.push(it);
+  }
+  return order.map((id) => map.get(id)!);
+}
+
+function SquadRecentCard({ group }: { group: SquadWatchGroup }) {
+  const { anime, watchers } = group;
+  const title = displayTitle(anime);
+  const lead = watchers[0];
   return (
     <div>
       <Link href="/watchlist" className="relative block transition hover:opacity-80">
-        {item.anime.coverImageUrl ? (
+        {anime.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={item.anime.coverImageUrl}
+            src={anime.coverImageUrl}
             alt=""
             className="aspect-[2/3] w-full rounded-lg object-cover"
           />
         ) : (
           <div className="aspect-[2/3] w-full rounded-lg bg-neutral-100" />
         )}
-        {item.actor && (
-          <div className="absolute bottom-1 right-1 ring-2 ring-white rounded-full">
-            <Avatar name={item.actor.displayName} url={item.actor.avatarUrl} size={7} />
-          </div>
-        )}
+        <WatcherStack watchers={watchers} />
       </Link>
       <p className="mt-2 truncate text-sm font-medium text-neutral-800" title={title}>
         {title}
       </p>
       <p className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
         <span>
-          {item.progress}
-          {item.episodes ? `/${item.episodes}` : ""}화
+          {lead.progress}
+          {lead.episodes ? `/${lead.episodes}` : ""}화
         </span>
-        {item.score != null && (
+        {lead.score != null && (
           <>
             <span>·</span>
-            <Stars value={item.score} size="sm" />
+            <Stars value={lead.score} size="sm" />
           </>
         )}
       </p>
-      {item.actor && (
-        <p className="mt-0.5 truncate text-xs text-neutral-400">{item.actor.displayName}</p>
+      <p className="mt-0.5 truncate text-xs text-neutral-400">
+        {watchers.length > 1
+          ? `${watchers.length}명 감상 중`
+          : lead.actor?.displayName}
+      </p>
+    </div>
+  );
+}
+
+function WatcherStack({ watchers }: { watchers: SquadWatchItem[] }) {
+  const withActor = watchers.filter((w) => w.actor);
+  if (withActor.length === 0) return null;
+  const MAX = 3;
+  const shown = withActor.slice(0, MAX);
+  const extra = withActor.length - shown.length;
+  return (
+    <div className="absolute bottom-1 right-1 flex -space-x-2">
+      {shown.map((w) => (
+        <div key={w.id} className="rounded-full ring-2 ring-white">
+          <Avatar name={w.actor!.displayName} url={w.actor!.avatarUrl} size={7} />
+        </div>
+      ))}
+      {extra > 0 && (
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-700 text-xs font-medium text-white ring-2 ring-white">
+          +{extra}
+        </div>
       )}
     </div>
   );
