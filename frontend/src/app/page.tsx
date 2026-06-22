@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   apiGet,
+  apiPatch,
   type FeedItem,
   type Me,
   type Squad,
@@ -54,31 +55,31 @@ function Dashboard() {
   const [entries, setEntries] = useState<WatchEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [squads, mine] = await Promise.all([
-          apiGet<Squad[]>("/api/squad"),
-          apiGet<WatchEntry[]>("/api/watch"),
-        ]);
-        setEntries(mine.slice(0, 10));
+  async function loadAll() {
+    try {
+      const [squads, mine] = await Promise.all([
+        apiGet<Squad[]>("/api/squad"),
+        apiGet<WatchEntry[]>("/api/watch"),
+      ]);
+      setEntries(mine.slice(0, 10));
 
-        const pages = await Promise.all(
-          squads.map(async (s) => {
-            const items = await apiGet<FeedItem[]>(`/api/squad/${s.id}/feed?limit=20`);
-            return items.map((it) => ({ ...it, squad: { id: s.id, name: s.name } }));
-          })
-        );
-        const merged = pages
-          .flat()
-          .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
-          .slice(0, 30);
-        setFeed(merged);
-      } catch (e) {
-        setError(String(e));
-      }
-    })();
-  }, []);
+      const pages = await Promise.all(
+        squads.map(async (s) => {
+          const items = await apiGet<FeedItem[]>(`/api/squad/${s.id}/feed?limit=20`);
+          return items.map((it) => ({ ...it, squad: { id: s.id, name: s.name } }));
+        })
+      );
+      const merged = pages
+        .flat()
+        .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+        .slice(0, 30);
+      setFeed(merged);
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  useEffect(() => { loadAll(); }, []);
 
   return (
     <div className="space-y-10">
@@ -90,7 +91,7 @@ function Dashboard() {
 
       <section>
         <SectionHeader title="내가 최근 기록한 애니" linkHref="/watchlist" linkLabel="내 목록 전체" />
-        <RecentCardRow entries={entries} />
+        <RecentCardRow entries={entries} onChanged={loadAll} />
       </section>
 
       <section>
@@ -114,7 +115,13 @@ function SectionHeader({
   );
 }
 
-function RecentCardRow({ entries }: { entries: WatchEntry[] | null }) {
+function RecentCardRow({
+  entries,
+  onChanged,
+}: {
+  entries: WatchEntry[] | null;
+  onChanged: () => void;
+}) {
   if (entries === null) {
     return (
       <div className="flex gap-3 overflow-x-auto pb-2">
@@ -141,38 +148,73 @@ function RecentCardRow({ entries }: { entries: WatchEntry[] | null }) {
   return (
     <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
       {entries.map((e) => (
-        <Link
-          key={e.id}
-          href="/watchlist"
-          className="w-32 flex-none transition hover:opacity-80"
-        >
-          {e.anime.coverImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={e.anime.coverImageUrl}
-              alt=""
-              className="aspect-[2/3] w-full rounded-lg object-cover"
-            />
-          ) : (
-            <div className="aspect-[2/3] w-full rounded-lg bg-neutral-100" />
-          )}
-          <p className="mt-2 truncate text-sm font-medium text-neutral-800">
-            {displayTitle(e.anime)}
-          </p>
-          <p className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
-            <span>
-              {e.progress}
-              {e.anime.episodes ? `/${e.anime.episodes}` : ""}화
-            </span>
-            {e.score != null && (
-              <>
-                <span>·</span>
-                <Stars value={e.score} size="sm" />
-              </>
-            )}
-          </p>
-        </Link>
+        <RecentCard key={e.id} entry={e} onChanged={onChanged} />
       ))}
+    </div>
+  );
+}
+
+function RecentCard({
+  entry,
+  onChanged,
+}: {
+  entry: WatchEntry;
+  onChanged: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const maxed = entry.anime.episodes != null && entry.progress >= entry.anime.episodes;
+
+  async function bump() {
+    if (busy || maxed) return;
+    setBusy(true);
+    try {
+      await apiPatch(`/api/watch/${entry.anime.id}`, { progress: entry.progress + 1 });
+      onChanged();
+    } catch {
+      // swallow; surface via global error if needed
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="w-32 flex-none">
+      <Link href="/watchlist" className="block transition hover:opacity-80">
+        {entry.anime.coverImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={entry.anime.coverImageUrl}
+            alt=""
+            className="aspect-[2/3] w-full rounded-lg object-cover"
+          />
+        ) : (
+          <div className="aspect-[2/3] w-full rounded-lg bg-neutral-100" />
+        )}
+        <p className="mt-2 truncate text-sm font-medium text-neutral-800">
+          {displayTitle(entry.anime)}
+        </p>
+      </Link>
+      <p className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
+        <span>
+          {entry.progress}
+          {entry.anime.episodes ? `/${entry.anime.episodes}` : ""}화
+        </span>
+        {entry.score != null && (
+          <>
+            <span>·</span>
+            <Stars value={entry.score} size="sm" />
+          </>
+        )}
+      </p>
+      <button
+        type="button"
+        onClick={bump}
+        disabled={busy || maxed}
+        title={maxed ? "최종화까지 봤어요" : "다음 화 봤어요"}
+        className="mt-1.5 w-full rounded-md border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {busy ? "저장 중…" : maxed ? "완료" : `+1화 (${entry.progress + 1}화)`}
+      </button>
     </div>
   );
 }
