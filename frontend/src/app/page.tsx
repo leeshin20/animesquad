@@ -47,8 +47,10 @@ function Landing() {
   );
 }
 
+type FeedItemWithSquad = FeedItem & { squad: { id: number; name: string } };
+
 function Dashboard({ me }: { me: Me }) {
-  const [feed, setFeed] = useState<FeedItem[] | null>(null);
+  const [feed, setFeed] = useState<FeedItemWithSquad[] | null>(null);
   const [entries, setEntries] = useState<WatchEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +64,10 @@ function Dashboard({ me }: { me: Me }) {
         setEntries(mine.slice(0, 10));
 
         const pages = await Promise.all(
-          squads.map((s) => apiGet<FeedItem[]>(`/api/squad/${s.id}/feed?limit=20`))
+          squads.map(async (s) => {
+            const items = await apiGet<FeedItem[]>(`/api/squad/${s.id}/feed?limit=20`);
+            return items.map((it) => ({ ...it, squad: { id: s.id, name: s.name } }));
+          })
         );
         const merged = pages
           .flat()
@@ -179,7 +184,7 @@ function RecentCardRow({ entries }: { entries: WatchEntry[] | null }) {
   );
 }
 
-function Timeline({ items }: { items: FeedItem[] | null }) {
+function Timeline({ items }: { items: FeedItemWithSquad[] | null }) {
   if (items === null) {
     return (
       <div className="divide-y divide-neutral-200 rounded-xl border border-neutral-200">
@@ -209,14 +214,20 @@ function Timeline({ items }: { items: FeedItem[] | null }) {
   );
 }
 
-function TimelineItem({ item }: { item: FeedItem }) {
+function TimelineItem({ item }: { item: FeedItemWithSquad }) {
   const name = item.actor?.displayName ?? "누군가";
   return (
     <li className="flex gap-3 px-4 py-4 transition hover:bg-neutral-50">
       <Avatar name={name} url={item.actor?.avatarUrl ?? null} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-baseline gap-2 text-sm">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
           <span className="font-semibold text-neutral-900">{name}</span>
+          <Link
+            href={`/squads/${item.squad.id}`}
+            className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 hover:bg-neutral-200"
+          >
+            {item.squad.name}
+          </Link>
           <span className="text-xs text-neutral-400">{relativeTime(item.createdAt)}</span>
         </div>
         <p className="text-sm text-neutral-700">{actionText(item)}</p>
