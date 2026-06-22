@@ -176,6 +176,28 @@
 
 **응답 200** — `SquadResponse`
 
+### `GET /api/squad/{squadId}/recent-watch?limit={n}`
+스쿼드 멤버들의 최근 워치 엔트리 (updated_at 내림차순). 멤버여야 함.
+
+**Query**
+- `limit` (선택, 기본 10, 최대 50)
+
+**응답 200**
+```json
+[
+  {
+    "id": 42,
+    "anime": { "id": 1, "titleRomaji": "Frieren", "titleKorean": "장송의 프리렌", "coverImageUrl": "..." },
+    "episodes": 28,
+    "status": "WATCHING",
+    "progress": 5,
+    "score": 4,
+    "updatedAt": "2026-06-22T10:00:00Z",
+    "actor": { "id": 3, "displayName": "Friend", "avatarUrl": "..." }
+  }
+]
+```
+
 ### `POST /api/squad/join`
 초대코드로 참여. 이미 멤버면 멱등(같은 스쿼드 반환). 알 수 없는 코드면 400.
 

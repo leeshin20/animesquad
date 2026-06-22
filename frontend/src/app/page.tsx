@@ -12,6 +12,7 @@ import {
 } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { Stars } from "@/app/components/Stars";
+import { Timeline, type FeedItemWithSquad } from "@/app/components/Timeline";
 
 export default function HomePage() {
   const [me, setMe] = useState<Me | null>(null);
@@ -47,8 +48,6 @@ function Landing() {
     </section>
   );
 }
-
-type FeedItemWithSquad = FeedItem & { squad: { id: number; name: string } };
 
 function Dashboard() {
   const [feed, setFeed] = useState<FeedItemWithSquad[] | null>(null);
@@ -93,12 +92,12 @@ function Dashboard() {
       <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
         <section>
           <SectionHeader title="내가 최근 기록한 애니" linkHref="/watchlist" linkLabel="내 목록 전체" />
-          <RecentCardGrid entries={entries} onChanged={loadAll} />
+          <MyRecentGrid entries={entries} onChanged={loadAll} />
         </section>
 
         <section>
           <SectionHeader title="스쿼드 활동" linkHref="/squads" linkLabel="스쿼드 전체" />
-          <Timeline items={feed} />
+          <Timeline items={feed} showSquad />
         </section>
       </div>
     </div>
@@ -118,26 +117,14 @@ function SectionHeader({
   );
 }
 
-function RecentCardGrid({
+function MyRecentGrid({
   entries,
   onChanged,
 }: {
   entries: WatchEntry[] | null;
   onChanged: () => void;
 }) {
-  if (entries === null) {
-    return (
-      <div className="grid grid-cols-2 gap-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i}>
-            <div className="aspect-[2/3] w-full animate-pulse rounded-lg bg-neutral-100" />
-            <div className="mt-2 h-3 w-3/4 animate-pulse rounded bg-neutral-100" />
-            <div className="mt-1 h-2 w-1/2 animate-pulse rounded bg-neutral-100" />
-          </div>
-        ))}
-      </div>
-    );
-  }
+  if (entries === null) return <GridSkeleton />;
   if (entries.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-500">
@@ -151,13 +138,27 @@ function RecentCardGrid({
   return (
     <div className="grid grid-cols-2 gap-3">
       {entries.map((e) => (
-        <RecentCard key={e.id} entry={e} onChanged={onChanged} />
+        <MyRecentCard key={e.id} entry={e} onChanged={onChanged} />
       ))}
     </div>
   );
 }
 
-function RecentCard({
+function GridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i}>
+          <div className="aspect-[2/3] w-full animate-pulse rounded-lg bg-neutral-100" />
+          <div className="mt-2 h-3 w-3/4 animate-pulse rounded bg-neutral-100" />
+          <div className="mt-1 h-2 w-1/2 animate-pulse rounded bg-neutral-100" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MyRecentCard({
   entry,
   onChanged,
 }: {
@@ -174,7 +175,7 @@ function RecentCard({
       await apiPatch(`/api/watch/${entry.anime.id}`, { progress: entry.progress + 1 });
       onChanged();
     } catch {
-      // swallow; surface via global error if needed
+      // ignore
     } finally {
       setBusy(false);
     }
@@ -220,121 +221,4 @@ function RecentCard({
       </button>
     </div>
   );
-}
-
-function Timeline({ items }: { items: FeedItemWithSquad[] | null }) {
-  if (items === null) {
-    return (
-      <div className="divide-y divide-neutral-200 rounded-xl border border-neutral-200">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex gap-3 px-4 py-4">
-            <div className="h-10 w-10 flex-none animate-pulse rounded-full bg-neutral-100" />
-            <div className="flex flex-1 flex-col gap-2">
-              <div className="h-3 w-1/3 animate-pulse rounded bg-neutral-100" />
-              <div className="h-3 w-2/3 animate-pulse rounded bg-neutral-100" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  if (items.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-500">
-        아직 스쿼드 활동이 없어요.
-      </div>
-    );
-  }
-  return (
-    <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200">
-      {items.map((it) => <TimelineItem key={it.id} item={it} />)}
-    </ul>
-  );
-}
-
-function TimelineItem({ item }: { item: FeedItemWithSquad }) {
-  const name = item.actor?.displayName ?? "누군가";
-  return (
-    <li className="flex gap-3 px-4 py-4 transition hover:bg-neutral-50">
-      <Avatar name={name} url={item.actor?.avatarUrl ?? null} />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-          <span className="font-semibold text-neutral-900">{name}</span>
-          <Link
-            href={`/squads/${item.squad.id}`}
-            className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 hover:bg-neutral-200"
-          >
-            {item.squad.name}
-          </Link>
-          <span className="text-xs text-neutral-400">{relativeTime(item.createdAt)}</span>
-        </div>
-        <p className="text-sm text-neutral-700">{actionText(item)}</p>
-        {item.anime && (
-          <Link
-            href="/watchlist"
-            className="mt-1 inline-flex max-w-sm items-center gap-3 rounded-lg border border-neutral-200 p-2 transition hover:border-neutral-300"
-          >
-            {item.anime.coverImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={item.anime.coverImageUrl}
-                alt=""
-                className="h-12 w-9 flex-none rounded-sm object-cover"
-              />
-            ) : (
-              <div className="h-12 w-9 flex-none rounded-sm bg-neutral-100" />
-            )}
-            <span className="truncate text-sm text-neutral-800">
-              {displayTitle(item.anime)}
-            </span>
-          </Link>
-        )}
-      </div>
-    </li>
-  );
-}
-
-function Avatar({ name, url }: { name: string; url: string | null }) {
-  if (url) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={url} alt="" className="h-10 w-10 flex-none rounded-full object-cover" />;
-  }
-  const initial = name.trim().charAt(0).toUpperCase() || "?";
-  return (
-    <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-neutral-200 text-sm font-medium text-neutral-600">
-      {initial}
-    </div>
-  );
-}
-
-function actionText(it: FeedItem): string {
-  const p = it.payload as Record<string, unknown>;
-  switch (it.type) {
-    case "ANIME_ADDED":
-      return `리스트에 추가했어요`;
-    case "STATUS_CHANGED":
-      return `상태를 ${p.from} → ${p.to} 로 바꿨어요`;
-    case "PROGRESS_UPDATED":
-      return `${p.progress}화까지 봤어요`;
-    case "RATED":
-      return `${p.score}/5 평점을 남겼어요`;
-    case "EPISODE_RATED":
-      return `${p.episode}화에 ${p.score}/5 평점을 남겼어요`;
-    case "JOINED_SQUAD":
-      return `스쿼드에 참여했어요`;
-  }
-}
-
-function relativeTime(iso: string): string {
-  const now = Date.now();
-  const t = new Date(iso).getTime();
-  const diffSec = Math.floor((now - t) / 1000);
-  if (diffSec < 60) return "방금";
-  const m = Math.floor(diffSec / 60);
-  if (m < 60) return `${m}분 전`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}시간 전`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}일 전`;
-  return new Date(iso).toLocaleDateString();
 }
