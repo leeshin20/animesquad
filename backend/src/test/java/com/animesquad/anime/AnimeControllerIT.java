@@ -83,4 +83,24 @@ class AnimeControllerIT extends AbstractIntegrationTest {
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
+
+    @Test
+    void getById_returnsAnime_and404WhenMissing() {
+        User me = userService.upsertFromGoogle("g-gbi", "gbi@x.y", "GBI", null);
+        Anime a = animeService.upsertFromAniList(new AniListMedia(
+            101, "Romaji101", "Native", "Eng", "img", 12, "FINISHED", "TV", 2024));
+
+        ResponseEntity<AnimeResponse> ok = rest.exchange(
+            "http://localhost:" + port + "/api/anime/" + a.getId(), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(me.getId())), AnimeResponse.class);
+        assertThat(ok.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(ok.getBody().id()).isEqualTo(a.getId());
+        assertThat(ok.getBody().anilistId()).isEqualTo(101);
+        assertThat(ok.getBody().titleRomaji()).isEqualTo("Romaji101");
+
+        ResponseEntity<String> missing = rest.exchange(
+            "http://localhost:" + port + "/api/anime/999999", HttpMethod.GET,
+            new HttpEntity<>(cookieFor(me.getId())), String.class);
+        assertThat(missing.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
 }
