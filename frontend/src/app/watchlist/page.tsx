@@ -16,11 +16,41 @@ const STATUS_LABEL: Record<WatchStatus, string> = {
 };
 
 type Filter = WatchStatus | "ALL";
+type SortKey = "UPDATED" | "ADDED" | "TITLE" | "SCORE";
+
+const SORT_LABEL: Record<SortKey, string> = {
+  UPDATED: "최신 순",
+  ADDED: "추가한 날짜 순",
+  TITLE: "가나다 순",
+  SCORE: "평점 순",
+};
+
+function sortEntries(entries: WatchEntry[], key: SortKey): WatchEntry[] {
+  const arr = [...entries];
+  switch (key) {
+    case "UPDATED":
+      return arr.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+    case "ADDED":
+      return arr.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    case "TITLE":
+      return arr.sort((a, b) =>
+        displayTitle(a.anime).localeCompare(displayTitle(b.anime), "ko")
+      );
+    case "SCORE":
+      return arr.sort((a, b) => {
+        if (a.score == null && b.score == null) return 0;
+        if (a.score == null) return 1;
+        if (b.score == null) return -1;
+        return b.score - a.score;
+      });
+  }
+}
 
 export default function MyListPage() {
   const [entries, setEntries] = useState<WatchEntry[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("ALL");
+  const [sort, setSort] = useState<SortKey>("UPDATED");
 
   async function refresh() {
     try { setEntries(await apiGet<WatchEntry[]>("/api/watch")); }
@@ -35,7 +65,10 @@ export default function MyListPage() {
   };
   entries.forEach((e) => { counts[e.status]++; });
 
-  const filtered = filter === "ALL" ? entries : entries.filter((e) => e.status === filter);
+  const filtered = sortEntries(
+    filter === "ALL" ? entries : entries.filter((e) => e.status === filter),
+    sort
+  );
 
   return (
     <div className="space-y-6">
@@ -59,10 +92,24 @@ export default function MyListPage() {
         </div>
       ) : (
         <>
-          <FilterBar current={filter} counts={counts} onChange={setFilter} />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <FilterBar current={filter} counts={counts} onChange={setFilter} />
+            <label className="flex items-center gap-2 text-sm text-neutral-500">
+              정렬
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortKey)}
+                className="rounded-md border border-neutral-300 px-2 py-1 text-sm focus:border-neutral-900 focus:outline-none"
+              >
+                {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
+                  <option key={k} value={k}>{SORT_LABEL[k]}</option>
+                ))}
+              </select>
+            </label>
+          </div>
           {filtered.length === 0 ? (
             <p className="rounded-xl border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-500">
-              이 상태의 작품이 없어요.
+              아직 작품이 없어요.
             </p>
           ) : (
             <ul className="space-y-3">
