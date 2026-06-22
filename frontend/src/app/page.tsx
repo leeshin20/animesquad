@@ -82,22 +82,24 @@ function Dashboard() {
   useEffect(() => { loadAll(); }, []);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       {error && (
         <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
           {error}
         </div>
       )}
 
-      <section>
-        <SectionHeader title="내가 최근 기록한 애니" linkHref="/watchlist" linkLabel="내 목록 전체" />
-        <RecentCardRow entries={entries} onChanged={loadAll} />
-      </section>
+      <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
+        <section>
+          <SectionHeader title="내가 최근 기록한 애니" linkHref="/watchlist" linkLabel="내 목록 전체" />
+          <RecentCardGrid entries={entries} onChanged={loadAll} />
+        </section>
 
-      <section>
-        <SectionHeader title="스쿼드 활동" linkHref="/squads" linkLabel="스쿼드 전체" />
-        <Timeline items={feed} />
-      </section>
+        <section>
+          <SectionHeader title="스쿼드 활동" linkHref="/squads" linkLabel="스쿼드 전체" />
+          <Timeline items={feed} />
+        </section>
+      </div>
     </div>
   );
 }
@@ -115,7 +117,7 @@ function SectionHeader({
   );
 }
 
-function RecentCardRow({
+function RecentCardGrid({
   entries,
   onChanged,
 }: {
@@ -124,9 +126,9 @@ function RecentCardRow({
 }) {
   if (entries === null) {
     return (
-      <div className="flex gap-3 overflow-x-auto pb-2">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="w-32 flex-none">
+      <div className="grid grid-cols-2 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i}>
             <div className="aspect-[2/3] w-full animate-pulse rounded-lg bg-neutral-100" />
             <div className="mt-2 h-3 w-3/4 animate-pulse rounded bg-neutral-100" />
             <div className="mt-1 h-2 w-1/2 animate-pulse rounded bg-neutral-100" />
@@ -146,7 +148,7 @@ function RecentCardRow({
     );
   }
   return (
-    <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
+    <div className="grid grid-cols-2 gap-3">
       {entries.map((e) => (
         <RecentCard key={e.id} entry={e} onChanged={onChanged} />
       ))}
@@ -178,7 +180,7 @@ function RecentCard({
   }
 
   return (
-    <div className="w-32 flex-none">
+    <div>
       <Link href="/watchlist" className="block transition hover:opacity-80">
         {entry.anime.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
