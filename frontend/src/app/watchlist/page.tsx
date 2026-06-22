@@ -15,9 +15,12 @@ const STATUS_LABEL: Record<WatchStatus, string> = {
   PLAN_TO_WATCH: "볼 예정",
 };
 
+type Filter = WatchStatus | "ALL";
+
 export default function MyListPage() {
   const [entries, setEntries] = useState<WatchEntry[]>([]);
   const [status, setStatus] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>("ALL");
 
   async function refresh() {
     try { setEntries(await apiGet<WatchEntry[]>("/api/watch")); }
@@ -25,6 +28,14 @@ export default function MyListPage() {
   }
 
   useEffect(() => { refresh(); }, []);
+
+  const counts: Record<Filter, number> = {
+    ALL: entries.length,
+    WATCHING: 0, COMPLETED: 0, ON_HOLD: 0, DROPPED: 0, PLAN_TO_WATCH: 0,
+  };
+  entries.forEach((e) => { counts[e.status]++; });
+
+  const filtered = filter === "ALL" ? entries : entries.filter((e) => e.status === filter);
 
   return (
     <div className="space-y-6">
@@ -47,12 +58,62 @@ export default function MyListPage() {
           </Link>
         </div>
       ) : (
-        <ul className="space-y-3">
-          {entries.map((e) => (
-            <Row key={e.id} entry={e} onSaved={refresh} onError={setStatus} />
-          ))}
-        </ul>
+        <>
+          <FilterBar current={filter} counts={counts} onChange={setFilter} />
+          {filtered.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-500">
+              이 상태의 작품이 없어요.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {filtered.map((e) => (
+                <Row key={e.id} entry={e} onSaved={refresh} onError={setStatus} />
+              ))}
+            </ul>
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+function FilterBar({
+  current, counts, onChange,
+}: {
+  current: Filter;
+  counts: Record<Filter, number>;
+  onChange: (f: Filter) => void;
+}) {
+  const tabs: { value: Filter; label: string }[] = [
+    { value: "ALL", label: "전체" },
+    { value: "WATCHING", label: STATUS_LABEL.WATCHING },
+    { value: "COMPLETED", label: STATUS_LABEL.COMPLETED },
+    { value: "ON_HOLD", label: STATUS_LABEL.ON_HOLD },
+    { value: "DROPPED", label: STATUS_LABEL.DROPPED },
+    { value: "PLAN_TO_WATCH", label: STATUS_LABEL.PLAN_TO_WATCH },
+  ];
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {tabs.map((t) => {
+        const active = current === t.value;
+        return (
+          <button
+            key={t.value}
+            onClick={() => onChange(t.value)}
+            className={
+              "rounded-full px-3 py-1 text-sm transition " +
+              (active
+                ? "bg-neutral-900 text-white"
+                : "border border-neutral-200 text-neutral-600 hover:bg-neutral-100")
+            }
+          >
+            {t.label}
+            <span className={"ml-1.5 text-xs " + (active ? "text-neutral-300" : "text-neutral-400")}>
+              {counts[t.value]}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
