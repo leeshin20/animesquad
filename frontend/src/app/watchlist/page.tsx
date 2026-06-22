@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiGet, apiPatch, type WatchEntry, type WatchStatus } from "@/app/lib/api";
 import { aniFormat, displayTitle } from "@/app/lib/anilist-labels";
-import { Stars, StarsInput } from "@/app/components/Stars";
+import { StarIcon, StarsInput } from "@/app/components/Stars";
 
 const STATUSES: WatchStatus[] = ["WATCHING", "COMPLETED", "ON_HOLD", "DROPPED", "PLAN_TO_WATCH"];
 
@@ -171,9 +171,9 @@ function ScoreFilterBar({
   onChange: (f: ScoreFilter) => void;
 }) {
   const starLabel = (n: number) => (
-    <span className="inline-flex items-center gap-1">
-      <Stars value={1} size="sm" />
+    <span className="inline-flex items-center gap-0.5">
       <span>{n}</span>
+      <StarIcon size="sm" />
     </span>
   );
   const tabs: { value: ScoreFilter; label: React.ReactNode }[] = [

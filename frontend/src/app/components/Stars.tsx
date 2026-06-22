@@ -29,6 +29,11 @@ function StarSvg({ filled, className }: { filled: boolean; className: string }) 
   );
 }
 
+export function StarIcon({ size = "md" }: { size?: "sm" | "md" }) {
+  const dim = size === "sm" ? "h-3.5 w-3.5" : "h-5 w-5";
+  return <StarSvg filled className={`${dim} text-amber-500`} />;
+}
+
 export function Stars({ value, size = "md" }: DisplayProps) {
   const dim = size === "sm" ? "h-3.5 w-3.5" : "h-5 w-5";
   if (value == null) {
