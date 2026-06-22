@@ -18,34 +18,26 @@ const STATUS_LABEL: Record<WatchStatus, string> = {
 
 type StatusFilter = WatchStatus | "ALL";
 type ScoreFilter = "ALL" | 1 | 2 | 3 | 4 | 5 | "NONE";
-type SortKey = "UPDATED" | "ADDED" | "TITLE" | "SCORE";
+type SortKey = "UPDATED" | "TITLE";
+type SortDir = "ASC" | "DESC";
 
 const SORT_LABEL: Record<SortKey, string> = {
-  UPDATED: "최신 순",
-  ADDED: "추가한 날짜 순",
-  TITLE: "가나다 순",
-  SCORE: "평점 순",
+  UPDATED: "날짜순",
+  TITLE: "이름순",
 };
 
-function sortEntries(entries: WatchEntry[], key: SortKey): WatchEntry[] {
-  const arr = [...entries];
+function compareEntries(a: WatchEntry, b: WatchEntry, key: SortKey): number {
   switch (key) {
     case "UPDATED":
-      return arr.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
-    case "ADDED":
-      return arr.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+      return a.updatedAt < b.updatedAt ? -1 : a.updatedAt > b.updatedAt ? 1 : 0;
     case "TITLE":
-      return arr.sort((a, b) =>
-        displayTitle(a.anime).localeCompare(displayTitle(b.anime), "ko")
-      );
-    case "SCORE":
-      return arr.sort((a, b) => {
-        if (a.score == null && b.score == null) return 0;
-        if (a.score == null) return 1;
-        if (b.score == null) return -1;
-        return b.score - a.score;
-      });
+      return displayTitle(a.anime).localeCompare(displayTitle(b.anime), "ko");
   }
+}
+
+function sortEntries(entries: WatchEntry[], key: SortKey, dir: SortDir): WatchEntry[] {
+  const sign = dir === "ASC" ? 1 : -1;
+  return [...entries].sort((a, b) => sign * compareEntries(a, b, key));
 }
 
 export default function MyListPage() {
@@ -54,6 +46,7 @@ export default function MyListPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>("ALL");
   const [sort, setSort] = useState<SortKey>("UPDATED");
+  const [sortDir, setSortDir] = useState<SortDir>("DESC");
 
   async function refresh() {
     try { setEntries(await apiGet<WatchEntry[]>("/api/watch")); }
@@ -86,7 +79,7 @@ export default function MyListPage() {
     return e.score === scoreFilter;
   });
 
-  const filtered = sortEntries(afterScore, sort);
+  const filtered = sortEntries(afterScore, sort, sortDir);
 
   return (
     <div className="space-y-6">
@@ -123,6 +116,14 @@ export default function MyListPage() {
                   <option key={k} value={k}>{SORT_LABEL[k]}</option>
                 ))}
               </select>
+              <button
+                type="button"
+                onClick={() => setSortDir((d) => (d === "ASC" ? "DESC" : "ASC"))}
+                className="inline-flex items-center gap-1 rounded-md border border-neutral-300 px-2 py-1 text-sm text-neutral-600 hover:bg-neutral-100"
+                title={sortDir === "DESC" ? "내림차순" : "오름차순"}
+              >
+                {sortDir === "DESC" ? "↓ 내림차순" : "↑ 오름차순"}
+              </button>
             </label>
           </div>
 
