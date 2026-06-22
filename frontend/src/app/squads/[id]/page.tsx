@@ -130,15 +130,15 @@ function SquadRecentGrid({ items }: { items: SquadWatchItem[] | null }) {
   );
 }
 
-type SquadWatchGroup = {
+type AnimeWatchGroup = {
   anime: NonNullable<SquadWatchItem["anime"]>;
   watchers: SquadWatchItem[];
 };
 
 /** Group entries by anime, preserving the incoming (recency) order of both
  *  groups and watchers within each group. */
-function groupByAnime(items: SquadWatchItem[]): SquadWatchGroup[] {
-  const map = new Map<number, SquadWatchGroup>();
+function groupByAnime(items: SquadWatchItem[]): AnimeWatchGroup[] {
+  const map = new Map<number, AnimeWatchGroup>();
   const order: number[] = [];
   for (const it of items) {
     if (!it.anime) continue;
@@ -153,7 +153,7 @@ function groupByAnime(items: SquadWatchItem[]): SquadWatchGroup[] {
   return order.map((id) => map.get(id)!);
 }
 
-function SquadRecentCard({ group }: { group: SquadWatchGroup }) {
+function SquadRecentCard({ group }: { group: AnimeWatchGroup }) {
   const { anime, watchers } = group;
   const title = displayTitle(anime);
   const lead = watchers[0];
