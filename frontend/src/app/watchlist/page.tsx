@@ -281,12 +281,38 @@ function Row({
               <option key={s} value={s}>{STATUS_LABEL[s]}</option>
             ))}
           </select>
-          <input
-            type="number" min={0} value={progress}
-            onChange={(e) => setProgress(e.target.value)}
-            placeholder="진도"
-            className={`${inputCls} w-20`}
-          />
+          <div className="inline-flex items-stretch">
+            <button
+              type="button"
+              onClick={() => {
+                const n = Math.max(0, (Number(progress) || 0) - 1);
+                setProgress(String(n));
+              }}
+              className="rounded-l-md border border-r-0 border-neutral-300 px-2 text-sm text-neutral-600 hover:bg-neutral-100"
+              aria-label="진도 -1"
+            >
+              −
+            </button>
+            <input
+              type="number" min={0} value={progress}
+              onChange={(e) => setProgress(e.target.value)}
+              placeholder="진도"
+              className="w-14 border-y border-neutral-300 px-2 py-1 text-center text-sm focus:border-neutral-900 focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const max = entry.anime.episodes;
+                const next = (Number(progress) || 0) + 1;
+                if (max != null && next > max) return;
+                setProgress(String(next));
+              }}
+              className="rounded-r-md border border-l-0 border-neutral-300 px-2 text-sm text-neutral-600 hover:bg-neutral-100"
+              aria-label="진도 +1"
+            >
+              +
+            </button>
+          </div>
           <StarsInput value={score} onChange={setScore} size="sm" />
           <input
             value={comment}
