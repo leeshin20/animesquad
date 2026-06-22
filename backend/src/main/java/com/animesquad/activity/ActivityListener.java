@@ -10,6 +10,7 @@ import com.animesquad.watch.events.WatchStatusChangedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,8 +45,13 @@ public class ActivityListener {
 
     @EventListener
     public void on(WatchRatedEvent e) {
-        fanOut(e.actorId(), ActivityType.RATED, e.animeId(),
-            Map.of("score", e.score()));
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("score", e.score());
+        payload.put("progress", e.progress());
+        if (e.comment() != null && !e.comment().isBlank()) {
+            payload.put("comment", e.comment());
+        }
+        fanOut(e.actorId(), ActivityType.RATED, e.animeId(), payload);
     }
 
     @EventListener

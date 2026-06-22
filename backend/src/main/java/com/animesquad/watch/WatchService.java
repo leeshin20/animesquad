@@ -52,7 +52,7 @@ public class WatchService {
             events.publishEvent(new ProgressUpdatedEvent(userId, animeId, progress));
         }
         if (score != null && !score.equals(oldScore)) {
-            events.publishEvent(new WatchRatedEvent(userId, animeId, score));
+            events.publishEvent(new WatchRatedEvent(userId, animeId, score, e.getProgress(), e.getComment()));
         }
         return e;
     }

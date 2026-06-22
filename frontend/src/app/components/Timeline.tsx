@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { FeedItem } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
+import { Stars } from "@/app/components/Stars";
 
 export type FeedItemWithSquad = FeedItem & { squad?: { id: number; name: string } };
 
@@ -64,7 +65,7 @@ function TimelineItem({
           )}
           <span className="text-xs text-neutral-400">{relativeTime(item.createdAt)}</span>
         </div>
-        <p className="text-sm text-neutral-700">{actionText(item)}</p>
+        <ItemBody item={item} />
         {item.anime && (
           <Link
             href="/watchlist"
@@ -88,6 +89,31 @@ function TimelineItem({
       </div>
     </li>
   );
+}
+
+function ItemBody({ item }: { item: FeedItem }) {
+  const p = item.payload as Record<string, unknown>;
+
+  if (item.type === "RATED") {
+    const comment = typeof p.comment === "string" ? p.comment : null;
+    return (
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-center gap-2 text-sm text-neutral-700">
+          {p.score != null && <Stars value={Number(p.score)} size="sm" />}
+          {p.progress != null && (
+            <span className="text-xs text-neutral-500">{Number(p.progress)}화</span>
+          )}
+        </div>
+        {comment && <p className="text-sm text-neutral-600">{comment}</p>}
+      </div>
+    );
+  }
+
+  if (item.type === "PROGRESS_UPDATED") {
+    return <p className="text-sm text-neutral-700">{Number(p.progress)}화</p>;
+  }
+
+  return <p className="text-sm text-neutral-700">{actionText(item)}</p>;
 }
 
 export function Avatar({ name, url, size = 10 }: { name: string; url: string | null; size?: 7 | 8 | 10 }) {

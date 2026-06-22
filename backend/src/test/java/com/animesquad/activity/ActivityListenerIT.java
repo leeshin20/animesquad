@@ -103,11 +103,25 @@ class ActivityListenerIT extends AbstractIntegrationTest {
     void watchRated_emitsWithScore() {
         Setup s = seedTwoSquadsWithMember();
 
-        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 5));
+        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 5, 7, "재밌었다"));
 
         Activity row = activities.findBySquadIdOrderByIdDesc(s.squadA().getId(), Limit.of(1)).get(0);
         assertThat(row.getType()).isEqualTo(ActivityType.RATED);
         assertThat(((Number) row.getPayload().get("score")).intValue()).isEqualTo(5);
+        assertThat(((Number) row.getPayload().get("progress")).intValue()).isEqualTo(7);
+        assertThat(row.getPayload().get("comment")).isEqualTo("재밌었다");
+    }
+
+    @Test
+    void watchRated_omitsComment_whenBlank() {
+        Setup s = seedTwoSquadsWithMember();
+
+        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 4, 3, null));
+
+        Activity row = activities.findBySquadIdOrderByIdDesc(s.squadA().getId(), Limit.of(1)).get(0);
+        assertThat(row.getType()).isEqualTo(ActivityType.RATED);
+        assertThat(((Number) row.getPayload().get("progress")).intValue()).isEqualTo(3);
+        assertThat(row.getPayload()).doesNotContainKey("comment");
     }
 
     @Test
