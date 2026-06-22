@@ -297,7 +297,7 @@ function Row({
               type="number" min={0} value={progress}
               onChange={(e) => setProgress(e.target.value)}
               placeholder="진도"
-              className="w-14 border-y border-neutral-300 px-2 py-1 text-center text-sm focus:border-neutral-900 focus:outline-none"
+              className="no-spinner w-14 border-y border-neutral-300 px-2 py-1 text-center text-sm focus:border-neutral-900 focus:outline-none"
             />
             <button
               type="button"
