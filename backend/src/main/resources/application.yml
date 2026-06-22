@@ -19,7 +19,7 @@ app:
     secret: ${JWT_SECRET:dev-secret-change-me-please-at-least-32-bytes!!}
     ttl-minutes: 1440
   oauth:
-    success-redirect: ${OAUTH_SUCCESS_REDIRECT:http://localhost:3000/profile}
+    success-redirect: ${OAUTH_SUCCESS_REDIRECT:http://localhost:3000/}
   cookie:
     domain: ${COOKIE_DOMAIN:}
     secure: ${COOKIE_SECURE:false}
