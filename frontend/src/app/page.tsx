@@ -26,7 +26,7 @@ export default function HomePage() {
   if (!checked) {
     return <p className="py-16 text-center text-sm text-neutral-400">불러오는 중…</p>;
   }
-  return me ? <Dashboard me={me} /> : <Landing />;
+  return me ? <Dashboard /> : <Landing />;
 }
 
 function Landing() {
@@ -49,7 +49,7 @@ function Landing() {
 
 type FeedItemWithSquad = FeedItem & { squad: { id: number; name: string } };
 
-function Dashboard({ me }: { me: Me }) {
+function Dashboard() {
   const [feed, setFeed] = useState<FeedItemWithSquad[] | null>(null);
   const [entries, setEntries] = useState<WatchEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,13 +82,6 @@ function Dashboard({ me }: { me: Me }) {
 
   return (
     <div className="space-y-10">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          안녕하세요, {me.displayName}님 👋
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">최근 기록과 스쿼드 활동</p>
-      </header>
-
       {error && (
         <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
           {error}
