@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { apiGet, type FeedItem } from "@/app/lib/api";
+import { apiGet, type FeedItem, type Squad } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { Stars } from "@/app/components/Stars";
 import { Timeline, Avatar, type FeedItemWithSquad } from "@/app/components/Timeline";
@@ -22,6 +22,7 @@ type SquadWatchItem = {
 
 export default function SquadFeedPage({ params }: { params: { id: string } }) {
   const squadId = params.id;
+  const [squad, setSquad] = useState<Squad | null>(null);
   const [items, setItems] = useState<FeedItemWithSquad[]>([]);
   const [recent, setRecent] = useState<SquadWatchItem[] | null>(null);
   const [done, setDone] = useState(false);
@@ -52,6 +53,7 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
+    apiGet<Squad>(`/api/squad/${squadId}`).then(setSquad).catch((e) => setError(String(e)));
     loadMore();
     loadRecent();
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
@@ -60,8 +62,12 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">스쿼드 피드</h1>
-        <p className="mt-1 text-sm text-neutral-500">최근 감상한 작품과 활동</p>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {squad?.name ?? " "}
+        </h1>
+        <p className="mt-1 text-sm text-neutral-500">
+          {squad ? <>초대 코드 <code className="font-mono">{squad.inviteCode}</code></> : " "}
+        </p>
       </header>
 
       {error && (
