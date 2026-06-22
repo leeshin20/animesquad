@@ -171,7 +171,7 @@ function MyRecentCard({
 
   return (
     <div>
-      <Link href="/watchlist" className="block transition hover:opacity-80">
+      <Link href={`/anime/${entry.anime.id}`} className="block transition hover:opacity-80">
         {entry.anime.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

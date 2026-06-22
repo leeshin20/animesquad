@@ -159,7 +159,7 @@ function SquadRecentCard({ group }: { group: SquadWatchGroup }) {
   const lead = watchers[0];
   return (
     <div>
-      <Link href="/watchlist" className="relative block transition hover:opacity-80">
+      <Link href={`/anime/${anime.id}`} className="relative block transition hover:opacity-80">
         {anime.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

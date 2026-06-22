@@ -267,7 +267,9 @@ function Row({
       )}
       <div className="flex flex-1 flex-col gap-2">
         <div>
-          <div className="font-medium">{displayTitle(entry.anime)}</div>
+          <Link href={`/anime/${entry.anime.id}`} className="font-medium hover:underline">
+            {displayTitle(entry.anime)}
+          </Link>
           <div className="text-xs text-neutral-500">
             {aniFormat(entry.anime.format)} · {entry.anime.episodes ?? "?"}화
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { apiGet, apiPost, type AnimeView, type WatchEntry, type WatchStatus } from "@/app/lib/api";
 import { aniFormat, aniStatus, displayTitle } from "@/app/lib/anilist-labels";
 
@@ -82,7 +83,7 @@ export default function AnimeSearchPage() {
               <div className="h-24 w-16 flex-none rounded-md bg-neutral-100" />
             )}
             <div className="flex flex-1 flex-col">
-              <div className="font-medium">{displayTitle(m)}</div>
+              <Link href={`/anime/${m.id}`} className="font-medium hover:underline">{displayTitle(m)}</Link>
               {m.titleKorean && (
                 <div className="text-sm text-neutral-500">{m.titleRomaji}</div>
               )}
