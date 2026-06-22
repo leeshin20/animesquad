@@ -61,4 +61,9 @@ public class WatchService {
     public List<WatchEntry> listMine(Long userId) {
         return entries.findAllByUserIdOrderByUpdatedAtDesc(userId);
     }
+
+    @Transactional(readOnly = true)
+    public java.util.Optional<WatchEntry> findEntry(Long userId, Long animeId) {
+        return entries.findByUserIdAndAnimeId(userId, animeId);
+    }
 }

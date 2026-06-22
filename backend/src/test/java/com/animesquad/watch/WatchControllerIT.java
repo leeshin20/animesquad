@@ -8,6 +8,7 @@ import com.animesquad.auth.JwtService;
 import com.animesquad.support.AbstractIntegrationTest;
 import com.animesquad.user.User;
 import com.animesquad.user.UserService;
+import com.animesquad.watch.dto.WatchEntryResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,7 @@ class WatchControllerIT extends AbstractIntegrationTest {
     @Autowired UserService userService;
     @Autowired JwtService jwtService;
     @Autowired AnimeService animeService;
+    @Autowired WatchService watchService;
     @Autowired TestRestTemplate rest;
     @LocalServerPort int port;
 
@@ -113,6 +115,25 @@ class WatchControllerIT extends AbstractIntegrationTest {
             new HttpEntity<>(Map.of("score", 99), cookieFor(me.getId())), String.class);
 
         assertThat(bad.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void getMine_returnsEntry_and404WhenAbsent() {
+        User me = userService.upsertFromGoogle("g-gm1", "gm1@x.y", "GM", null);
+        seedAnime(210);
+        WatchEntry added = watchService.addToList(me.getId(), 210, WatchStatus.WATCHING);
+
+        ResponseEntity<WatchEntryResponse> ok = rest.exchange(
+            url("/api/watch/" + added.getAnimeId()), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(me.getId())), WatchEntryResponse.class);
+        assertThat(ok.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(ok.getBody().status()).isEqualTo(WatchStatus.WATCHING);
+        assertThat(ok.getBody().anime().id()).isEqualTo(added.getAnimeId());
+
+        ResponseEntity<String> absent = rest.exchange(
+            url("/api/watch/999999"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(me.getId())), String.class);
+        assertThat(absent.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
