@@ -21,7 +21,8 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
       const cursor = items.length === 0 ? "" : `&cursor=${items[items.length - 1].id}`;
       const page = await apiGet<FeedItem[]>(
         `/api/squad/${squadId}/feed?limit=${PAGE_SIZE}${cursor}`);
-      setItems((cur) => [...cur, ...page]);
+      const visible = page.filter((it) => it.type !== "ANIME_ADDED");
+      setItems((cur) => [...cur, ...visible]);
       if (page.length < PAGE_SIZE) setDone(true);
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }

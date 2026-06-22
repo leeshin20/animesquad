@@ -2,7 +2,6 @@ package com.animesquad.watch;
 
 import com.animesquad.anime.Anime;
 import com.animesquad.anime.AnimeService;
-import com.animesquad.watch.events.AnimeAddedEvent;
 import com.animesquad.watch.events.ProgressUpdatedEvent;
 import com.animesquad.watch.events.WatchRatedEvent;
 import com.animesquad.watch.events.WatchStatusChangedEvent;
@@ -30,11 +29,7 @@ public class WatchService {
     public WatchEntry addToList(Long userId, int anilistId, WatchStatus status) {
         Anime anime = animeService.findOrFetchByAnilistId(anilistId);
         return entries.findByUserIdAndAnimeId(userId, anime.getId())
-            .orElseGet(() -> {
-                WatchEntry saved = entries.save(new WatchEntry(userId, anime.getId(), status));
-                events.publishEvent(new AnimeAddedEvent(userId, anime.getId(), status));
-                return saved;
-            });
+            .orElseGet(() -> entries.save(new WatchEntry(userId, anime.getId(), status)));
     }
 
     @Transactional

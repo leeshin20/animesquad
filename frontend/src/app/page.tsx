@@ -71,6 +71,7 @@ function Dashboard() {
       );
       const merged = pages
         .flat()
+        .filter((it) => it.type !== "ANIME_ADDED")
         .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
         .slice(0, 30);
       setFeed(merged);

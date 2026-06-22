@@ -60,7 +60,7 @@ class FeedControllerIT extends AbstractIntegrationTest {
             new HttpEntity<>(cookieFor(me.getId())), Map[].class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(res.getBody().length).isGreaterThanOrEqualTo(2);
+        assertThat(res.getBody().length).isGreaterThanOrEqualTo(1);
         assertThat((String) res.getBody()[0].get("type")).isEqualTo("PROGRESS_UPDATED");
         assertThat(((Map<?, ?>) res.getBody()[0].get("actor")).get("displayName")).isEqualTo("Feeder");
         assertThat(((Map<?, ?>) res.getBody()[0].get("anime")).get("titleRomaji")).isEqualTo("Frieren");

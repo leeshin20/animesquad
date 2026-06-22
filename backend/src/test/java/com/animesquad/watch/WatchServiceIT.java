@@ -136,6 +136,6 @@ class WatchServiceIT extends AbstractIntegrationTest {
 
         assertThat(activityRepo2.findAll())
             .extracting(a -> a.getType().name())
-            .containsExactlyInAnyOrder("ANIME_ADDED", "STATUS_CHANGED", "PROGRESS_UPDATED", "RATED");
+            .containsExactlyInAnyOrder("STATUS_CHANGED", "PROGRESS_UPDATED", "RATED");
     }
 }
