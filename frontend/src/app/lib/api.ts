@@ -9,6 +9,17 @@ export async function apiGet<T>(path: string): Promise<T> {
   return res.json();
 }
 
+/** Like apiGet but returns null on 404 (e.g. "anime not in my list"). */
+export async function apiGetOrNull<T>(path: string): Promise<T | null> {
+  const res = await fetch(`${BASE}${path}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
+
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
@@ -110,4 +121,19 @@ export type FeedItem = {
   anime: { id: number; titleRomaji: string; titleKorean: string | null; coverImageUrl: string | null } | null;
   payload: Record<string, unknown>;
   createdAt: string;
+};
+
+export type SquadWatchMember = {
+  actor: { id: number; displayName: string; avatarUrl: string | null } | null;
+  status: WatchStatus;
+  progress: number;
+  score: number | null;
+  comment: string | null;
+  updatedAt: string;
+};
+
+export type SquadWatchGroup = {
+  squadId: number;
+  squadName: string;
+  members: SquadWatchMember[];
 };
