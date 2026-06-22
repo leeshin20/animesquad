@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  apiGet, apiGetOrNull, apiPost, apiPatch,
+  apiGet, apiGetOrNull, apiPost,
   type AnimeView, type WatchEntry, type WatchStatus, type SquadWatchGroup,
 } from "@/app/lib/api";
 import { aniFormat, displayTitle } from "@/app/lib/anilist-labels";
-import { Stars, StarsInput } from "@/app/components/Stars";
+import { Stars } from "@/app/components/Stars";
 import { Avatar } from "@/app/components/Timeline";
+import { EpisodeLogModal } from "@/app/components/EpisodeLogModal";
 
 const STATUSES: WatchStatus[] = ["WATCHING", "COMPLETED", "ON_HOLD", "DROPPED", "PLAN_TO_WATCH"];
 const STATUS_LABEL: Record<WatchStatus, string> = {
@@ -92,14 +93,7 @@ function MyEvalPanel({
   onSaved: () => void;
   onError: (s: string) => void;
 }) {
-  const [status, setStatus] = useState<WatchStatus>(mine?.status ?? "WATCHING");
-  const [progress, setProgress] = useState<string>(String(mine?.progress ?? 0));
-  const [score, setScore] = useState<number | null>(mine?.score ?? null);
-  const [comment, setComment] = useState<string>(mine?.comment ?? "");
-  const [saving, setSaving] = useState(false);
-
-  const inputCls =
-    "rounded-md border border-neutral-300 px-2 py-1 text-sm focus:border-neutral-900 focus:outline-none";
+  const [open, setOpen] = useState(false);
 
   if (!mine) {
     return (
@@ -113,7 +107,7 @@ function MyEvalPanel({
             try { await apiPost("/api/watch", { anilistId: anime.anilistId, status: s }); onSaved(); }
             catch (err) { onError(String(err)); }
           }}
-          className={inputCls}
+          className="rounded-md border border-neutral-300 px-2 py-1 text-sm focus:border-neutral-900 focus:outline-none"
         >
           <option value="">내 목록에 추가…</option>
           {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
@@ -122,46 +116,38 @@ function MyEvalPanel({
     );
   }
 
-  async function save() {
-    setSaving(true);
-    try {
-      await apiPatch(`/api/watch/${anime.id}`, {
-        status,
-        progress: progress === "" ? null : Number(progress),
-        score,
-        comment: comment === "" ? null : comment,
-      });
-      onSaved();
-    } catch (err) { onError(String(err)); }
-    finally { setSaving(false); }
-  }
+  const maxed = anime.episodes != null && mine.progress >= anime.episodes;
 
   return (
     <div className="rounded-xl border border-neutral-200 p-4">
       <p className="mb-2 text-sm font-medium text-neutral-700">내 평가</p>
-      <div className="flex flex-wrap items-center gap-2">
-        <select value={status} onChange={(e) => setStatus(e.target.value as WatchStatus)} className={inputCls}>
-          {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-        </select>
-        <input
-          type="number" min={0} value={progress}
-          onChange={(e) => setProgress(e.target.value)}
-          placeholder="진도"
-          className={`no-spinner w-16 text-center ${inputCls}`}
-        />
-        <StarsInput value={score} onChange={setScore} size="sm" />
-        <input
-          value={comment} onChange={(e) => setComment(e.target.value)}
-          placeholder="한줄평 (최대 280자)" maxLength={280}
-          className={`${inputCls} min-w-[200px] flex-1`}
-        />
-        <button
-          onClick={save} disabled={saving}
-          className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
-        >
-          {saving ? "저장 중…" : "저장"}
-        </button>
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600">
+          {STATUS_LABEL[mine.status]}
+        </span>
+        <span className="text-xs text-neutral-500">
+          {mine.progress}{anime.episodes ? `/${anime.episodes}` : ""}화
+        </span>
+        {mine.score != null && <Stars value={mine.score} size="sm" />}
+        {mine.comment && <span className="text-neutral-600">· {mine.comment}</span>}
       </div>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        disabled={maxed}
+        title={maxed ? "최종화까지 봤어요" : "감상 기록"}
+        className="mt-3 rounded-md border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {maxed ? "완료" : `+ 감상 기록 (${mine.progress + 1}화)`}
+      </button>
+
+      {open && (
+        <EpisodeLogModal
+          entry={mine}
+          onClose={() => setOpen(false)}
+          onSaved={() => { setOpen(false); onSaved(); }}
+        />
+      )}
     </div>
   );
 }
