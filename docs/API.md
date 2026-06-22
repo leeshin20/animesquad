@@ -49,6 +49,29 @@
 
 **응답 200** — `AnimeResponse[]` (Watch 섹션의 `WatchEntryResponse.anime` 동일 형식)
 
+### `GET /api/anime/{id}`
+작품 단건 조회 (로컬 캐시 DB id 기준).
+
+**응답 200** — `AnimeResponse` / **404** — 해당 id 없음
+
+### `GET /api/anime/{animeId}/squad-watch`
+내가 속한 스쿼드별로, 해당 작품에 대한 **동료 멤버들의 시리즈 평가**를 모아 반환. 본인은 제외하며, 평가가 하나도 없는 스쿼드는 생략. 한 멤버가 내 여러 스쿼드에 겹치면 각 스쿼드에 각각 표시.
+
+**응답 200**
+```json
+[
+  {
+    "squadId": 1,
+    "squadName": "금요 크루",
+    "members": [
+      { "actor": { "id": 2, "displayName": "민수", "avatarUrl": null },
+        "status": "COMPLETED", "progress": 12, "score": 5,
+        "comment": "최고", "updatedAt": "2026-06-22T10:00:00Z" }
+    ]
+  }
+]
+```
+
 ---
 
 ## Watchlist
@@ -70,6 +93,11 @@
 내 워치리스트 전체. `updatedAt` 내림차순.
 
 **응답 200** — `WatchEntryResponse[]`
+
+### `GET /api/watch/{animeId}`
+해당 작품에 대한 **내** 워치 엔트리 1건.
+
+**응답 200** — `WatchEntryResponse` / **404** — 내 리스트에 없음
 
 ### `PATCH /api/watch/{animeId}`
 워치 엔트리 수정. 변경된 필드만 보내면 됨.
