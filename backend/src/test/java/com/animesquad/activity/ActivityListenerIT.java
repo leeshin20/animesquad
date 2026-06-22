@@ -103,23 +103,23 @@ class ActivityListenerIT extends AbstractIntegrationTest {
     void watchRated_emitsWithScore() {
         Setup s = seedTwoSquadsWithMember();
 
-        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 9));
+        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 5));
 
         Activity row = activities.findBySquadIdOrderByIdDesc(s.squadA().getId(), Limit.of(1)).get(0);
         assertThat(row.getType()).isEqualTo(ActivityType.RATED);
-        assertThat(((Number) row.getPayload().get("score")).intValue()).isEqualTo(9);
+        assertThat(((Number) row.getPayload().get("score")).intValue()).isEqualTo(5);
     }
 
     @Test
     void episodeRated_emitsWithEpisodeAndScore() {
         Setup s = seedTwoSquadsWithMember();
 
-        events.publishEvent(new EpisodeRatedEvent(s.actor().getId(), s.anime().getId(), 4, 8));
+        events.publishEvent(new EpisodeRatedEvent(s.actor().getId(), s.anime().getId(), 4, 4));
 
         Activity row = activities.findBySquadIdOrderByIdDesc(s.squadA().getId(), Limit.of(1)).get(0);
         assertThat(row.getType()).isEqualTo(ActivityType.EPISODE_RATED);
         assertThat(((Number) row.getPayload().get("episode")).intValue()).isEqualTo(4);
-        assertThat(((Number) row.getPayload().get("score")).intValue()).isEqualTo(8);
+        assertThat(((Number) row.getPayload().get("score")).intValue()).isEqualTo(4);
     }
 
     @Test

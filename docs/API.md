@@ -79,12 +79,12 @@
 {
   "status": "WATCHING",
   "progress": 5,
-  "score": 8,
+  "score": 4,
   "comment": "재밌음"
 }
 ```
 - `progress`: ≥ 0
-- `score`: 1~10
+- `score`: 1~5
 - `comment`: 최대 280자
 
 **응답 200** — `WatchEntryResponse`
@@ -119,9 +119,9 @@
 
 **요청**
 ```json
-{ "score": 9, "comment": "베스트" }
+{ "score": 5, "comment": "베스트" }
 ```
-- `score`: 1~10 필수
+- `score`: 1~5 필수
 - `comment`: 선택, 최대 280자
 
 **응답 200** — `EpisodeRatingResponse`
@@ -130,7 +130,7 @@
   "id": 12,
   "animeId": 1,
   "episodeNumber": 5,
-  "score": 9,
+  "score": 5,
   "comment": "베스트",
   "createdAt": "2026-06-19T10:00:00Z",
   "updatedAt": "2026-06-19T10:00:00Z"
@@ -218,8 +218,8 @@
 | `ANIME_ADDED` | `{ "status": "WATCHING" }` | 작품 추가 |
 | `STATUS_CHANGED` | `{ "from": "WATCHING", "to": "COMPLETED" }` | 상태 변경 |
 | `PROGRESS_UPDATED` | `{ "progress": 5 }` | 진도 변경 |
-| `RATED` | `{ "score": 8 }` | 작품 평점 |
-| `EPISODE_RATED` | `{ "episode": 5, "score": 9 }` | 화별 평점 |
+| `RATED` | `{ "score": 4 }` | 작품 평점 (1~5) |
+| `EPISODE_RATED` | `{ "episode": 5, "score": 5 }` | 화별 평점 (1~5) |
 | `JOINED_SQUAD` | `{}` | 스쿼드 가입 (anime=null) |
 
 ---

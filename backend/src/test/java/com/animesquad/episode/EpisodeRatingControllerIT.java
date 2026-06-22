@@ -61,12 +61,12 @@ class EpisodeRatingControllerIT extends AbstractIntegrationTest {
 
         ResponseEntity<Map> put = rest.exchange(
             url("/api/watch/" + s.animeId() + "/episodes/3"), HttpMethod.PUT,
-            new HttpEntity<>(Map.of("score", 8, "comment", "굿"), cookieFor(s.userId())),
+            new HttpEntity<>(Map.of("score", 4, "comment", "굿"), cookieFor(s.userId())),
             Map.class);
 
         assertThat(put.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(put.getBody().get("episodeNumber")).isEqualTo(3);
-        assertThat(put.getBody().get("score")).isEqualTo(8);
+        assertThat(put.getBody().get("score")).isEqualTo(4);
 
         ResponseEntity<Map[]> list = rest.exchange(
             url("/api/watch/" + s.animeId() + "/episodes"), HttpMethod.GET,
@@ -83,7 +83,7 @@ class EpisodeRatingControllerIT extends AbstractIntegrationTest {
 
         ResponseEntity<String> res = rest.exchange(
             url("/api/watch/" + s.animeId() + "/episodes/1"), HttpMethod.PUT,
-            new HttpEntity<>(Map.of("score", 11), cookieFor(s.userId())), String.class);
+            new HttpEntity<>(Map.of("score", 6), cookieFor(s.userId())), String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -96,7 +96,7 @@ class EpisodeRatingControllerIT extends AbstractIntegrationTest {
 
         ResponseEntity<String> res = rest.exchange(
             url("/api/watch/" + a.getId() + "/episodes/1"), HttpMethod.PUT,
-            new HttpEntity<>(Map.of("score", 7), cookieFor(stranger.getId())), String.class);
+            new HttpEntity<>(Map.of("score", 4), cookieFor(stranger.getId())), String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -105,7 +105,7 @@ class EpisodeRatingControllerIT extends AbstractIntegrationTest {
     void put_returns401_whenUnauthenticated() {
         ResponseEntity<String> res = rest.exchange(
             url("/api/watch/1/episodes/1"), HttpMethod.PUT,
-            new HttpEntity<>("{\"score\":5}", jsonHeaders()), String.class);
+            new HttpEntity<>("{\"score\":3}", jsonHeaders()), String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }

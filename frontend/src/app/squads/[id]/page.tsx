@@ -102,9 +102,9 @@ function describe(it: FeedItem): string {
     case "PROGRESS_UPDATED":
       return `${who} 님이 "${what}" ${p.progress}화까지 봄`;
     case "RATED":
-      return `${who} 님이 "${what}"에 ${p.score}/10`;
+      return `${who} 님이 "${what}"에 ${p.score}/5`;
     case "EPISODE_RATED":
-      return `${who} 님이 "${what}" ${p.episode}화에 ${p.score}/10`;
+      return `${who} 님이 "${what}" ${p.episode}화에 ${p.score}/5`;
     case "JOINED_SQUAD":
       return `${who} 님이 스쿼드에 참여`;
   }

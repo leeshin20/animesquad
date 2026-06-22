@@ -10,6 +10,7 @@ import {
   type WatchEntry,
 } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
+import { Stars } from "@/app/components/Stars";
 
 export default function HomePage() {
   const [me, setMe] = useState<Me | null>(null);
@@ -183,10 +184,17 @@ function RecentList({ entries }: { entries: WatchEntry[] | null }) {
             <p className="truncate text-sm font-medium text-neutral-800">
               {displayTitle(e.anime)}
             </p>
-            <p className="mt-0.5 text-xs text-neutral-500">
-              {e.progress}
-              {e.anime.episodes ? ` / ${e.anime.episodes}` : ""}화
-              {e.score != null ? ` · ${e.score}/10` : ""}
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
+              <span>
+                {e.progress}
+                {e.anime.episodes ? ` / ${e.anime.episodes}` : ""}화
+              </span>
+              {e.score != null && (
+                <>
+                  <span>·</span>
+                  <Stars value={e.score} size="sm" />
+                </>
+              )}
             </p>
           </div>
         </li>
@@ -231,9 +239,9 @@ function describe(it: FeedItem): string {
     case "PROGRESS_UPDATED":
       return `${who} 님이 "${what}" ${p.progress}화까지 봄`;
     case "RATED":
-      return `${who} 님이 "${what}"에 ${p.score}/10`;
+      return `${who} 님이 "${what}"에 ${p.score}/5`;
     case "EPISODE_RATED":
-      return `${who} 님이 "${what}" ${p.episode}화에 ${p.score}/10`;
+      return `${who} 님이 "${what}" ${p.episode}화에 ${p.score}/5`;
     case "JOINED_SQUAD":
       return `${who} 님이 스쿼드에 참여`;
   }

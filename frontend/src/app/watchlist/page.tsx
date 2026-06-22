@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiGet, apiPatch, type WatchEntry, type WatchStatus } from "@/app/lib/api";
 import { aniFormat, displayTitle } from "@/app/lib/anilist-labels";
+import { Stars, StarsInput } from "@/app/components/Stars";
 
 const STATUSES: WatchStatus[] = ["WATCHING", "COMPLETED", "ON_HOLD", "DROPPED", "PLAN_TO_WATCH"];
 
@@ -15,7 +16,8 @@ const STATUS_LABEL: Record<WatchStatus, string> = {
   PLAN_TO_WATCH: "볼 예정",
 };
 
-type Filter = WatchStatus | "ALL";
+type StatusFilter = WatchStatus | "ALL";
+type ScoreFilter = "ALL" | 1 | 2 | 3 | 4 | 5 | "NONE";
 type SortKey = "UPDATED" | "ADDED" | "TITLE" | "SCORE";
 
 const SORT_LABEL: Record<SortKey, string> = {
@@ -49,7 +51,8 @@ function sortEntries(entries: WatchEntry[], key: SortKey): WatchEntry[] {
 export default function MyListPage() {
   const [entries, setEntries] = useState<WatchEntry[]>([]);
   const [status, setStatus] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Filter>("ALL");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [scoreFilter, setScoreFilter] = useState<ScoreFilter>("ALL");
   const [sort, setSort] = useState<SortKey>("UPDATED");
 
   async function refresh() {
@@ -59,16 +62,31 @@ export default function MyListPage() {
 
   useEffect(() => { refresh(); }, []);
 
-  const counts: Record<Filter, number> = {
+  const statusCounts: Record<StatusFilter, number> = {
     ALL: entries.length,
     WATCHING: 0, COMPLETED: 0, ON_HOLD: 0, DROPPED: 0, PLAN_TO_WATCH: 0,
   };
-  entries.forEach((e) => { counts[e.status]++; });
+  entries.forEach((e) => { statusCounts[e.status]++; });
 
-  const filtered = sortEntries(
-    filter === "ALL" ? entries : entries.filter((e) => e.status === filter),
-    sort
-  );
+  const afterStatus = statusFilter === "ALL"
+    ? entries
+    : entries.filter((e) => e.status === statusFilter);
+
+  const scoreCounts: Record<ScoreFilter, number> = {
+    ALL: afterStatus.length, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, NONE: 0,
+  };
+  afterStatus.forEach((e) => {
+    if (e.score == null) scoreCounts.NONE++;
+    else scoreCounts[e.score as 1 | 2 | 3 | 4 | 5]++;
+  });
+
+  const afterScore = afterStatus.filter((e) => {
+    if (scoreFilter === "ALL") return true;
+    if (scoreFilter === "NONE") return e.score == null;
+    return e.score === scoreFilter;
+  });
+
+  const filtered = sortEntries(afterScore, sort);
 
   return (
     <div className="space-y-6">
@@ -93,7 +111,7 @@ export default function MyListPage() {
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <FilterBar current={filter} counts={counts} onChange={setFilter} />
+            <StatusFilterBar current={statusFilter} counts={statusCounts} onChange={setStatusFilter} />
             <label className="flex items-center gap-2 text-sm text-neutral-500">
               정렬
               <select
@@ -107,9 +125,12 @@ export default function MyListPage() {
               </select>
             </label>
           </div>
+
+          <ScoreFilterBar current={scoreFilter} counts={scoreCounts} onChange={setScoreFilter} />
+
           {filtered.length === 0 ? (
             <p className="rounded-xl border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-500">
-              아직 작품이 없어요.
+              조건에 맞는 작품이 없어요.
             </p>
           ) : (
             <ul className="space-y-3">
@@ -124,14 +145,14 @@ export default function MyListPage() {
   );
 }
 
-function FilterBar({
+function StatusFilterBar({
   current, counts, onChange,
 }: {
-  current: Filter;
-  counts: Record<Filter, number>;
-  onChange: (f: Filter) => void;
+  current: StatusFilter;
+  counts: Record<StatusFilter, number>;
+  onChange: (f: StatusFilter) => void;
 }) {
-  const tabs: { value: Filter; label: string }[] = [
+  const tabs: { value: StatusFilter; label: string }[] = [
     { value: "ALL", label: "전체" },
     { value: "WATCHING", label: STATUS_LABEL.WATCHING },
     { value: "COMPLETED", label: STATUS_LABEL.COMPLETED },
@@ -139,23 +160,53 @@ function FilterBar({
     { value: "DROPPED", label: STATUS_LABEL.DROPPED },
     { value: "PLAN_TO_WATCH", label: STATUS_LABEL.PLAN_TO_WATCH },
   ];
+  return <Pills tabs={tabs} current={current} counts={counts} onChange={onChange} />;
+}
+
+function ScoreFilterBar({
+  current, counts, onChange,
+}: {
+  current: ScoreFilter;
+  counts: Record<ScoreFilter, number>;
+  onChange: (f: ScoreFilter) => void;
+}) {
+  const tabs: { value: ScoreFilter; label: React.ReactNode }[] = [
+    { value: "ALL", label: "평점 전체" },
+    { value: 5, label: <Stars value={5} size="sm" /> },
+    { value: 4, label: <Stars value={4} size="sm" /> },
+    { value: 3, label: <Stars value={3} size="sm" /> },
+    { value: 2, label: <Stars value={2} size="sm" /> },
+    { value: 1, label: <Stars value={1} size="sm" /> },
+    { value: "NONE", label: "미평가" },
+  ];
+  return <Pills tabs={tabs} current={current} counts={counts} onChange={onChange} />;
+}
+
+function Pills<T extends string | number>({
+  tabs, current, counts, onChange,
+}: {
+  tabs: { value: T; label: React.ReactNode }[];
+  current: T;
+  counts: Record<T, number>;
+  onChange: (v: T) => void;
+}) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {tabs.map((t) => {
         const active = current === t.value;
         return (
           <button
-            key={t.value}
+            key={String(t.value)}
             onClick={() => onChange(t.value)}
             className={
-              "rounded-full px-3 py-1 text-sm transition " +
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm transition " +
               (active
                 ? "bg-neutral-900 text-white"
                 : "border border-neutral-200 text-neutral-600 hover:bg-neutral-100")
             }
           >
             {t.label}
-            <span className={"ml-1.5 text-xs " + (active ? "text-neutral-300" : "text-neutral-400")}>
+            <span className={"text-xs " + (active ? "text-neutral-300" : "text-neutral-400")}>
               {counts[t.value]}
             </span>
           </button>
@@ -174,7 +225,7 @@ function Row({
 }) {
   const [status, setStatus] = useState<WatchStatus>(entry.status);
   const [progress, setProgress] = useState<string>(String(entry.progress));
-  const [score, setScore] = useState<string>(entry.score == null ? "" : String(entry.score));
+  const [score, setScore] = useState<number | null>(entry.score);
   const [comment, setComment] = useState<string>(entry.comment ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -184,7 +235,7 @@ function Row({
       await apiPatch(`/api/watch/${entry.anime.id}`, {
         status,
         progress: progress === "" ? null : Number(progress),
-        score: score === "" ? null : Number(score),
+        score,
         comment: comment === "" ? null : comment,
       });
       onSaved();
@@ -230,12 +281,7 @@ function Row({
             placeholder="진도"
             className={`${inputCls} w-20`}
           />
-          <input
-            type="number" min={1} max={10} value={score}
-            onChange={(e) => setScore(e.target.value)}
-            placeholder="점수"
-            className={`${inputCls} w-20`}
-          />
+          <StarsInput value={score} onChange={setScore} size="sm" />
           <input
             value={comment}
             onChange={(e) => setComment(e.target.value)}

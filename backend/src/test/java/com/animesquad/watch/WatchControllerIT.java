@@ -89,12 +89,12 @@ class WatchControllerIT extends AbstractIntegrationTest {
 
         ResponseEntity<Map> patched = rest.exchange(
             url("/api/watch/" + animeId), HttpMethod.PATCH,
-            new HttpEntity<>(Map.of("progress", 7, "score", 8), cookieFor(me.getId())),
+            new HttpEntity<>(Map.of("progress", 7, "score", 4), cookieFor(me.getId())),
             Map.class);
 
         assertThat(patched.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(patched.getBody().get("progress")).isEqualTo(7);
-        assertThat(patched.getBody().get("score")).isEqualTo(8);
+        assertThat(patched.getBody().get("score")).isEqualTo(4);
         assertThat(patched.getBody().get("status")).isEqualTo("WATCHING"); // unchanged
     }
 

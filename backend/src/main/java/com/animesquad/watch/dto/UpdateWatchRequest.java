@@ -9,6 +9,6 @@ import jakarta.validation.constraints.Size;
 public record UpdateWatchRequest(
     WatchStatus status,
     @PositiveOrZero Integer progress,
-    @Min(1) @Max(10) Integer score,
+    @Min(1) @Max(5) Integer score,
     @Size(max = 280) String comment
 ) {}

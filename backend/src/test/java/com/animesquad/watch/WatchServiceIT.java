@@ -73,11 +73,11 @@ class WatchServiceIT extends AbstractIntegrationTest {
 
         WatchEntry updated = watchService.updateEntry(
             me.getId(), created.getAnimeId(),
-            WatchStatus.COMPLETED, 12, 9, "재밌었어요");
+            WatchStatus.COMPLETED, 12, 5, "재밌었어요");
 
         assertThat(updated.getStatus()).isEqualTo(WatchStatus.COMPLETED);
         assertThat(updated.getProgress()).isEqualTo(12);
-        assertThat(updated.getScore()).isEqualTo(9);
+        assertThat(updated.getScore()).isEqualTo(5);
         assertThat(updated.getComment()).isEqualTo("재밌었어요");
     }
 
@@ -132,7 +132,7 @@ class WatchServiceIT extends AbstractIntegrationTest {
 
         WatchEntry added = watchService.addToList(me.getId(), 80, WatchStatus.WATCHING);
         watchService.updateEntry(me.getId(), added.getAnimeId(),
-            WatchStatus.COMPLETED, 12, 9, null);
+            WatchStatus.COMPLETED, 12, 5, null);
 
         assertThat(activityRepo2.findAll())
             .extracting(a -> a.getType().name())
