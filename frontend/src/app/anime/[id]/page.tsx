@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   apiGet, apiGetOrNull, apiPost,
-  type AnimeView, type WatchEntry, type WatchStatus, type AnimeReview, type EpisodeReview,
+  type AnimeView, type WatchEntry, type WatchStatus, type AnimeReview, type EpisodeReview, type AnimeStats,
 } from "@/app/lib/api";
 import { aniFormat, displayTitle } from "@/app/lib/anilist-labels";
 import { Stars } from "@/app/components/Stars";
@@ -23,18 +23,20 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
   const [mine, setMine] = useState<WatchEntry | null>(null);
   const [reviews, setReviews] = useState<AnimeReview[] | null>(null);
   const [episodeReviews, setEpisodeReviews] = useState<EpisodeReview[] | null>(null);
+  const [stats, setStats] = useState<AnimeStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const didInit = useRef(false);
 
   async function loadAll() {
     try {
-      const [a, m, r, er] = await Promise.all([
+      const [a, m, r, er, st] = await Promise.all([
         apiGet<AnimeView>(`/api/anime/${animeId}`),
         apiGetOrNull<WatchEntry>(`/api/watch/${animeId}`),
         apiGet<AnimeReview[]>(`/api/anime/${animeId}/reviews`),
         apiGet<EpisodeReview[]>(`/api/anime/${animeId}/episode-reviews`),
+        apiGet<AnimeStats>(`/api/anime/${animeId}/stats`),
       ]);
-      setAnime(a); setMine(m); setReviews(r); setEpisodeReviews(er);
+      setAnime(a); setMine(m); setReviews(r); setEpisodeReviews(er); setStats(st);
     } catch (e) { setError(String(e)); }
   }
 
@@ -66,6 +68,16 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
             <div className="h-44 w-30 flex-none rounded-lg bg-neutral-100" />
           )}
           <div>
+            {stats && (
+              <p className="mb-1 flex items-center gap-1.5 text-sm text-neutral-600">
+                {stats.averageScore != null && (
+                  <span className="font-medium text-amber-500">
+                    ★ {stats.averageScore.toFixed(1)}
+                  </span>
+                )}
+                <span className="text-neutral-400">{stats.watcherCount}명 감상</span>
+              </p>
+            )}
             <h1 className="text-2xl font-semibold tracking-tight">{displayTitle(anime)}</h1>
             {anime.titleKorean && <p className="text-sm text-neutral-500">{anime.titleRomaji}</p>}
             <p className="mt-1 text-xs text-neutral-500">

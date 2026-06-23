@@ -139,3 +139,8 @@ export type EpisodeReview = {
   comment: string;
   updatedAt: string;
 };
+
+export type AnimeStats = {
+  averageScore: number | null;
+  watcherCount: number;
+};

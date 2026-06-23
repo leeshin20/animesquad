@@ -66,6 +66,14 @@
 ]
 ```
 
+### `GET /api/anime/{animeId}/stats`
+작품 헤더용 집계. `averageScore`: 이 작품의 모든 WatchEntry 중 점수가 있는 것들의 평균(점수 남긴 사람 없으면 `null`). `watcherCount`: 이 작품을 목록에 담은 사용자 수(상태 무관).
+
+**응답 200** — `AnimeStats`
+```json
+{ "averageScore": 4.5, "watcherCount": 3 }
+```
+
 ### `GET /api/anime/{animeId}/episode-reviews`
 이 작품에 **회차별 감상평(comment)을 남긴 모든 사용자**의 목록 (스쿼드 무관). 코멘트가 없는 회차 평점(별점만)은 제외. 정렬: `episodeNumber` 오름차순, 같은 회차 내 `updatedAt` 내림차순.
 

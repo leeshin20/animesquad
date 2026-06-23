@@ -58,6 +58,13 @@ class AnimeReviewsControllerIT extends AbstractIntegrationTest {
             new ParameterizedTypeReference<List<Map<String, Object>>>() {});
     }
 
+    private ResponseEntity<Map<String, Object>> getStats(Long animeId, Long asUserId) {
+        return rest.exchange(
+            url("/api/anime/" + animeId + "/stats"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(asUserId)),
+            new ParameterizedTypeReference<Map<String, Object>>() {});
+    }
+
     @Test
     void onlyShowsUsersWithComment_includingSelf_regardlessOfSquad() {
         User me = userService.upsertFromGoogle("g-rev-me", "me@x.y", "Me", null);
@@ -182,5 +189,35 @@ class AnimeReviewsControllerIT extends AbstractIntegrationTest {
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEmpty();
+    }
+
+    @Test
+    void stats_averageScoreOverSeriesScores_andWatcherCount() {
+        User me = userService.upsertFromGoogle("g-st-me", "stme@x.y", "Me", null);
+        User other = userService.upsertFromGoogle("g-st-other", "stother@x.y", "Other", null);
+        User planner = userService.upsertFromGoogle("g-st-plan", "stplan@x.y", "Plan", null);
+
+        WatchEntry mineEntry = watchService.addToList(me.getId(), 601, WatchStatus.COMPLETED);
+        Long animeId = mineEntry.getAnimeId();
+        watchService.updateEntry(me.getId(), animeId, null, 12, 5, null);    // score 5
+        watchService.addToList(other.getId(), 601, WatchStatus.WATCHING);
+        watchService.updateEntry(other.getId(), animeId, null, 6, 4, null);  // score 4
+        watchService.addToList(planner.getId(), 601, WatchStatus.PLAN_TO_WATCH); // no score, still a watcher
+
+        Map<String, Object> stats = getStats(animeId, me.getId()).getBody();
+
+        assertThat(((Number) stats.get("averageScore")).doubleValue()).isEqualTo(4.5); // (5+4)/2
+        assertThat(((Number) stats.get("watcherCount")).intValue()).isEqualTo(3);      // all 3 on list
+    }
+
+    @Test
+    void stats_nullAverageWhenNoScores() {
+        User me = userService.upsertFromGoogle("g-st-noscore", "stns@x.y", "Me", null);
+        WatchEntry mineEntry = watchService.addToList(me.getId(), 602, WatchStatus.WATCHING);
+
+        Map<String, Object> stats = getStats(mineEntry.getAnimeId(), me.getId()).getBody();
+
+        assertThat(stats.get("averageScore")).isNull();
+        assertThat(((Number) stats.get("watcherCount")).intValue()).isEqualTo(1);
     }
 }

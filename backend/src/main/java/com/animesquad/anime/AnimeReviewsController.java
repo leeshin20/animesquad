@@ -29,6 +29,8 @@ public class AnimeReviewsController {
         ActorRef actor, int episodeNumber, int score, String comment, OffsetDateTime updatedAt
     ) {}
 
+    public record AnimeStats(Double averageScore, int watcherCount) {}
+
     private final WatchEntryRepository entries;
     private final EpisodeRatingRepository episodeRatings;
     private final UserRepository users;
@@ -77,6 +79,16 @@ public class AnimeReviewsController {
                 u == null ? null : ActorRef.from(u),
                 r.getEpisodeNumber(), r.getScore(), r.getComment(), r.getUpdatedAt());
         }).toList();
+    }
+
+    @GetMapping("/stats")
+    @Transactional(readOnly = true)
+    public AnimeStats stats(@PathVariable Long animeId) {
+        List<WatchEntry> rows = entries.findAllByAnimeIdOrderByUpdatedAtDesc(animeId);
+        Double average = rows.stream()
+            .map(WatchEntry::getScore).filter(s -> s != null)
+            .mapToInt(Integer::intValue).average().stream().boxed().findFirst().orElse(null);
+        return new AnimeStats(average, rows.size());
     }
 
     private Map<Long, User> usersByIds(java.util.stream.Stream<Long> userIds) {
