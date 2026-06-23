@@ -54,21 +54,15 @@
 
 **응답 200** — `AnimeResponse` / **404** — 해당 id 없음
 
-### `GET /api/anime/{animeId}/squad-watch`
-내가 속한 스쿼드별로, 해당 작품에 대한 **동료 멤버들의 시리즈 평가**를 모아 반환. 본인은 제외하며, 평가가 하나도 없는 스쿼드는 생략. 한 멤버가 내 여러 스쿼드에 겹치면 각 스쿼드에 각각 표시.
+### `GET /api/anime/{animeId}/reviews`
+이 작품을 기록/평가한 **모든 사용자**의 감상평 목록 (스쿼드 무관). 본인 포함, `updatedAt` 내림차순. 평가가 없는 사용자도 기록(상태/진행도)만 있으면 포함.
 
-**응답 200**
+**응답 200** — `ReviewItem[]`
 ```json
 [
-  {
-    "squadId": 1,
-    "squadName": "금요 크루",
-    "members": [
-      { "actor": { "id": 2, "displayName": "민수", "avatarUrl": null },
-        "status": "COMPLETED", "progress": 12, "score": 5,
-        "comment": "최고", "updatedAt": "2026-06-22T10:00:00Z" }
-    ]
-  }
+  { "actor": { "id": 2, "displayName": "민수", "avatarUrl": null },
+    "status": "COMPLETED", "progress": 12, "score": 5,
+    "comment": "최고", "updatedAt": "2026-06-22T10:00:00Z" }
 ]
 ```
 

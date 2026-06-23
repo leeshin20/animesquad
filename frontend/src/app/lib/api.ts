@@ -123,17 +123,11 @@ export type FeedItem = {
   createdAt: string;
 };
 
-export type SquadWatchMember = {
+export type AnimeReview = {
   actor: { id: number; displayName: string; avatarUrl: string | null } | null;
   status: WatchStatus;
   progress: number;
   score: number | null;
   comment: string | null;
   updatedAt: string;
-};
-
-export type SquadWatchGroup = {
-  squadId: number;
-  squadName: string;
-  members: SquadWatchMember[];
 };

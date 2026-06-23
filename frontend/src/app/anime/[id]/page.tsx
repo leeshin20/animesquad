@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   apiGet, apiGetOrNull, apiPost,
-  type AnimeView, type WatchEntry, type WatchStatus, type SquadWatchGroup,
+  type AnimeView, type WatchEntry, type WatchStatus, type AnimeReview,
 } from "@/app/lib/api";
 import { aniFormat, displayTitle } from "@/app/lib/anilist-labels";
 import { Stars } from "@/app/components/Stars";
@@ -21,18 +21,18 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
   const animeId = params.id;
   const [anime, setAnime] = useState<AnimeView | null>(null);
   const [mine, setMine] = useState<WatchEntry | null>(null);
-  const [groups, setGroups] = useState<SquadWatchGroup[] | null>(null);
+  const [reviews, setReviews] = useState<AnimeReview[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const didInit = useRef(false);
 
   async function loadAll() {
     try {
-      const [a, m, g] = await Promise.all([
+      const [a, m, r] = await Promise.all([
         apiGet<AnimeView>(`/api/anime/${animeId}`),
         apiGetOrNull<WatchEntry>(`/api/watch/${animeId}`),
-        apiGet<SquadWatchGroup[]>(`/api/anime/${animeId}/squad-watch`),
+        apiGet<AnimeReview[]>(`/api/anime/${animeId}/reviews`),
       ]);
-      setAnime(a); setMine(m); setGroups(g);
+      setAnime(a); setMine(m); setReviews(r);
     } catch (e) { setError(String(e)); }
   }
 
@@ -78,8 +78,8 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
       )}
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-neutral-700">스쿼드별 평가</h2>
-        <SquadGroups groups={groups} />
+        <h2 className="mb-3 text-sm font-semibold text-neutral-700">전체 감상평</h2>
+        <ReviewList reviews={reviews} />
       </section>
     </div>
   );
@@ -152,41 +152,34 @@ function MyEvalPanel({
   );
 }
 
-function SquadGroups({ groups }: { groups: SquadWatchGroup[] | null }) {
-  if (groups === null) {
+function ReviewList({ reviews }: { reviews: AnimeReview[] | null }) {
+  if (reviews === null) {
     return <div className="h-20 animate-pulse rounded-xl bg-neutral-100" />;
   }
-  if (groups.length === 0) {
+  if (reviews.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-500">
-        스쿼드 멤버들의 평가가 아직 없어요.
+        아직 감상평이 없어요.
       </div>
     );
   }
   return (
-    <div className="space-y-5">
-      {groups.map((g) => (
-        <div key={g.squadId}>
-          <p className="mb-2 text-xs font-semibold text-neutral-500">{g.squadName}</p>
-          <ul className="space-y-2">
-            {g.members.map((m, i) => (
-              <li key={i} className="flex items-start gap-3 rounded-lg border border-neutral-200 p-3">
-                <Avatar name={m.actor?.displayName ?? "?"} url={m.actor?.avatarUrl ?? null} size={8} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="font-medium">{m.actor?.displayName ?? "알 수 없음"}</span>
-                    <span className="text-xs text-neutral-500">
-                      {STATUS_LABEL[m.status]} · {m.progress}화
-                    </span>
-                    {m.score != null && <Stars value={m.score} size="sm" />}
-                  </div>
-                  {m.comment && <p className="mt-1 text-sm text-neutral-600">{m.comment}</p>}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+    <ul className="space-y-2">
+      {reviews.map((r, i) => (
+        <li key={i} className="flex items-start gap-3 rounded-lg border border-neutral-200 p-3">
+          <Avatar name={r.actor?.displayName ?? "?"} url={r.actor?.avatarUrl ?? null} size={8} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-medium">{r.actor?.displayName ?? "알 수 없음"}</span>
+              <span className="text-xs text-neutral-500">
+                {STATUS_LABEL[r.status]} · {r.progress}화
+              </span>
+              {r.score != null && <Stars value={r.score} size="sm" />}
+            </div>
+            {r.comment && <p className="mt-1 text-sm text-neutral-600">{r.comment}</p>}
+          </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
