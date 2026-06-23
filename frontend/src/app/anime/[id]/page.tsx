@@ -10,6 +10,7 @@ import { aniFormat, displayTitle } from "@/app/lib/anilist-labels";
 import { Stars } from "@/app/components/Stars";
 import { Avatar } from "@/app/components/Timeline";
 import { EpisodeLogModal } from "@/app/components/EpisodeLogModal";
+import { SeriesReviewModal } from "@/app/components/SeriesReviewModal";
 
 const STATUSES: WatchStatus[] = ["WATCHING", "COMPLETED", "ON_HOLD", "DROPPED", "PLAN_TO_WATCH"];
 const STATUS_LABEL: Record<WatchStatus, string> = {
@@ -104,7 +105,7 @@ function MyEvalPanel({
   onSaved: () => void;
   onError: (s: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [modal, setModal] = useState<"series" | "episode" | null>(null);
 
   if (!mine) {
     return (
@@ -142,21 +143,37 @@ function MyEvalPanel({
         {mine.score != null && <Stars value={mine.score} size="sm" />}
         {mine.comment && <span className="text-neutral-600">· {mine.comment}</span>}
       </div>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        disabled={maxed}
-        title={maxed ? "최종화까지 봤어요" : "감상 기록"}
-        className="mt-3 rounded-md border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {maxed ? "완료" : `+ 감상 기록 (${mine.progress + 1}화)`}
-      </button>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setModal("series")}
+          className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100"
+        >
+          시리즈 평가
+        </button>
+        <button
+          type="button"
+          onClick={() => setModal("episode")}
+          disabled={maxed}
+          title={maxed ? "최종화까지 봤어요" : "회차 기록"}
+          className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {maxed ? "회차 기록 완료" : `+ 회차 기록 (${mine.progress + 1}화)`}
+        </button>
+      </div>
 
-      {open && (
+      {modal === "series" && (
+        <SeriesReviewModal
+          entry={mine}
+          onClose={() => setModal(null)}
+          onSaved={() => { setModal(null); onSaved(); }}
+        />
+      )}
+      {modal === "episode" && (
         <EpisodeLogModal
           entry={mine}
-          onClose={() => setOpen(false)}
-          onSaved={() => { setOpen(false); onSaved(); }}
+          onClose={() => setModal(null)}
+          onSaved={() => { setModal(null); onSaved(); }}
         />
       )}
     </div>
