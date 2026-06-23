@@ -130,9 +130,10 @@ function MyActions({
         <button
           type="button"
           onClick={() => setModal("series")}
+          title="시청 상태 · 시리즈 평가"
           className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100"
         >
-          시리즈 평가
+          {STATUS_LABEL[mine.status]}
         </button>
         <button
           type="button"

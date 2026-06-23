@@ -22,6 +22,9 @@ export function SeriesReviewModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // A review only makes sense once watching has progressed past 볼 예정/보는 중.
+  const canReview = status !== "PLAN_TO_WATCH" && status !== "WATCHING";
+
   async function save() {
     setSaving(true);
     setError(null);
@@ -65,24 +68,28 @@ export function SeriesReviewModal({
             </select>
           </label>
 
-          <div>
-            <span className="text-xs font-medium text-neutral-600">전체 별점 (선택)</span>
-            <div className="mt-1">
-              <StarsInput value={score} onChange={setScore} />
-            </div>
-          </div>
+          {canReview && (
+            <>
+              <div>
+                <span className="text-xs font-medium text-neutral-600">전체 별점 (선택)</span>
+                <div className="mt-1">
+                  <StarsInput value={score} onChange={setScore} />
+                </div>
+              </div>
 
-          <label className="block">
-            <span className="text-xs font-medium text-neutral-600">감상평 (선택, 최대 280자)</span>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              maxLength={280}
-              rows={3}
-              placeholder="작품 전체는 어땠나요?"
-              className="mt-1 w-full resize-none rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
-            />
-          </label>
+              <label className="block">
+                <span className="text-xs font-medium text-neutral-600">감상평 (선택, 최대 280자)</span>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  maxLength={280}
+                  rows={3}
+                  placeholder="작품 전체는 어땠나요?"
+                  className="mt-1 w-full resize-none rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+                />
+              </label>
+            </>
+          )}
 
           {error && (
             <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
