@@ -91,15 +91,7 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
         <MyEvalPanel anime={anime} mine={mine} onSaved={loadAll} onError={setError} />
       )}
 
-      <section>
-        <h2 className="mb-3 text-sm font-semibold text-neutral-700">전체 감상평</h2>
-        <ReviewList reviews={reviews} />
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-sm font-semibold text-neutral-700">회차별 감상평</h2>
-        <EpisodeReviewSection reviews={episodeReviews} />
-      </section>
+      <ReviewsSection reviews={reviews} episodeReviews={episodeReviews} />
     </div>
   );
 }
@@ -168,6 +160,39 @@ function MyEvalPanel({
         />
       )}
     </div>
+  );
+}
+
+function ReviewsSection({
+  reviews,
+  episodeReviews,
+}: {
+  reviews: AnimeReview[] | null;
+  episodeReviews: EpisodeReview[] | null;
+}) {
+  const [tab, setTab] = useState<"all" | "episode">("all");
+
+  const tabClass = (active: boolean) =>
+    `rounded-full px-3 py-1 text-sm font-medium transition ${
+      active ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+    }`;
+
+  return (
+    <section>
+      <div className="mb-3 flex gap-1.5">
+        <button type="button" onClick={() => setTab("all")} className={tabClass(tab === "all")}>
+          전체 감상평
+        </button>
+        <button type="button" onClick={() => setTab("episode")} className={tabClass(tab === "episode")}>
+          회차별 감상평
+        </button>
+      </div>
+      {tab === "all" ? (
+        <ReviewList reviews={reviews} />
+      ) : (
+        <EpisodeReviewSection reviews={episodeReviews} />
+      )}
+    </section>
   );
 }
 
