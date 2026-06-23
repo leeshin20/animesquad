@@ -3,7 +3,6 @@ package com.animesquad.episode;
 import com.animesquad.episode.events.EpisodeRatedEvent;
 import com.animesquad.watch.WatchEntry;
 import com.animesquad.watch.WatchEntryRepository;
-import com.animesquad.watch.WatchService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,16 +14,13 @@ public class EpisodeRatingService {
 
     private final EpisodeRatingRepository ratings;
     private final WatchEntryRepository watches;
-    private final WatchService watchService;
     private final ApplicationEventPublisher events;
 
     public EpisodeRatingService(EpisodeRatingRepository ratings,
                                 WatchEntryRepository watches,
-                                WatchService watchService,
                                 ApplicationEventPublisher events) {
         this.ratings = ratings;
         this.watches = watches;
-        this.watchService = watchService;
         this.events = events;
     }
 
@@ -42,10 +38,12 @@ public class EpisodeRatingService {
                 new EpisodeRating(userId, animeId, episodeNumber, score, comment)));
 
         if (entry.getProgress() < episodeNumber) {
-            watchService.updateEntry(userId, animeId, null, episodeNumber, null, null);
+            // bump progress silently — the EpisodeRatedEvent below already
+            // represents this episode, so we skip the separate ProgressUpdatedEvent
+            entry.apply(null, episodeNumber, null, null);
         }
 
-        events.publishEvent(new EpisodeRatedEvent(userId, animeId, episodeNumber, score));
+        events.publishEvent(new EpisodeRatedEvent(userId, animeId, episodeNumber, score, comment));
         return rating;
     }
 

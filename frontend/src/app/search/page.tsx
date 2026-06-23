@@ -4,22 +4,24 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiGet, apiPost, type AnimeView, type WatchEntry, type WatchStatus } from "@/app/lib/api";
 import { aniFormat, aniStatus, displayTitle } from "@/app/lib/anilist-labels";
-
-const STATUSES: WatchStatus[] = ["WATCHING", "COMPLETED", "ON_HOLD", "DROPPED", "PLAN_TO_WATCH"];
-
-const STATUS_LABEL: Record<WatchStatus, string> = {
-  WATCHING: "보는 중",
-  COMPLETED: "완료",
-  ON_HOLD: "보류",
-  DROPPED: "중단",
-  PLAN_TO_WATCH: "볼 예정",
-};
+import { STATUSES, STATUS_LABEL, STATUS_STYLE } from "@/app/lib/watch-status";
+import { SeriesReviewModal } from "@/app/components/SeriesReviewModal";
 
 export default function AnimeSearchPage() {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<AnimeView[]>([]);
   const [status, setStatus] = useState<string | null>(null);
-  const [added, setAdded] = useState<Record<number, true>>({});
+  const [entries, setEntries] = useState<Record<number, WatchEntry>>({});
+  const [modalEntry, setModalEntry] = useState<WatchEntry | null>(null);
+
+  async function loadEntries() {
+    try {
+      const mine = await apiGet<WatchEntry[]>("/api/watch");
+      setEntries(Object.fromEntries(mine.map((e) => [e.anime.anilistId, e])));
+    } catch { /* 검색은 목록 없이도 동작 */ }
+  }
+
+  useEffect(() => { loadEntries(); }, []);
 
   useEffect(() => {
     if (!q.trim()) { setResults([]); return; }
@@ -35,8 +37,8 @@ export default function AnimeSearchPage() {
   async function add(anilistId: number, status: WatchStatus) {
     setStatus(null);
     try {
-      await apiPost<WatchEntry>("/api/watch", { anilistId, status });
-      setAdded((m) => ({ ...m, [anilistId]: true }));
+      const entry = await apiPost<WatchEntry>("/api/watch", { anilistId, status });
+      setEntries((m) => ({ ...m, [anilistId]: entry }));
     } catch (e) { setStatus(String(e)); }
   }
 
@@ -94,10 +96,15 @@ export default function AnimeSearchPage() {
                 {aniFormat(m.format)} · {m.seasonYear ?? "-"} · {m.episodes ?? "?"}화 · {aniStatus(m.status)}
               </div>
               <div className="mt-auto pt-3">
-                {added[m.anilistId] ? (
-                  <span className="text-sm font-medium text-emerald-600">
-                    리스트에 추가됨 ✓
-                  </span>
+                {entries[m.anilistId] ? (
+                  <button
+                    type="button"
+                    onClick={() => setModalEntry(entries[m.anilistId])}
+                    title="시청 상태 · 시리즈 평가"
+                    className={`rounded-md border px-3 py-1.5 text-sm font-medium transition ${STATUS_STYLE[entries[m.anilistId].status]}`}
+                  >
+                    {STATUS_LABEL[entries[m.anilistId].status]}
+                  </button>
                 ) : (
                   <select
                     defaultValue=""
@@ -118,6 +125,15 @@ export default function AnimeSearchPage() {
           </li>
         ))}
       </ul>
+
+      {modalEntry && (
+        <SeriesReviewModal
+          entry={modalEntry}
+          statusOptions={STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
+          onClose={() => setModalEntry(null)}
+          onSaved={() => { setModalEntry(null); loadEntries(); }}
+        />
+      )}
     </div>
   );
 }

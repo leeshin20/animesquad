@@ -128,7 +128,7 @@ class ActivityListenerIT extends AbstractIntegrationTest {
     void episodeRated_emitsWithEpisodeAndScore() {
         Setup s = seedTwoSquadsWithMember();
 
-        events.publishEvent(new EpisodeRatedEvent(s.actor().getId(), s.anime().getId(), 4, 4));
+        events.publishEvent(new EpisodeRatedEvent(s.actor().getId(), s.anime().getId(), 4, 4, null));
 
         Activity row = activities.findBySquadIdOrderByIdDesc(s.squadA().getId(), Limit.of(1)).get(0);
         assertThat(row.getType()).isEqualTo(ActivityType.EPISODE_RATED);

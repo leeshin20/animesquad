@@ -56,8 +56,13 @@ public class ActivityListener {
 
     @EventListener
     public void on(EpisodeRatedEvent e) {
-        fanOut(e.actorId(), ActivityType.EPISODE_RATED, e.animeId(),
-            Map.of("episode", e.episodeNumber(), "score", e.score()));
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("episode", e.episodeNumber());
+        payload.put("score", e.score());
+        if (e.comment() != null && !e.comment().isBlank()) {
+            payload.put("comment", e.comment());
+        }
+        fanOut(e.actorId(), ActivityType.EPISODE_RATED, e.animeId(), payload);
     }
 
     @EventListener

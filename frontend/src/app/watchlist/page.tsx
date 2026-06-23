@@ -2,19 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { apiGet, apiPatch, type WatchEntry, type WatchStatus } from "@/app/lib/api";
+import { apiGet, type WatchEntry, type WatchStatus } from "@/app/lib/api";
 import { aniFormat, displayTitle } from "@/app/lib/anilist-labels";
-import { StarIcon, StarsInput } from "@/app/components/Stars";
-
-const STATUSES: WatchStatus[] = ["WATCHING", "COMPLETED", "ON_HOLD", "DROPPED", "PLAN_TO_WATCH"];
-
-const STATUS_LABEL: Record<WatchStatus, string> = {
-  WATCHING: "보는 중",
-  COMPLETED: "완료",
-  ON_HOLD: "보류",
-  DROPPED: "중단",
-  PLAN_TO_WATCH: "볼 예정",
-};
+import { StarIcon, Stars } from "@/app/components/Stars";
+import { SeriesReviewModal } from "@/app/components/SeriesReviewModal";
+import { EpisodeLogModal } from "@/app/components/EpisodeLogModal";
+import { STATUSES, STATUS_LABEL, STATUS_STYLE } from "@/app/lib/watch-status";
 
 type StatusFilter = WatchStatus | "ALL";
 type ScoreFilter = "ALL" | 1 | 2 | 3 | 4 | 5 | "NONE";
@@ -85,7 +78,7 @@ export default function MyListPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">내 리스트</h1>
-        <p className="mt-1 text-sm text-neutral-500">상태·진도·평점을 한 줄에서 수정하세요</p>
+        <p className="mt-1 text-sm text-neutral-500">버튼을 눌러 상태·평점·회차를 기록하세요</p>
       </header>
 
       {status && (
@@ -136,7 +129,7 @@ export default function MyListPage() {
           ) : (
             <ul className="space-y-3">
               {filtered.map((e) => (
-                <Row key={e.id} entry={e} onSaved={refresh} onError={setStatus} />
+                <Row key={e.id} entry={e} onSaved={refresh} />
               ))}
             </ul>
           )}
@@ -224,34 +217,13 @@ function Pills<T extends string | number>({
 }
 
 function Row({
-  entry, onSaved, onError,
+  entry, onSaved,
 }: {
   entry: WatchEntry;
   onSaved: () => void;
-  onError: (s: string) => void;
 }) {
-  const [status, setStatus] = useState<WatchStatus>(entry.status);
-  const [progress, setProgress] = useState<string>(String(entry.progress));
-  const [score, setScore] = useState<number | null>(entry.score);
-  const [comment, setComment] = useState<string>(entry.comment ?? "");
-  const [saving, setSaving] = useState(false);
-
-  async function save() {
-    setSaving(true);
-    try {
-      await apiPatch(`/api/watch/${entry.anime.id}`, {
-        status,
-        progress: progress === "" ? null : Number(progress),
-        score,
-        comment: comment === "" ? null : comment,
-      });
-      onSaved();
-    } catch (err) { onError(String(err)); }
-    finally { setSaving(false); }
-  }
-
-  const inputCls =
-    "rounded-md border border-neutral-300 px-2 py-1 text-sm focus:border-neutral-900 focus:outline-none";
+  const [modal, setModal] = useState<"series" | "episode" | null>(null);
+  const maxed = entry.anime.episodes != null && entry.progress >= entry.anime.episodes;
 
   return (
     <li className="flex gap-4 rounded-xl border border-neutral-200 p-4">
@@ -270,69 +242,48 @@ function Row({
           <Link href={`/anime/${entry.anime.id}`} className="font-medium hover:underline">
             {displayTitle(entry.anime)}
           </Link>
-          <div className="text-xs text-neutral-500">
-            {aniFormat(entry.anime.format)} · {entry.anime.episodes ?? "?"}화
+          <div className="flex items-center justify-between gap-2 text-xs text-neutral-500">
+            <span>{aniFormat(entry.anime.format)} · {entry.progress}/{entry.anime.episodes ?? "?"}화</span>
+            {entry.score != null && <Stars value={entry.score} size="sm" />}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as WatchStatus)}
-            className={inputCls}
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-            ))}
-          </select>
-          <div className="inline-flex items-stretch">
-            <button
-              type="button"
-              onClick={() => {
-                const n = Math.max(0, (Number(progress) || 0) - 1);
-                setProgress(String(n));
-              }}
-              className="rounded-l-md border border-r-0 border-neutral-300 px-2 text-sm text-neutral-600 hover:bg-neutral-100"
-              aria-label="진도 -1"
-            >
-              −
-            </button>
-            <input
-              type="number" min={0} value={progress}
-              onChange={(e) => setProgress(e.target.value)}
-              placeholder="진도"
-              className="no-spinner w-14 border-y border-neutral-300 px-2 py-1 text-center text-sm focus:border-neutral-900 focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                const max = entry.anime.episodes;
-                const next = (Number(progress) || 0) + 1;
-                if (max != null && next > max) return;
-                setProgress(String(next));
-              }}
-              className="rounded-r-md border border-l-0 border-neutral-300 px-2 text-sm text-neutral-600 hover:bg-neutral-100"
-              aria-label="진도 +1"
-            >
-              +
-            </button>
-          </div>
-          <StarsInput value={score} onChange={setScore} size="sm" />
-          <input
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="한줄평 (최대 280자)"
-            maxLength={280}
-            className={`${inputCls} min-w-[200px] flex-1`}
-          />
+
+        <div className="mt-auto flex flex-wrap gap-2 pt-1">
           <button
-            onClick={save}
-            disabled={saving}
-            className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+            type="button"
+            onClick={() => setModal("series")}
+            title="시청 상태 · 시리즈 평가"
+            className={`rounded-md border px-3 py-1.5 text-sm font-medium transition ${STATUS_STYLE[entry.status]}`}
           >
-            {saving ? "저장 중…" : "저장"}
+            {STATUS_LABEL[entry.status]}
+          </button>
+          <button
+            type="button"
+            onClick={() => setModal("episode")}
+            disabled={maxed}
+            title={maxed ? "최종화까지 봤어요" : "회차 기록"}
+            className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {maxed ? "회차 기록 완료" : `+ 회차 기록 (${entry.progress + 1}화)`}
           </button>
         </div>
       </div>
+
+      {modal === "series" && (
+        <SeriesReviewModal
+          entry={entry}
+          statusOptions={STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
+          onClose={() => setModal(null)}
+          onSaved={() => { setModal(null); onSaved(); }}
+        />
+      )}
+      {modal === "episode" && (
+        <EpisodeLogModal
+          entry={entry}
+          onClose={() => setModal(null)}
+          onSaved={() => { setModal(null); onSaved(); }}
+        />
+      )}
     </li>
   );
 }

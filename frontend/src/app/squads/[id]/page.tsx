@@ -37,7 +37,8 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
       const cursor = items.length === 0 ? "" : `&cursor=${items[items.length - 1].id}`;
       const page = await apiGet<FeedItem[]>(
         `/api/squad/${squadId}/feed?limit=${PAGE_SIZE}${cursor}`);
-      const visible = page.filter((it) => it.type !== "ANIME_ADDED");
+      const visible = page.filter(
+        (it) => it.type !== "ANIME_ADDED" && it.type !== "STATUS_CHANGED");
       setItems((cur) => [...cur, ...visible]);
       if (page.length < PAGE_SIZE) setDone(true);
     } catch (e) { setError(String(e)); }
@@ -46,7 +47,8 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
 
   async function loadRecent() {
     try {
-      setRecent(await apiGet<SquadWatchItem[]>(`/api/squad/${squadId}/recent-watch?limit=10`));
+      const data = await apiGet<SquadWatchItem[]>(`/api/squad/${squadId}/recent-watch?limit=10`);
+      setRecent(data.filter((it) => it.status !== "PLAN_TO_WATCH"));
     } catch (e) { setError(String(e)); }
   }
 

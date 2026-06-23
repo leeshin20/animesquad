@@ -60,7 +60,7 @@ function Dashboard() {
         apiGet<Squad[]>("/api/squad"),
         apiGet<WatchEntry[]>("/api/watch"),
       ]);
-      setEntries(mine.slice(0, 10));
+      setEntries(mine.filter((e) => e.status !== "PLAN_TO_WATCH").slice(0, 10));
 
       const pages = await Promise.all(
         squads.map(async (s) => {
@@ -70,7 +70,7 @@ function Dashboard() {
       );
       const merged = pages
         .flat()
-        .filter((it) => it.type !== "ANIME_ADDED")
+        .filter((it) => it.type !== "ANIME_ADDED" && it.type !== "STATUS_CHANGED")
         .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
         .slice(0, 30);
       setFeed(merged);

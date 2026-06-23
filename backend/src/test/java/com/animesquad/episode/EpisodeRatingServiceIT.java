@@ -114,15 +114,19 @@ class EpisodeRatingServiceIT extends AbstractIntegrationTest {
     com.animesquad.squad.SquadService squadServiceForEvents3;
 
     @Test
-    void upsertRating_emitsEpisodeRated_andProgressUpdatedOnBump_whenInSquad() {
+    void upsertRating_emitsOnlyEpisodeRated_evenWhenProgressBumps_whenInSquad() {
         Seeded s = seed("evt", 9001);
         squadServiceForEvents3.createSquad(s.user().getId(), "S");
-        // progress starts at 0; rating ep 5 should bump it → ProgressUpdated also fires
+        // progress starts at 0; rating ep 5 bumps it, but we emit a single
+        // EPISODE_RATED activity (no separate PROGRESS_UPDATED) so the feed
+        // shows one entry per record.
 
-        service.upsertRating(s.user().getId(), s.anime().getId(), 5, 4, null);
+        service.upsertRating(s.user().getId(), s.anime().getId(), 5, 4, "good ep");
 
         assertThat(activityRepo3.findAll())
             .extracting(a -> a.getType().name())
-            .containsExactlyInAnyOrder("EPISODE_RATED", "PROGRESS_UPDATED");
+            .containsExactly("EPISODE_RATED");
+        assertThat(activityRepo3.findAll().get(0).getPayload())
+            .containsEntry("comment", "good ep");
     }
 }

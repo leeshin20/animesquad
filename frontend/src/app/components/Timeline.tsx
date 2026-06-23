@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { FeedItem } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { Stars } from "@/app/components/Stars";
+import { statusLabel, statusBadge } from "@/app/lib/watch-status";
 
 export type FeedItemWithSquad = FeedItem & { squad?: { id: number; name: string } };
 
@@ -49,6 +50,7 @@ function TimelineItem({
   item, showSquad,
 }: { item: FeedItemWithSquad; showSquad: boolean }) {
   const name = item.actor?.displayName ?? "누군가";
+  const ep = episodeOf(item);
   return (
     <li className="flex gap-3 px-4 py-4 transition hover:bg-neutral-50">
       <Avatar name={name} url={item.actor?.avatarUrl ?? null} />
@@ -63,13 +65,13 @@ function TimelineItem({
               {item.squad.name}
             </Link>
           )}
-          <span className="text-xs text-neutral-400">{relativeTime(item.createdAt)}</span>
+          <span className="text-xs text-neutral-500">{relativeTime(item.createdAt)}</span>
         </div>
         <ItemBody item={item} />
         {item.anime && (
           <Link
-            href="/watchlist"
-            className="mt-1 inline-flex max-w-sm items-center gap-3 rounded-lg border border-neutral-200 p-2 transition hover:border-neutral-300"
+            href={`/anime/${item.anime.id}`}
+            className="mt-1 flex max-w-sm items-center gap-3 rounded-lg border border-neutral-200 p-2 transition hover:border-neutral-300"
           >
             {item.anime.coverImageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -81,9 +83,12 @@ function TimelineItem({
             ) : (
               <div className="h-12 w-9 flex-none rounded-sm bg-neutral-100" />
             )}
-            <span className="truncate text-sm text-neutral-800">
+            <span className="min-w-0 flex-1 truncate text-sm text-neutral-900">
               {displayTitle(item.anime)}
             </span>
+            {ep != null && (
+              <span className="flex-none text-xs font-medium text-neutral-600">{ep}화</span>
+            )}
           </Link>
         )}
       </div>
@@ -101,19 +106,54 @@ function ItemBody({ item }: { item: FeedItem }) {
         <div className="flex items-center gap-2 text-sm text-neutral-700">
           {p.score != null && <Stars value={Number(p.score)} size="sm" />}
           {p.progress != null && (
-            <span className="text-xs text-neutral-500">{Number(p.progress)}화</span>
+            <span className="text-xs text-neutral-600">{Number(p.progress)}화</span>
           )}
         </div>
-        {comment && <p className="text-sm text-neutral-600">{comment}</p>}
+        {comment && <p className="text-sm text-neutral-700">{comment}</p>}
       </div>
     );
   }
 
+  if (item.type === "EPISODE_RATED") {
+    const comment = typeof p.comment === "string" ? p.comment : null;
+    if (p.score == null && !comment) return null;
+    return (
+      <div className="flex flex-col gap-0.5">
+        {p.score != null && <Stars value={Number(p.score)} size="sm" />}
+        {comment && <p className="text-sm text-neutral-700">{comment}</p>}
+      </div>
+    );
+  }
+
+  if (item.type === "STATUS_CHANGED") {
+    return (
+      <p className="flex flex-wrap items-center gap-1 text-sm text-neutral-700">
+        상태를 <StatusBadge v={p.from} /> → <StatusBadge v={p.to} /> 로 바꿨어요
+      </p>
+    );
+  }
+
+  // PROGRESS_UPDATED carries no rating/comment — the anime card below shows the episode.
   if (item.type === "PROGRESS_UPDATED") {
-    return <p className="text-sm text-neutral-700">{Number(p.progress)}화</p>;
+    return null;
   }
 
   return <p className="text-sm text-neutral-700">{actionText(item)}</p>;
+}
+
+function StatusBadge({ v }: { v: unknown }) {
+  return (
+    <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${statusBadge(v)}`}>
+      {statusLabel(v)}
+    </span>
+  );
+}
+
+function episodeOf(item: FeedItem): number | null {
+  const p = item.payload as Record<string, unknown>;
+  if (item.type === "EPISODE_RATED" && p.episode != null) return Number(p.episode);
+  if (item.type === "PROGRESS_UPDATED" && p.progress != null) return Number(p.progress);
+  return null;
 }
 
 export function Avatar({ name, url, size = 10 }: { name: string; url: string | null; size?: 7 | 8 | 10 }) {
@@ -139,7 +179,7 @@ function actionText(it: FeedItem): string {
     case "ANIME_ADDED":
       return `리스트에 추가했어요`;
     case "STATUS_CHANGED":
-      return `상태를 ${p.from} → ${p.to} 로 바꿨어요`;
+      return `상태를 ${statusLabel(p.from)} → ${statusLabel(p.to)} 로 바꿨어요`;
     case "PROGRESS_UPDATED":
       return `${p.progress}화까지 봤어요`;
     case "RATED":

@@ -283,7 +283,7 @@
 | `STATUS_CHANGED` | `{ "from": "WATCHING", "to": "COMPLETED" }` | 상태 변경 |
 | `PROGRESS_UPDATED` | `{ "progress": 5 }` | 진도 변경 |
 | `RATED` | `{ "score": 4 }` | 작품 평점 (1~5) |
-| `EPISODE_RATED` | `{ "episode": 5, "score": 5 }` | 화별 평점 (1~5) |
+| `EPISODE_RATED` | `{ "episode": 5, "score": 5, "comment": "…" }` | 화별 기록 (`comment` 선택, 진도 증가는 별도 `PROGRESS_UPDATED` 없이 이 활동에 통합) |
 | `JOINED_SQUAD` | `{}` | 스쿼드 가입 (anime=null) |
 
 ---
