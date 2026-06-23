@@ -84,12 +84,9 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
             <p className="mt-1 text-xs text-neutral-500">
               {aniFormat(anime.format)} · {anime.episodes ?? "?"}화
             </p>
+            <MyActions anime={anime} mine={mine} onSaved={loadAll} onError={setError} />
           </div>
         </header>
-      )}
-
-      {anime && (
-        <MyEvalPanel anime={anime} mine={mine} onSaved={loadAll} onError={setError} />
       )}
 
       <ReviewsSection reviews={reviews} episodeReviews={episodeReviews} />
@@ -97,7 +94,7 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
   );
 }
 
-function MyEvalPanel({
+function MyActions({
   anime, mine, onSaved, onError,
 }: {
   anime: AnimeView;
@@ -109,41 +106,27 @@ function MyEvalPanel({
 
   if (!mine) {
     return (
-      <div className="rounded-xl border border-neutral-200 p-4">
-        <p className="mb-2 text-sm font-medium text-neutral-700">내 평가</p>
-        <select
-          defaultValue=""
-          onChange={async (e) => {
-            const s = e.target.value as WatchStatus;
-            if (!s) return;
-            try { await apiPost("/api/watch", { anilistId: anime.anilistId, status: s }); onSaved(); }
-            catch (err) { onError(String(err)); }
-          }}
-          className="rounded-md border border-neutral-300 px-2 py-1 text-sm focus:border-neutral-900 focus:outline-none"
-        >
-          <option value="">내 목록에 추가…</option>
-          {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-        </select>
-      </div>
+      <select
+        defaultValue=""
+        onChange={async (e) => {
+          const s = e.target.value as WatchStatus;
+          if (!s) return;
+          try { await apiPost("/api/watch", { anilistId: anime.anilistId, status: s }); onSaved(); }
+          catch (err) { onError(String(err)); }
+        }}
+        className="mt-4 rounded-md border border-neutral-300 px-2 py-1 text-sm focus:border-neutral-900 focus:outline-none"
+      >
+        <option value="">내 목록에 추가…</option>
+        {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+      </select>
     );
   }
 
   const maxed = anime.episodes != null && mine.progress >= anime.episodes;
 
   return (
-    <div className="rounded-xl border border-neutral-200 p-4">
-      <p className="mb-2 text-sm font-medium text-neutral-700">내 평가</p>
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600">
-          {STATUS_LABEL[mine.status]}
-        </span>
-        <span className="text-xs text-neutral-500">
-          {mine.progress}{anime.episodes ? `/${anime.episodes}` : ""}화
-        </span>
-        {mine.score != null && <Stars value={mine.score} size="sm" />}
-        {mine.comment && <span className="text-neutral-600">· {mine.comment}</span>}
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
+    <>
+      <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => setModal("series")}
@@ -176,7 +159,7 @@ function MyEvalPanel({
           onSaved={() => { setModal(null); onSaved(); }}
         />
       )}
-    </div>
+    </>
   );
 }
 
