@@ -34,7 +34,9 @@ public class AnimeReviewsController {
     @GetMapping
     @Transactional(readOnly = true)
     public List<ReviewItem> reviews(@PathVariable Long animeId) {
-        List<WatchEntry> rows = entries.findAllByAnimeIdOrderByUpdatedAtDesc(animeId);
+        List<WatchEntry> rows = entries.findAllByAnimeIdOrderByUpdatedAtDesc(animeId).stream()
+            .filter(e -> e.getComment() != null && !e.getComment().isBlank())
+            .toList();
         if (rows.isEmpty()) return List.of();
 
         Map<Long, User> userById = users.findAllById(

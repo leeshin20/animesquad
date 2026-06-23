@@ -50,29 +50,32 @@ class AnimeReviewsControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void listsAllUsersFlat_includingSelf_regardlessOfSquad() {
+    void onlyShowsUsersWithComment_includingSelf_regardlessOfSquad() {
         User me = userService.upsertFromGoogle("g-rev-me", "me@x.y", "Me", null);
         User other = userService.upsertFromGoogle("g-rev-other", "other@x.y", "Other", null);
-        // me and other share NO squad — still both must appear.
+        User watcher = userService.upsertFromGoogle("g-rev-watch", "watch@x.y", "Watcher", null);
+        User scorer = userService.upsertFromGoogle("g-rev-score", "score@x.y", "Scorer", null);
+        // nobody shares a squad — still anyone with a comment must appear.
 
         animeService.upsertFromAniList(media(401));
         WatchEntry mineEntry = watchService.addToList(me.getId(), 401, WatchStatus.WATCHING);
         Long animeId = mineEntry.getAnimeId();
+        watchService.updateEntry(me.getId(), animeId, null, 3, null, "나도 한마디");      // self, has comment → shown
         watchService.addToList(other.getId(), 401, WatchStatus.COMPLETED);
-        watchService.updateEntry(other.getId(), animeId, null, 12, 5, "최고");
+        watchService.updateEntry(other.getId(), animeId, null, 12, 5, "최고");            // comment → shown
+        watchService.addToList(watcher.getId(), 401, WatchStatus.WATCHING);              // watch only, no comment → hidden
+        watchService.addToList(scorer.getId(), 401, WatchStatus.COMPLETED);
+        watchService.updateEntry(scorer.getId(), animeId, null, 12, 4, null);            // score but no comment → hidden
 
         ResponseEntity<List<Map<String, Object>>> res = getReviews(animeId, me.getId());
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         List<Map<String, Object>> reviews = res.getBody();
-        assertThat(reviews).hasSize(2); // self included, other included
+        assertThat(reviews).hasSize(2); // me + other (watcher & scorer excluded)
 
-        // self is present
-        assertThat(reviews).anySatisfy(r -> {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> actor = (Map<String, Object>) r.get("actor");
-            assertThat(actor.get("displayName")).isEqualTo("Me");
-        });
+        var names = reviews.stream()
+            .map(r -> (String) ((Map<?, ?>) r.get("actor")).get("displayName")).toList();
+        assertThat(names).containsExactlyInAnyOrder("Me", "Other");
 
         // other's score/comment surfaced
         Map<String, Object> otherReview = reviews.stream()
@@ -85,6 +88,23 @@ class AnimeReviewsControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void excludesBlankComments() {
+        User me = userService.upsertFromGoogle("g-rev-blank-me", "bme@x.y", "Me", null);
+        User blank = userService.upsertFromGoogle("g-rev-blank", "blank@x.y", "Blank", null);
+
+        animeService.upsertFromAniList(media(404));
+        WatchEntry mineEntry = watchService.addToList(me.getId(), 404, WatchStatus.WATCHING);
+        Long animeId = mineEntry.getAnimeId();
+        watchService.updateEntry(me.getId(), animeId, null, 1, null, "있음");
+        watchService.addToList(blank.getId(), 404, WatchStatus.WATCHING);
+        watchService.updateEntry(blank.getId(), animeId, null, 1, null, "   ");          // whitespace-only → hidden
+
+        List<Map<String, Object>> reviews = getReviews(animeId, me.getId()).getBody();
+        assertThat(reviews).hasSize(1);
+        assertThat(((Map<?, ?>) reviews.get(0).get("actor")).get("displayName")).isEqualTo("Me");
+    }
+
+    @Test
     void ordersByUpdatedAtDesc() {
         User a = userService.upsertFromGoogle("g-rev-a", "a@x.y", "Aaa", null);
         User b = userService.upsertFromGoogle("g-rev-b", "b@x.y", "Bbb", null);
@@ -92,9 +112,10 @@ class AnimeReviewsControllerIT extends AbstractIntegrationTest {
         animeService.upsertFromAniList(media(402));
         WatchEntry first = watchService.addToList(a.getId(), 402, WatchStatus.WATCHING);
         Long animeId = first.getAnimeId();
+        watchService.updateEntry(a.getId(), animeId, null, 1, null, "먼저");
         watchService.addToList(b.getId(), 402, WatchStatus.WATCHING);
         // b updated most recently → b should be first.
-        watchService.updateEntry(b.getId(), animeId, null, 3, null, null);
+        watchService.updateEntry(b.getId(), animeId, null, 3, null, "나중");
 
         List<Map<String, Object>> reviews = getReviews(animeId, a.getId()).getBody();
         assertThat(reviews).hasSize(2);
