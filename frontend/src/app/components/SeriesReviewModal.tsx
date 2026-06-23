@@ -1,19 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { apiPatch, type WatchEntry } from "@/app/lib/api";
+import { apiPatch, type WatchEntry, type WatchStatus } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { StarsInput } from "@/app/components/Stars";
 
 export function SeriesReviewModal({
   entry,
+  statusOptions,
   onClose,
   onSaved,
 }: {
   entry: WatchEntry;
+  statusOptions: { value: WatchStatus; label: string }[];
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [status, setStatus] = useState<WatchStatus>(entry.status);
   const [score, setScore] = useState<number | null>(entry.score);
   const [comment, setComment] = useState(entry.comment ?? "");
   const [saving, setSaving] = useState(false);
@@ -24,6 +27,7 @@ export function SeriesReviewModal({
     setError(null);
     try {
       await apiPatch(`/api/watch/${entry.anime.id}`, {
+        status,
         score,
         comment: comment.trim() || null,
       });
@@ -48,6 +52,19 @@ export function SeriesReviewModal({
         <p className="mt-1 text-xs text-neutral-500">시리즈 전체 평가</p>
 
         <div className="mt-5 space-y-4">
+          <label className="block">
+            <span className="text-xs font-medium text-neutral-600">시청 상태</span>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as WatchStatus)}
+              className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+            >
+              {statusOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </label>
+
           <div>
             <span className="text-xs font-medium text-neutral-600">전체 별점 (선택)</span>
             <div className="mt-1">

@@ -148,6 +148,7 @@ function MyActions({
       {modal === "series" && (
         <SeriesReviewModal
           entry={mine}
+          statusOptions={STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
           onClose={() => setModal(null)}
           onSaved={() => { setModal(null); onSaved(); }}
         />
