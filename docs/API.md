@@ -35,6 +35,29 @@
 ```
 `isAdmin`은 `app.admin.emails` 화이트리스트와 비교한 결과.
 
+최초 가입 시에만 Google 프로필(이름·사진)을 사용하며, 이후 로그인에서는 사용자가 수정한 프로필을 덮어쓰지 않는다.
+
+### `PATCH /api/me`
+닉네임 수정.
+
+**요청**
+```json
+{ "displayName": "새 닉네임" }
+```
+**응답 200** — `GET /api/me`와 동일한 형태. 닉네임이 비어 있으면 `400`.
+
+### `POST /api/me/avatar`
+프로필 사진 업로드 (`multipart/form-data`, 필드명 `file`).
+이미지 타입(jpeg/png/gif/webp)·5MB 이하만 허용하며, 저장 후 `avatarUrl`을 갱신한다.
+업로드된 파일은 `/uploads/{파일명}`으로 정적 서빙된다.
+
+**응답 200** — `GET /api/me`와 동일한 형태. 비이미지·초과 용량은 `400`.
+
+### `POST /api/me/logout`
+세션 쿠키(`ASQ_SESSION`)를 만료시킨다.
+
+**응답 204** — 본문 없음.
+
 ---
 
 ## Anime (탐색)

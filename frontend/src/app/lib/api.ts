@@ -72,6 +72,30 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   return res.json();
 }
 
+/** POST with no JSON body/response (e.g. logout). */
+export async function apiPostEmpty(path: string): Promise<void> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+}
+
+/** Multipart file upload. */
+export async function apiUpload<T>(path: string, file: File): Promise<T> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    body: form,
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
+
 export type AniListMedia = {
   anilistId: number;
   titleRomaji: string;
