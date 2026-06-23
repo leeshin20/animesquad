@@ -66,6 +66,18 @@
 ]
 ```
 
+### `GET /api/anime/{animeId}/episode-reviews`
+이 작품에 **회차별 감상평(comment)을 남긴 모든 사용자**의 목록 (스쿼드 무관). 코멘트가 없는 회차 평점(별점만)은 제외. 정렬: `episodeNumber` 오름차순, 같은 회차 내 `updatedAt` 내림차순.
+
+**응답 200** — `EpisodeReviewItem[]`
+```json
+[
+  { "actor": { "id": 2, "displayName": "민수", "avatarUrl": null },
+    "episodeNumber": 3, "score": 5,
+    "comment": "전개 미쳤다", "updatedAt": "2026-06-22T10:00:00Z" }
+]
+```
+
 ---
 
 ## Watchlist

@@ -131,3 +131,11 @@ export type AnimeReview = {
   comment: string | null;
   updatedAt: string;
 };
+
+export type EpisodeReview = {
+  actor: { id: number; displayName: string; avatarUrl: string | null } | null;
+  episodeNumber: number;
+  score: number;
+  comment: string;
+  updatedAt: string;
+};

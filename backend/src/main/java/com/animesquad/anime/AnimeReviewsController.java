@@ -1,6 +1,8 @@
 package com.animesquad.anime;
 
 import com.animesquad.activity.dto.ActorRef;
+import com.animesquad.episode.EpisodeRating;
+import com.animesquad.episode.EpisodeRatingRepository;
 import com.animesquad.user.User;
 import com.animesquad.user.UserRepository;
 import com.animesquad.watch.WatchEntry;
@@ -15,7 +17,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/anime/{animeId}/reviews")
+@RequestMapping("/api/anime/{animeId}")
 public class AnimeReviewsController {
 
     public record ReviewItem(
@@ -23,15 +25,23 @@ public class AnimeReviewsController {
         Integer score, String comment, OffsetDateTime updatedAt
     ) {}
 
+    public record EpisodeReviewItem(
+        ActorRef actor, int episodeNumber, int score, String comment, OffsetDateTime updatedAt
+    ) {}
+
     private final WatchEntryRepository entries;
+    private final EpisodeRatingRepository episodeRatings;
     private final UserRepository users;
 
-    public AnimeReviewsController(WatchEntryRepository entries, UserRepository users) {
+    public AnimeReviewsController(WatchEntryRepository entries,
+                                  EpisodeRatingRepository episodeRatings,
+                                  UserRepository users) {
         this.entries = entries;
+        this.episodeRatings = episodeRatings;
         this.users = users;
     }
 
-    @GetMapping
+    @GetMapping("/reviews")
     @Transactional(readOnly = true)
     public List<ReviewItem> reviews(@PathVariable Long animeId) {
         List<WatchEntry> rows = entries.findAllByAnimeIdOrderByUpdatedAtDesc(animeId).stream()
@@ -39,9 +49,7 @@ public class AnimeReviewsController {
             .toList();
         if (rows.isEmpty()) return List.of();
 
-        Map<Long, User> userById = users.findAllById(
-            rows.stream().map(WatchEntry::getUserId).distinct().toList()
-        ).stream().collect(Collectors.toMap(User::getId, u -> u));
+        Map<Long, User> userById = usersByIds(rows.stream().map(WatchEntry::getUserId));
 
         return rows.stream().map(e -> {
             User u = userById.get(e.getUserId());
@@ -50,5 +58,29 @@ public class AnimeReviewsController {
                 e.getStatus(), e.getProgress(), e.getScore(),
                 e.getComment(), e.getUpdatedAt());
         }).toList();
+    }
+
+    @GetMapping("/episode-reviews")
+    @Transactional(readOnly = true)
+    public List<EpisodeReviewItem> episodeReviews(@PathVariable Long animeId) {
+        List<EpisodeRating> rows = episodeRatings
+            .findAllByAnimeIdOrderByEpisodeNumberAscUpdatedAtDesc(animeId).stream()
+            .filter(r -> r.getComment() != null && !r.getComment().isBlank())
+            .toList();
+        if (rows.isEmpty()) return List.of();
+
+        Map<Long, User> userById = usersByIds(rows.stream().map(EpisodeRating::getUserId));
+
+        return rows.stream().map(r -> {
+            User u = userById.get(r.getUserId());
+            return new EpisodeReviewItem(
+                u == null ? null : ActorRef.from(u),
+                r.getEpisodeNumber(), r.getScore(), r.getComment(), r.getUpdatedAt());
+        }).toList();
+    }
+
+    private Map<Long, User> usersByIds(java.util.stream.Stream<Long> userIds) {
+        return users.findAllById(userIds.distinct().toList())
+            .stream().collect(Collectors.toMap(User::getId, u -> u));
     }
 }

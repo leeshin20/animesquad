@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   apiGet, apiGetOrNull, apiPost,
-  type AnimeView, type WatchEntry, type WatchStatus, type AnimeReview,
+  type AnimeView, type WatchEntry, type WatchStatus, type AnimeReview, type EpisodeReview,
 } from "@/app/lib/api";
 import { aniFormat, displayTitle } from "@/app/lib/anilist-labels";
 import { Stars } from "@/app/components/Stars";
@@ -22,17 +22,19 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
   const [anime, setAnime] = useState<AnimeView | null>(null);
   const [mine, setMine] = useState<WatchEntry | null>(null);
   const [reviews, setReviews] = useState<AnimeReview[] | null>(null);
+  const [episodeReviews, setEpisodeReviews] = useState<EpisodeReview[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const didInit = useRef(false);
 
   async function loadAll() {
     try {
-      const [a, m, r] = await Promise.all([
+      const [a, m, r, er] = await Promise.all([
         apiGet<AnimeView>(`/api/anime/${animeId}`),
         apiGetOrNull<WatchEntry>(`/api/watch/${animeId}`),
         apiGet<AnimeReview[]>(`/api/anime/${animeId}/reviews`),
+        apiGet<EpisodeReview[]>(`/api/anime/${animeId}/episode-reviews`),
       ]);
-      setAnime(a); setMine(m); setReviews(r);
+      setAnime(a); setMine(m); setReviews(r); setEpisodeReviews(er);
     } catch (e) { setError(String(e)); }
   }
 
@@ -80,6 +82,11 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
       <section>
         <h2 className="mb-3 text-sm font-semibold text-neutral-700">전체 감상평</h2>
         <ReviewList reviews={reviews} />
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-sm font-semibold text-neutral-700">회차별 감상평</h2>
+        <EpisodeReviewSection reviews={episodeReviews} />
       </section>
     </div>
   );
@@ -181,5 +188,62 @@ function ReviewList({ reviews }: { reviews: AnimeReview[] | null }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function EpisodeReviewSection({ reviews }: { reviews: EpisodeReview[] | null }) {
+  const episodes = reviews
+    ? Array.from(new Set(reviews.map((r) => r.episodeNumber))).sort((a, b) => a - b)
+    : [];
+  const [selected, setSelected] = useState<number | null>(null);
+
+  if (reviews === null) {
+    return <div className="h-20 animate-pulse rounded-xl bg-neutral-100" />;
+  }
+  if (episodes.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-500">
+        아직 회차별 감상평이 없어요.
+      </div>
+    );
+  }
+
+  const activeEp = selected != null && episodes.includes(selected) ? selected : episodes[0];
+  const shown = reviews.filter((r) => r.episodeNumber === activeEp);
+
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {episodes.map((ep) => (
+          <button
+            key={ep}
+            type="button"
+            onClick={() => setSelected(ep)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+              ep === activeEp
+                ? "bg-neutral-900 text-white"
+                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+            }`}
+          >
+            {ep}화
+          </button>
+        ))}
+      </div>
+      <ul className="space-y-2">
+        {shown.map((r, i) => (
+          <li key={i} className="flex items-start gap-3 rounded-lg border border-neutral-200 p-3">
+            <Avatar name={r.actor?.displayName ?? "?"} url={r.actor?.avatarUrl ?? null} size={8} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="font-medium">{r.actor?.displayName ?? "알 수 없음"}</span>
+                <span className="text-xs text-neutral-500">{r.episodeNumber}화</span>
+                <Stars value={r.score} size="sm" />
+              </div>
+              <p className="mt-1 text-sm text-neutral-600">{r.comment}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

@@ -2,6 +2,7 @@ package com.animesquad.anime;
 
 import com.animesquad.auth.JwtAuthenticationFilter;
 import com.animesquad.auth.JwtService;
+import com.animesquad.episode.EpisodeRatingService;
 import com.animesquad.support.AbstractIntegrationTest;
 import com.animesquad.user.User;
 import com.animesquad.user.UserService;
@@ -26,6 +27,7 @@ class AnimeReviewsControllerIT extends AbstractIntegrationTest {
 
     @Autowired UserService userService;
     @Autowired WatchService watchService;
+    @Autowired EpisodeRatingService episodeRatingService;
     @Autowired AnimeService animeService;
     @Autowired JwtService jwtService;
     @Autowired TestRestTemplate rest;
@@ -45,6 +47,13 @@ class AnimeReviewsControllerIT extends AbstractIntegrationTest {
     private ResponseEntity<List<Map<String, Object>>> getReviews(Long animeId, Long asUserId) {
         return rest.exchange(
             url("/api/anime/" + animeId + "/reviews"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(asUserId)),
+            new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+    }
+
+    private ResponseEntity<List<Map<String, Object>>> getEpisodeReviews(Long animeId, Long asUserId) {
+        return rest.exchange(
+            url("/api/anime/" + animeId + "/episode-reviews"), HttpMethod.GET,
             new HttpEntity<>(cookieFor(asUserId)),
             new ParameterizedTypeReference<List<Map<String, Object>>>() {});
     }
@@ -129,6 +138,47 @@ class AnimeReviewsControllerIT extends AbstractIntegrationTest {
         Anime anime = animeService.upsertFromAniList(media(403));
 
         ResponseEntity<List<Map<String, Object>>> res = getReviews(anime.getId(), me.getId());
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody()).isEmpty();
+    }
+
+    @Test
+    void episodeReviews_allUsersWithComment_orderedByEpisode() {
+        User me = userService.upsertFromGoogle("g-ep-me", "epme@x.y", "Me", null);
+        User other = userService.upsertFromGoogle("g-ep-other", "epother@x.y", "Other", null);
+        // no shared squad — all users' episode reviews should still appear.
+
+        WatchEntry mineEntry = watchService.addToList(me.getId(), 501, WatchStatus.WATCHING);
+        Long animeId = mineEntry.getAnimeId();
+        watchService.addToList(other.getId(), 501, WatchStatus.WATCHING);
+
+        episodeRatingService.upsertRating(me.getId(), animeId, 1, 4, "1화 좋다");
+        episodeRatingService.upsertRating(me.getId(), animeId, 2, 5, null);   // no comment → hidden
+        episodeRatingService.upsertRating(other.getId(), animeId, 1, 3, "별로");
+        episodeRatingService.upsertRating(other.getId(), animeId, 3, 5, "3화 미쳤다");
+
+        List<Map<String, Object>> reviews = getEpisodeReviews(animeId, me.getId()).getBody();
+
+        // ep2 (no comment) excluded → 3 reviews across episodes 1,1,3.
+        assertThat(reviews).hasSize(3);
+        assertThat(reviews).extracting(r -> r.get("episodeNumber"))
+            .containsExactly(1, 1, 3); // episodeNumber ascending
+
+        Map<String, Object> ep3 = reviews.get(2);
+        assertThat(((Map<?, ?>) ep3.get("actor")).get("displayName")).isEqualTo("Other");
+        assertThat(ep3.get("score")).isEqualTo(5);
+        assertThat(ep3.get("comment")).isEqualTo("3화 미쳤다");
+    }
+
+    @Test
+    void episodeReviews_emptyWhenNoCommentedEpisodes() {
+        User me = userService.upsertFromGoogle("g-ep-empty", "epempty@x.y", "Me", null);
+        WatchEntry mineEntry = watchService.addToList(me.getId(), 502, WatchStatus.WATCHING);
+        Long animeId = mineEntry.getAnimeId();
+        episodeRatingService.upsertRating(me.getId(), animeId, 1, 4, null); // score only, no comment
+
+        ResponseEntity<List<Map<String, Object>>> res = getEpisodeReviews(animeId, me.getId());
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEmpty();
