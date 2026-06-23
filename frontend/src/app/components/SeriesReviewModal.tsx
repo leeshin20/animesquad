@@ -4,6 +4,7 @@ import { useState } from "react";
 import { apiPatch, type WatchEntry, type WatchStatus } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { StarsInput } from "@/app/components/Stars";
+import { DiscardConfirm } from "@/app/components/DiscardConfirm";
 
 export function SeriesReviewModal({
   entry,
@@ -21,9 +22,13 @@ export function SeriesReviewModal({
   const [comment, setComment] = useState(entry.comment ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   // A review only makes sense once watching has progressed past 볼 예정/보는 중.
   const canReview = status !== "PLAN_TO_WATCH" && status !== "WATCHING";
+
+  const dirty = score !== entry.score || comment.trim() !== (entry.comment ?? "");
+  const requestClose = () => (dirty ? setConfirming(true) : onClose());
 
   async function save() {
     setSaving(true);
@@ -45,12 +50,9 @@ export function SeriesReviewModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
+      onClick={(e) => { if (e.target === e.currentTarget) requestClose(); }}
     >
-      <div
-        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
         <h3 className="text-lg font-semibold tracking-tight">{displayTitle(entry.anime)}</h3>
         <p className="mt-1 text-xs text-neutral-500">시리즈 전체 평가</p>
 
@@ -101,7 +103,7 @@ export function SeriesReviewModal({
         <div className="mt-6 flex justify-end gap-2">
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             className="rounded-md px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100"
           >
             취소
@@ -116,6 +118,10 @@ export function SeriesReviewModal({
           </button>
         </div>
       </div>
+
+      {confirming && (
+        <DiscardConfirm onDiscard={onClose} onKeep={() => setConfirming(false)} />
+      )}
     </div>
   );
 }

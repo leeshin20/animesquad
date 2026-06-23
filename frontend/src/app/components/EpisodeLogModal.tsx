@@ -4,6 +4,7 @@ import { useState } from "react";
 import { apiPut, apiPatch, type WatchEntry } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { StarsInput } from "@/app/components/Stars";
+import { DiscardConfirm } from "@/app/components/DiscardConfirm";
 
 export function EpisodeLogModal({
   entry,
@@ -21,6 +22,10 @@ export function EpisodeLogModal({
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+
+  const dirty = score != null || comment.trim() !== "";
+  const requestClose = () => (dirty ? setConfirming(true) : onClose());
 
   async function save() {
     const epNum = Number(ep);
@@ -56,12 +61,9 @@ export function EpisodeLogModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
+      onClick={(e) => { if (e.target === e.currentTarget) requestClose(); }}
     >
-      <div
-        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
         <h3 className="text-lg font-semibold tracking-tight">
           {displayTitle(entry.anime)}
         </h3>
@@ -112,7 +114,7 @@ export function EpisodeLogModal({
         <div className="mt-6 flex justify-end gap-2">
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             className="rounded-md px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100"
           >
             취소
@@ -127,6 +129,10 @@ export function EpisodeLogModal({
           </button>
         </div>
       </div>
+
+      {confirming && (
+        <DiscardConfirm onDiscard={onClose} onKeep={() => setConfirming(false)} />
+      )}
     </div>
   );
 }
