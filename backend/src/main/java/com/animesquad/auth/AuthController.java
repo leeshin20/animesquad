@@ -1,7 +1,7 @@
 package com.animesquad.auth;
 
 import com.animesquad.admin.AdminProperties;
-import com.animesquad.user.AvatarStorageService;
+import com.animesquad.user.AvatarStorage;
 import com.animesquad.user.User;
 import com.animesquad.user.UserService;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,7 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthController {
 
     private final UserService userService;
-    private final AvatarStorageService avatarStorage;
+    private final AvatarStorage avatarStorage;
     private final AdminProperties adminProperties;
 
     @Value("${app.cookie.secure}")
@@ -30,7 +30,7 @@ public class AuthController {
     @Value("${app.cookie.domain:}")
     private String cookieDomain;
 
-    public AuthController(UserService userService, AvatarStorageService avatarStorage, AdminProperties adminProperties) {
+    public AuthController(UserService userService, AvatarStorage avatarStorage, AdminProperties adminProperties) {
         this.userService = userService;
         this.avatarStorage = avatarStorage;
         this.adminProperties = adminProperties;

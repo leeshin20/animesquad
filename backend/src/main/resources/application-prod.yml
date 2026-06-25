@@ -1,0 +1,28 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: openid,email,profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+
+server:
+  port: ${PORT:8080}
+  # Honor X-Forwarded-* from the platform proxy so {baseUrl} resolves to the
+  # public https URL (required for correct OAuth redirect_uri behind a proxy).
+  forward-headers-strategy: framework
+
+app:
+  upload:
+    r2:
+      endpoint: ${R2_ENDPOINT}
+      bucket: ${R2_BUCKET}
+      access-key: ${R2_ACCESS_KEY}
+      secret-key: ${R2_SECRET_KEY}

@@ -15,6 +15,10 @@ java {
 
 repositories { mavenCentral() }
 
+// Only emit the executable Spring Boot fat jar (skip the plain jar) so the
+// Docker build's COPY *.jar resolves to a single artifact.
+tasks.named<Jar>("jar") { enabled = false }
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-security")
@@ -28,6 +32,9 @@ dependencies {
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+
+    implementation(platform("software.amazon.awssdk:bom:2.28.16"))
+    implementation("software.amazon.awssdk:s3")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
