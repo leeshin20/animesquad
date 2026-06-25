@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -41,6 +42,17 @@ public class WatchController {
         return watchService.listMine(me.userId()).stream()
             .map(e -> WatchEntryResponse.from(e, animes.findById(e.getAnimeId()).orElseThrow()))
             .toList();
+    }
+
+    @GetMapping("/{animeId}")
+    public WatchEntryResponse getMine(
+        @AuthenticationPrincipal CurrentUser me,
+        @PathVariable Long animeId
+    ) {
+        WatchEntry e = watchService.findEntry(me.userId(), animeId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "not in list"));
+        Anime a = animes.findById(e.getAnimeId()).orElseThrow();
+        return WatchEntryResponse.from(e, a);
     }
 
     @PatchMapping("/{animeId}")

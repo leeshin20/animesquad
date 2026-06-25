@@ -8,6 +8,7 @@ public record AnimeResponse(
     String titleRomaji,
     String titleNative,
     String titleEnglish,
+    String titleKorean,
     String coverImageUrl,
     Integer episodes,
     String status,
@@ -17,7 +18,7 @@ public record AnimeResponse(
     public static AnimeResponse from(Anime a) {
         return new AnimeResponse(
             a.getId(), a.getAnilistId(),
-            a.getTitleRomaji(), a.getTitleNative(), a.getTitleEnglish(),
+            a.getTitleRomaji(), a.getTitleNative(), a.getTitleEnglish(), a.getTitleKorean(),
             a.getCoverImageUrl(), a.getEpisodes(),
             a.getStatus(), a.getFormat(), a.getSeasonYear()
         );

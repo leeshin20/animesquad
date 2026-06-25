@@ -17,7 +17,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/squads/{squadId}/feed")
+@RequestMapping("/api/squad/{squadId}/feed")
 public class FeedController {
 
     private final ActivityService activityService;

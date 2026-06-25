@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +15,23 @@ public class AniListClientImpl implements AniListClient {
         query ($q: String) {
           Page(perPage: 20) {
             media(search: $q, type: ANIME) {
+              id
+              title { romaji native english }
+              coverImage { large }
+              episodes
+              status
+              format
+              seasonYear
+            }
+          }
+        }
+        """;
+
+    private static final String SEASON_QUERY = """
+        query ($page: Int, $perPage: Int, $year: Int, $season: MediaSeason) {
+          Page(page: $page, perPage: $perPage) {
+            pageInfo { hasNextPage }
+            media(seasonYear: $year, season: $season, type: ANIME, sort: POPULARITY_DESC) {
               id
               title { romaji native english }
               coverImage { large }
@@ -57,6 +75,29 @@ public class AniListClientImpl implements AniListClient {
         List<?> media = (List<?>) page.get("media");
         if (media == null) return List.of();
         return media.stream().map(this::toMedia).toList();
+    }
+
+    @Override
+    public List<AniListMedia> fetchSeason(int year, String season) {
+        List<AniListMedia> all = new ArrayList<>();
+        int page = 1;
+        int maxPages = 5;
+        while (page <= maxPages) {
+            Map<?, ?> resp = post(SEASON_QUERY, Map.of(
+                "page", page, "perPage", 50, "year", year, "season", season));
+            if (resp == null) break;
+            Map<?, ?> data = (Map<?, ?>) resp.get("data");
+            if (data == null) break;
+            Map<?, ?> pageData = (Map<?, ?>) data.get("Page");
+            if (pageData == null) break;
+            List<?> media = (List<?>) pageData.get("media");
+            if (media != null) media.forEach(m -> all.add(toMedia(m)));
+            Map<?, ?> pageInfo = (Map<?, ?>) pageData.get("pageInfo");
+            boolean hasNext = pageInfo != null && Boolean.TRUE.equals(pageInfo.get("hasNextPage"));
+            if (!hasNext) break;
+            page++;
+        }
+        return all;
     }
 
     @Override

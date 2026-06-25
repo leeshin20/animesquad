@@ -41,7 +41,7 @@ class SquadControllerIT extends AbstractIntegrationTest {
         User me = userService.upsertFromGoogle("g-cc1", "cc1@x.y", "CC1", null);
 
         ResponseEntity<Map> created = rest.exchange(
-            url("/api/squads"), HttpMethod.POST,
+            url("/api/squad"), HttpMethod.POST,
             new HttpEntity<>(Map.of("name", "Friday Crew"), cookieFor(me.getId())),
             Map.class);
 
@@ -50,7 +50,7 @@ class SquadControllerIT extends AbstractIntegrationTest {
         assertThat((String) created.getBody().get("inviteCode")).hasSize(10);
 
         ResponseEntity<Map[]> list = rest.exchange(
-            url("/api/squads"), HttpMethod.GET,
+            url("/api/squad"), HttpMethod.GET,
             new HttpEntity<>(cookieFor(me.getId())), Map[].class);
 
         assertThat(list.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -64,14 +64,14 @@ class SquadControllerIT extends AbstractIntegrationTest {
         User joiner = userService.upsertFromGoogle("g-cc2-j", "j2@x.y", "J", null);
 
         ResponseEntity<Map> created = rest.exchange(
-            url("/api/squads"), HttpMethod.POST,
+            url("/api/squad"), HttpMethod.POST,
             new HttpEntity<>(Map.of("name", "S"), cookieFor(owner.getId())),
             Map.class);
         String code = (String) created.getBody().get("inviteCode");
         Integer squadId = (Integer) created.getBody().get("id");
 
         ResponseEntity<Map> joined = rest.exchange(
-            url("/api/squads/join"), HttpMethod.POST,
+            url("/api/squad/join"), HttpMethod.POST,
             new HttpEntity<>(Map.of("inviteCode", code), cookieFor(joiner.getId())),
             Map.class);
 
@@ -79,7 +79,7 @@ class SquadControllerIT extends AbstractIntegrationTest {
         assertThat((Integer) joined.getBody().get("id")).isEqualTo(squadId);
 
         ResponseEntity<Map> detail = rest.exchange(
-            url("/api/squads/" + squadId), HttpMethod.GET,
+            url("/api/squad/" + squadId), HttpMethod.GET,
             new HttpEntity<>(cookieFor(joiner.getId())), Map.class);
         assertThat(detail.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -87,7 +87,7 @@ class SquadControllerIT extends AbstractIntegrationTest {
     @Test
     void unauthenticated_create_returns401() {
         ResponseEntity<String> res = rest.exchange(
-            url("/api/squads"), HttpMethod.POST,
+            url("/api/squad"), HttpMethod.POST,
             new HttpEntity<>("{\"name\":\"x\"}", jsonHeaders()), String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);

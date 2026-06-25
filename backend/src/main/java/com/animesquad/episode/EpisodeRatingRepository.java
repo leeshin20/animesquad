@@ -11,4 +11,6 @@ public interface EpisodeRatingRepository extends JpaRepository<EpisodeRating, Lo
 
     List<EpisodeRating> findAllByUserIdAndAnimeIdOrderByEpisodeNumberAsc(
         Long userId, Long animeId);
+
+    List<EpisodeRating> findAllByAnimeIdOrderByEpisodeNumberAscUpdatedAtDesc(Long animeId);
 }

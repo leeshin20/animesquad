@@ -28,6 +28,15 @@ public class AnimeService {
     }
 
     @Transactional
+    public int bulkCacheSeason(int year, String season) {
+        return (int) aniList.fetchSeason(year, season).stream()
+            .filter(m -> m.titleRomaji() != null && m.titleNative() != null
+                && m.status() != null && m.format() != null)
+            .map(this::upsertFromAniList)
+            .count();
+    }
+
+    @Transactional
     public Anime findOrFetchByAnilistId(int anilistId) {
         return animes.findByAnilistId(anilistId).orElseGet(() -> {
             AniListMedia m = aniList.fetchById(anilistId);

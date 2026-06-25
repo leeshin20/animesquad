@@ -103,23 +103,37 @@ class ActivityListenerIT extends AbstractIntegrationTest {
     void watchRated_emitsWithScore() {
         Setup s = seedTwoSquadsWithMember();
 
-        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 9));
+        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 5, 7, "재밌었다"));
 
         Activity row = activities.findBySquadIdOrderByIdDesc(s.squadA().getId(), Limit.of(1)).get(0);
         assertThat(row.getType()).isEqualTo(ActivityType.RATED);
-        assertThat(((Number) row.getPayload().get("score")).intValue()).isEqualTo(9);
+        assertThat(((Number) row.getPayload().get("score")).intValue()).isEqualTo(5);
+        assertThat(((Number) row.getPayload().get("progress")).intValue()).isEqualTo(7);
+        assertThat(row.getPayload().get("comment")).isEqualTo("재밌었다");
+    }
+
+    @Test
+    void watchRated_omitsComment_whenBlank() {
+        Setup s = seedTwoSquadsWithMember();
+
+        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 4, 3, null));
+
+        Activity row = activities.findBySquadIdOrderByIdDesc(s.squadA().getId(), Limit.of(1)).get(0);
+        assertThat(row.getType()).isEqualTo(ActivityType.RATED);
+        assertThat(((Number) row.getPayload().get("progress")).intValue()).isEqualTo(3);
+        assertThat(row.getPayload()).doesNotContainKey("comment");
     }
 
     @Test
     void episodeRated_emitsWithEpisodeAndScore() {
         Setup s = seedTwoSquadsWithMember();
 
-        events.publishEvent(new EpisodeRatedEvent(s.actor().getId(), s.anime().getId(), 4, 8));
+        events.publishEvent(new EpisodeRatedEvent(s.actor().getId(), s.anime().getId(), 4, 4, null));
 
         Activity row = activities.findBySquadIdOrderByIdDesc(s.squadA().getId(), Limit.of(1)).get(0);
         assertThat(row.getType()).isEqualTo(ActivityType.EPISODE_RATED);
         assertThat(((Number) row.getPayload().get("episode")).intValue()).isEqualTo(4);
-        assertThat(((Number) row.getPayload().get("score")).intValue()).isEqualTo(8);
+        assertThat(((Number) row.getPayload().get("score")).intValue()).isEqualTo(4);
     }
 
     @Test

@@ -42,10 +42,10 @@ class EpisodeRatingServiceIT extends AbstractIntegrationTest {
     void upsert_insertsNewRating() {
         Seeded s = seed("e1", 1001);
 
-        EpisodeRating r = service.upsertRating(s.user().getId(), s.anime().getId(), 3, 8, "good");
+        EpisodeRating r = service.upsertRating(s.user().getId(), s.anime().getId(), 3, 4, "good");
 
         assertThat(r.getId()).isNotNull();
-        assertThat(r.getScore()).isEqualTo(8);
+        assertThat(r.getScore()).isEqualTo(4);
         assertThat(r.getComment()).isEqualTo("good");
         assertThat(ratings.findByUserIdAndAnimeIdAndEpisodeNumber(
             s.user().getId(), s.anime().getId(), 3)).isPresent();
@@ -54,12 +54,12 @@ class EpisodeRatingServiceIT extends AbstractIntegrationTest {
     @Test
     void upsert_replacesExisting() {
         Seeded s = seed("e2", 1002);
-        service.upsertRating(s.user().getId(), s.anime().getId(), 5, 6, "ok");
+        service.upsertRating(s.user().getId(), s.anime().getId(), 5, 3, "ok");
 
         EpisodeRating updated = service.upsertRating(
-            s.user().getId(), s.anime().getId(), 5, 9, null);
+            s.user().getId(), s.anime().getId(), 5, 5, null);
 
-        assertThat(updated.getScore()).isEqualTo(9);
+        assertThat(updated.getScore()).isEqualTo(5);
         assertThat(updated.getComment()).isNull();
         assertThat(ratings.count()).isEqualTo(1);
     }
@@ -69,7 +69,7 @@ class EpisodeRatingServiceIT extends AbstractIntegrationTest {
         Seeded s = seed("e3", 1003);
         // current progress = 0 (just added)
 
-        service.upsertRating(s.user().getId(), s.anime().getId(), 4, 7, null);
+        service.upsertRating(s.user().getId(), s.anime().getId(), 4, 4, null);
 
         WatchEntry refreshed = watches.findById(s.entry().getId()).orElseThrow();
         assertThat(refreshed.getProgress()).isEqualTo(4);
@@ -81,7 +81,7 @@ class EpisodeRatingServiceIT extends AbstractIntegrationTest {
         watchService.updateEntry(
             s.user().getId(), s.anime().getId(), null, 10, null, null);
 
-        service.upsertRating(s.user().getId(), s.anime().getId(), 3, 7, null);
+        service.upsertRating(s.user().getId(), s.anime().getId(), 3, 4, null);
 
         WatchEntry refreshed = watches.findById(s.entry().getId()).orElseThrow();
         assertThat(refreshed.getProgress()).isEqualTo(10);
@@ -100,8 +100,8 @@ class EpisodeRatingServiceIT extends AbstractIntegrationTest {
     @Test
     void listForUserAnime_returnsRatings_inEpisodeOrder() {
         Seeded s = seed("e6", 1006);
-        service.upsertRating(s.user().getId(), s.anime().getId(), 2, 7, null);
-        service.upsertRating(s.user().getId(), s.anime().getId(), 1, 8, null);
+        service.upsertRating(s.user().getId(), s.anime().getId(), 2, 4, null);
+        service.upsertRating(s.user().getId(), s.anime().getId(), 1, 4, null);
 
         var all = service.listForUserAnime(s.user().getId(), s.anime().getId());
 
@@ -114,15 +114,19 @@ class EpisodeRatingServiceIT extends AbstractIntegrationTest {
     com.animesquad.squad.SquadService squadServiceForEvents3;
 
     @Test
-    void upsertRating_emitsEpisodeRated_andProgressUpdatedOnBump_whenInSquad() {
+    void upsertRating_emitsOnlyEpisodeRated_evenWhenProgressBumps_whenInSquad() {
         Seeded s = seed("evt", 9001);
         squadServiceForEvents3.createSquad(s.user().getId(), "S");
-        // progress starts at 0; rating ep 5 should bump it → ProgressUpdated also fires
+        // progress starts at 0; rating ep 5 bumps it, but we emit a single
+        // EPISODE_RATED activity (no separate PROGRESS_UPDATED) so the feed
+        // shows one entry per record.
 
-        service.upsertRating(s.user().getId(), s.anime().getId(), 5, 7, null);
+        service.upsertRating(s.user().getId(), s.anime().getId(), 5, 4, "good ep");
 
         assertThat(activityRepo3.findAll())
             .extracting(a -> a.getType().name())
-            .containsExactlyInAnyOrder("EPISODE_RATED", "PROGRESS_UPDATED");
+            .containsExactly("EPISODE_RATED");
+        assertThat(activityRepo3.findAll().get(0).getPayload())
+            .containsEntry("comment", "good ep");
     }
 }

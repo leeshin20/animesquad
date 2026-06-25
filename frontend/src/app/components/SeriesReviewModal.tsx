@@ -1,0 +1,127 @@
+"use client";
+
+import { useState } from "react";
+import { apiPatch, type WatchEntry, type WatchStatus } from "@/app/lib/api";
+import { displayTitle } from "@/app/lib/anilist-labels";
+import { StarsInput } from "@/app/components/Stars";
+import { DiscardConfirm } from "@/app/components/DiscardConfirm";
+
+export function SeriesReviewModal({
+  entry,
+  statusOptions,
+  onClose,
+  onSaved,
+}: {
+  entry: WatchEntry;
+  statusOptions: { value: WatchStatus; label: string }[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [status, setStatus] = useState<WatchStatus>(entry.status);
+  const [score, setScore] = useState<number | null>(entry.score);
+  const [comment, setComment] = useState(entry.comment ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+
+  // A review only makes sense once watching has progressed past 볼 예정/보는 중.
+  const canReview = status !== "PLAN_TO_WATCH" && status !== "WATCHING";
+
+  const dirty = score !== entry.score || comment.trim() !== (entry.comment ?? "");
+  const requestClose = () => (dirty ? setConfirming(true) : onClose());
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    try {
+      await apiPatch(`/api/watch/${entry.anime.id}`, {
+        status,
+        score,
+        comment: comment.trim() || null,
+      });
+      onSaved();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) requestClose(); }}
+    >
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+        <h3 className="text-lg font-semibold tracking-tight">{displayTitle(entry.anime)}</h3>
+        <p className="mt-1 text-xs text-neutral-500">시리즈 전체 평가</p>
+
+        <div className="mt-5 space-y-4">
+          <label className="block">
+            <span className="text-xs font-medium text-neutral-600">시청 상태</span>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as WatchStatus)}
+              className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+            >
+              {statusOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </label>
+
+          {canReview && (
+            <>
+              <div>
+                <span className="text-xs font-medium text-neutral-600">전체 별점 (선택)</span>
+                <div className="mt-1">
+                  <StarsInput value={score} onChange={setScore} />
+                </div>
+              </div>
+
+              <label className="block">
+                <span className="text-xs font-medium text-neutral-600">감상평 (선택, 최대 280자)</span>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  maxLength={280}
+                  rows={3}
+                  placeholder="작품 전체는 어땠나요?"
+                  className="mt-1 w-full resize-none rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+                />
+              </label>
+            </>
+          )}
+
+          {error && (
+            <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              {error}
+            </p>
+          )}
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={requestClose}
+            className="rounded-md px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+          >
+            {saving ? "저장 중…" : "저장"}
+          </button>
+        </div>
+      </div>
+
+      {confirming && (
+        <DiscardConfirm onDiscard={onClose} onKeep={() => setConfirming(false)} />
+      )}
+    </div>
+  );
+}

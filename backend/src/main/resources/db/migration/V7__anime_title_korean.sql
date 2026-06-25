@@ -1,0 +1,1 @@
+ALTER TABLE anime ADD COLUMN title_korean VARCHAR(255);

@@ -10,6 +10,10 @@ spring:
       hibernate.jdbc.time_zone: UTC
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
 
 server:
   port: 8080
@@ -19,10 +23,15 @@ app:
     secret: ${JWT_SECRET:dev-secret-change-me-please-at-least-32-bytes!!}
     ttl-minutes: 1440
   oauth:
-    success-redirect: ${OAUTH_SUCCESS_REDIRECT:http://localhost:3000/me}
+    success-redirect: ${OAUTH_SUCCESS_REDIRECT:http://localhost:3000/}
   cookie:
     domain: ${COOKIE_DOMAIN:}
     secure: ${COOKIE_SECURE:false}
     same-site: ${COOKIE_SAME_SITE:Lax}
   anilist:
     url: ${ANILIST_URL:https://graphql.anilist.co}
+  admin:
+    emails: ${ADMIN_EMAILS:}
+  upload:
+    dir: ${UPLOAD_DIR:uploads}
+    public-base: ${UPLOAD_PUBLIC_BASE:http://localhost:8080}

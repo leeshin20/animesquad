@@ -35,8 +35,11 @@ public class User {
         this.avatarUrl = avatarUrl;
     }
 
-    public void updateProfile(String displayName, String avatarUrl) {
+    public void updateDisplayName(String displayName) {
         this.displayName = displayName;
+    }
+
+    public void updateAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
     }
 
