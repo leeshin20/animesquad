@@ -260,11 +260,10 @@ function Row({
           <button
             type="button"
             onClick={() => setModal("episode")}
-            disabled={maxed}
-            title={maxed ? "최종화까지 봤어요" : "회차 기록"}
-            className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
+            title={maxed ? "기록 수정" : "회차 기록"}
+            className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100"
           >
-            {maxed ? "회차 기록 완료" : `+ 회차 기록 (${entry.progress + 1}화)`}
+            {maxed ? "기록 수정" : `+ 회차 기록 (${entry.progress + 1}화)`}
           </button>
         </div>
       </div>

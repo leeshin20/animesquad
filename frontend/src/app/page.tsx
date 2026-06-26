@@ -197,11 +197,10 @@ function MyRecentCard({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        disabled={maxed}
-        title={maxed ? "최종화까지 봤어요" : "감상 기록"}
-        className="mt-1.5 w-full rounded-md border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
+        title={maxed ? "기록 수정" : "감상 기록"}
+        className="mt-1.5 w-full rounded-md border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100"
       >
-        {maxed ? "완료" : `+ 감상 기록 (${entry.progress + 1}화)`}
+        {maxed ? "기록 수정" : `+ 감상 기록 (${entry.progress + 1}화)`}
       </button>
 
       {open && (
