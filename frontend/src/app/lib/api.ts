@@ -73,6 +73,16 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   return res.json();
 }
 
+/** DELETE with no body/response. */
+export async function apiDelete(path: string): Promise<void> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "DELETE",
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+}
+
 /** POST with no JSON body/response (e.g. logout). */
 export async function apiPostEmpty(path: string): Promise<void> {
   const res = await fetch(`${BASE}${path}`, {

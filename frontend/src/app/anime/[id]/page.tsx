@@ -3,14 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  apiGet, apiGetOrNull, apiPost,
+  apiGet, apiGetOrNull, apiPost, apiPut, apiDelete,
   type AnimeView, type WatchEntry, type WatchStatus, type AnimeReview, type EpisodeReview, type AnimeStats, type Me,
 } from "@/app/lib/api";
 import { aniFormat, displayTitle } from "@/app/lib/anilist-labels";
-import { Stars } from "@/app/components/Stars";
+import { Stars, StarsInput } from "@/app/components/Stars";
 import { Avatar } from "@/app/components/Timeline";
 import { EpisodeLogModal } from "@/app/components/EpisodeLogModal";
 import { SeriesReviewModal } from "@/app/components/SeriesReviewModal";
+import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { STATUSES, STATUS_LABEL, STATUS_STYLE } from "@/app/lib/watch-status";
 
 export default function AnimeDetailPage({ params }: { params: { id: string } }) {
@@ -86,7 +87,14 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
         </header>
       )}
 
-      <ReviewsSection reviews={reviews} episodeReviews={episodeReviews} meId={me?.id ?? null} />
+      <ReviewsSection
+        reviews={reviews}
+        episodeReviews={episodeReviews}
+        meId={me?.id ?? null}
+        animeId={animeId}
+        mine={mine}
+        onChanged={loadAll}
+      />
     </div>
   );
 }
@@ -166,10 +174,16 @@ function ReviewsSection({
   reviews,
   episodeReviews,
   meId,
+  animeId,
+  mine,
+  onChanged,
 }: {
   reviews: AnimeReview[] | null;
   episodeReviews: EpisodeReview[] | null;
   meId: number | null;
+  animeId: string;
+  mine: WatchEntry | null;
+  onChanged: () => void;
 }) {
   const [tab, setTab] = useState<"all" | "episode">("all");
 
@@ -189,9 +203,9 @@ function ReviewsSection({
         </button>
       </div>
       {tab === "all" ? (
-        <ReviewList reviews={reviews} meId={meId} />
+        <ReviewList reviews={reviews} meId={meId} mine={mine} onChanged={onChanged} />
       ) : (
-        <EpisodeReviewSection reviews={episodeReviews} meId={meId} />
+        <EpisodeReviewSection reviews={episodeReviews} meId={meId} animeId={animeId} onChanged={onChanged} />
       )}
     </section>
   );
@@ -215,7 +229,20 @@ function sortMineFirst<T extends { actor: { id: number } | null }>(
   );
 }
 
-function ReviewList({ reviews, meId }: { reviews: AnimeReview[] | null; meId: number | null }) {
+function ReviewList({
+  reviews,
+  meId,
+  mine,
+  onChanged,
+}: {
+  reviews: AnimeReview[] | null;
+  meId: number | null;
+  mine: WatchEntry | null;
+  onChanged: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
   if (reviews === null) {
     return <div className="h-20 animate-pulse rounded-xl bg-neutral-100" />;
   }
@@ -227,28 +254,73 @@ function ReviewList({ reviews, meId }: { reviews: AnimeReview[] | null; meId: nu
     );
   }
   return (
-    <ul className="space-y-2">
-      {sortMineFirst(reviews, meId).map((r, i) => (
-        <li key={i} className="flex items-start gap-3 rounded-lg border border-neutral-200 p-3">
-          <Avatar name={r.actor?.displayName ?? "?"} url={r.actor?.avatarUrl ?? null} size={8} />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-sm">
-              <span className="font-medium">{r.actor?.displayName ?? "알 수 없음"}</span>
-              <span className="text-xs text-neutral-500">
-                {STATUS_LABEL[r.status]} · {r.progress}화
-              </span>
-              {r.score != null && <Stars value={r.score} size="sm" />}
-              <span className="ml-auto text-xs text-neutral-400">{formatDateTime(r.updatedAt)}</span>
-            </div>
-            {r.comment && <p className="mt-1 text-sm text-neutral-600">{r.comment}</p>}
-          </div>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="space-y-2">
+        {sortMineFirst(reviews, meId).map((r, i) => {
+          const isMine = meId != null && r.actor?.id === meId && mine != null;
+          return (
+            <li key={i} className="flex items-start gap-3 rounded-lg border border-neutral-200 p-3">
+              <Avatar name={r.actor?.displayName ?? "?"} url={r.actor?.avatarUrl ?? null} size={8} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium">{r.actor?.displayName ?? "알 수 없음"}</span>
+                  <span className="text-xs text-neutral-500">
+                    {STATUS_LABEL[r.status]} · {r.progress}화
+                  </span>
+                  {r.score != null && <Stars value={r.score} size="sm" />}
+                  <span className="ml-auto text-xs text-neutral-400">{formatDateTime(r.updatedAt)}</span>
+                </div>
+                {r.comment && <p className="mt-1 text-sm text-neutral-600">{r.comment}</p>}
+                {isMine && (
+                  <div className="mt-2 flex gap-3">
+                    <button type="button" onClick={() => setEditing(true)} className="text-xs font-medium text-neutral-500 hover:text-neutral-900">
+                      수정
+                    </button>
+                    <button type="button" onClick={() => setConfirming(true)} className="text-xs font-medium text-rose-500 hover:text-rose-700">
+                      삭제
+                    </button>
+                  </div>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {editing && mine && (
+        <SeriesReviewModal
+          entry={mine}
+          statusOptions={STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
+          onClose={() => setEditing(false)}
+          onSaved={() => { setEditing(false); onChanged(); }}
+        />
+      )}
+      {confirming && mine && (
+        <ConfirmDialog
+          message="이 감상평을 삭제할까요? 별점·코멘트만 지워지고 시청 기록은 남아요."
+          onCancel={() => setConfirming(false)}
+          onConfirm={async () => {
+            try { await apiDelete(`/api/watch/${mine.anime.id}/review`); } catch { /* noop */ }
+            setConfirming(false);
+            onChanged();
+          }}
+        />
+      )}
+    </>
   );
 }
 
-function EpisodeReviewSection({ reviews, meId }: { reviews: EpisodeReview[] | null; meId: number | null }) {
+function EpisodeReviewSection({
+  reviews,
+  meId,
+  animeId,
+  onChanged,
+}: {
+  reviews: EpisodeReview[] | null;
+  meId: number | null;
+  animeId: string;
+  onChanged: () => void;
+}) {
   const episodes = reviews
     ? Array.from(new Set(reviews.map((r) => r.episodeNumber))).sort((a, b) => a - b)
     : [];
@@ -288,20 +360,117 @@ function EpisodeReviewSection({ reviews, meId }: { reviews: EpisodeReview[] | nu
       </div>
       <ul className="space-y-2">
         {shown.map((r, i) => (
-          <li key={i} className="flex items-start gap-3 rounded-lg border border-neutral-200 p-3">
-            <Avatar name={r.actor?.displayName ?? "?"} url={r.actor?.avatarUrl ?? null} size={8} />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="font-medium">{r.actor?.displayName ?? "알 수 없음"}</span>
-                <span className="text-xs text-neutral-500">{r.episodeNumber}화</span>
-                <Stars value={r.score} size="sm" />
-                <span className="ml-auto text-xs text-neutral-400">{formatDateTime(r.updatedAt)}</span>
-              </div>
-              <p className="mt-1 text-sm text-neutral-600">{r.comment}</p>
-            </div>
-          </li>
+          <EpisodeReviewCard
+            key={i}
+            review={r}
+            isMine={meId != null && r.actor?.id === meId}
+            animeId={animeId}
+            onChanged={onChanged}
+          />
         ))}
       </ul>
     </div>
+  );
+}
+
+function EpisodeReviewCard({
+  review,
+  isMine,
+  animeId,
+  onChanged,
+}: {
+  review: EpisodeReview;
+  isMine: boolean;
+  animeId: string;
+  onChanged: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [score, setScore] = useState<number | null>(review.score);
+  const [comment, setComment] = useState(review.comment);
+  const [saving, setSaving] = useState(false);
+
+  function startEdit() {
+    setScore(review.score);
+    setComment(review.comment);
+    setEditing(true);
+  }
+
+  async function save() {
+    if (score == null) return;
+    setSaving(true);
+    try {
+      await apiPut(`/api/watch/${animeId}/episodes/${review.episodeNumber}`, {
+        score,
+        comment: comment.trim(),
+      });
+      setEditing(false);
+      onChanged();
+    } catch {
+      /* keep editing so the user can retry */
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <li className="flex items-start gap-3 rounded-lg border border-neutral-200 p-3">
+      <Avatar name={review.actor?.displayName ?? "?"} url={review.actor?.avatarUrl ?? null} size={8} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="font-medium">{review.actor?.displayName ?? "알 수 없음"}</span>
+          <span className="text-xs text-neutral-500">{review.episodeNumber}화</span>
+          {!editing && <Stars value={review.score} size="sm" />}
+          <span className="ml-auto text-xs text-neutral-400">{formatDateTime(review.updatedAt)}</span>
+        </div>
+
+        {editing ? (
+          <div className="mt-2 space-y-2">
+            <StarsInput value={score} onChange={setScore} size="sm" />
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              maxLength={280}
+              rows={2}
+              className="w-full resize-none rounded-md border border-neutral-300 px-2 py-1 text-sm focus:border-neutral-900 focus:outline-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setEditing(false)} className="rounded-md px-2.5 py-1 text-xs text-neutral-600 hover:bg-neutral-100">
+                취소
+              </button>
+              <button type="button" onClick={save} disabled={saving || score == null} className="rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-neutral-700 disabled:opacity-50">
+                {saving ? "저장 중…" : "저장"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="mt-1 text-sm text-neutral-600">{review.comment}</p>
+            {isMine && (
+              <div className="mt-2 flex gap-3">
+                <button type="button" onClick={startEdit} className="text-xs font-medium text-neutral-500 hover:text-neutral-900">
+                  수정
+                </button>
+                <button type="button" onClick={() => setConfirming(true)} className="text-xs font-medium text-rose-500 hover:text-rose-700">
+                  삭제
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {confirming && (
+        <ConfirmDialog
+          message={`${review.episodeNumber}화 감상평을 삭제할까요?`}
+          onCancel={() => setConfirming(false)}
+          onConfirm={async () => {
+            try { await apiDelete(`/api/watch/${animeId}/episodes/${review.episodeNumber}`); } catch { /* noop */ }
+            setConfirming(false);
+            onChanged();
+          }}
+        />
+      )}
+    </li>
   );
 }

@@ -52,6 +52,13 @@ public class WatchEntry {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    /** Clears the series review (score + comment) while keeping status/progress. */
+    public void clearReview() {
+        this.score = null;
+        this.comment = null;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
     public Long getId() { return id; }
     public Long getUserId() { return userId; }
     public Long getAnimeId() { return animeId; }

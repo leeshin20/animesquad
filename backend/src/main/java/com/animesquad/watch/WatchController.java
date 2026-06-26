@@ -67,4 +67,13 @@ public class WatchController {
         Anime a = animes.findById(e.getAnimeId()).orElseThrow();
         return WatchEntryResponse.from(e, a);
     }
+
+    @DeleteMapping("/{animeId}/review")
+    public ResponseEntity<Void> clearReview(
+        @AuthenticationPrincipal CurrentUser me,
+        @PathVariable Long animeId
+    ) {
+        watchService.clearReview(me.userId(), animeId);
+        return ResponseEntity.noContent().build();
+    }
 }

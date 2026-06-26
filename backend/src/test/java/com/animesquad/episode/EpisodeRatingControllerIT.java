@@ -102,6 +102,34 @@ class EpisodeRatingControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void delete_removesRating() {
+        Setup s = seed("ec4", 2004);
+        rest.exchange(url("/api/watch/" + s.animeId() + "/episodes/2"), HttpMethod.PUT,
+            new HttpEntity<>(Map.of("score", 5, "comment", "좋음"), cookieFor(s.userId())), Map.class);
+
+        ResponseEntity<Void> del = rest.exchange(
+            url("/api/watch/" + s.animeId() + "/episodes/2"), HttpMethod.DELETE,
+            new HttpEntity<>(cookieFor(s.userId())), Void.class);
+        assertThat(del.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        ResponseEntity<Map[]> list = rest.exchange(
+            url("/api/watch/" + s.animeId() + "/episodes"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(s.userId())), Map[].class);
+        assertThat(list.getBody()).isEmpty();
+    }
+
+    @Test
+    void delete_returns404_whenRatingAbsent() {
+        Setup s = seed("ec5", 2005);
+
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/watch/" + s.animeId() + "/episodes/9"), HttpMethod.DELETE,
+            new HttpEntity<>(cookieFor(s.userId())), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
     void put_returns401_whenUnauthenticated() {
         ResponseEntity<String> res = rest.exchange(
             url("/api/watch/1/episodes/1"), HttpMethod.PUT,

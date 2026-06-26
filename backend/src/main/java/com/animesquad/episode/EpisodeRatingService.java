@@ -4,8 +4,10 @@ import com.animesquad.episode.events.EpisodeRatedEvent;
 import com.animesquad.watch.WatchEntry;
 import com.animesquad.watch.WatchEntryRepository;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -50,5 +52,13 @@ public class EpisodeRatingService {
     @Transactional(readOnly = true)
     public List<EpisodeRating> listForUserAnime(Long userId, Long animeId) {
         return ratings.findAllByUserIdAndAnimeIdOrderByEpisodeNumberAsc(userId, animeId);
+    }
+
+    @Transactional
+    public void deleteRating(Long userId, Long animeId, int episodeNumber) {
+        EpisodeRating rating = ratings.findByUserIdAndAnimeIdAndEpisodeNumber(
+                userId, animeId, episodeNumber)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "감상평이 없어요"));
+        ratings.delete(rating);
     }
 }

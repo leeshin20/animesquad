@@ -137,6 +137,33 @@ class WatchControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void deleteReview_clearsScoreAndComment_keepsStatusAndProgress() {
+        User me = userService.upsertFromGoogle("g-wc4", "wc4@x.y", "WC4", null);
+        seedAnime(400);
+        ResponseEntity<Map> created = rest.exchange(
+            url("/api/watch"), HttpMethod.POST,
+            new HttpEntity<>(Map.of("anilistId", 400, "status", "COMPLETED"), cookieFor(me.getId())),
+            Map.class);
+        Integer animeId = (Integer) ((Map<?, ?>) created.getBody().get("anime")).get("id");
+        rest.exchange(url("/api/watch/" + animeId), HttpMethod.PATCH,
+            new HttpEntity<>(Map.of("progress", 5, "score", 4, "comment", "좋았다"), cookieFor(me.getId())),
+            Map.class);
+
+        ResponseEntity<Void> del = rest.exchange(
+            url("/api/watch/" + animeId + "/review"), HttpMethod.DELETE,
+            new HttpEntity<>(cookieFor(me.getId())), Void.class);
+        assertThat(del.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        ResponseEntity<Map> after = rest.exchange(
+            url("/api/watch/" + animeId), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(me.getId())), Map.class);
+        assertThat(after.getBody().get("score")).isNull();
+        assertThat(after.getBody().get("comment")).isNull();
+        assertThat(after.getBody().get("progress")).isEqualTo(5);
+        assertThat((String) after.getBody().get("status")).isEqualTo("COMPLETED");
+    }
+
+    @Test
     void post_returns401_whenUnauthenticated() {
         ResponseEntity<String> res = rest.exchange(
             url("/api/watch"), HttpMethod.POST,

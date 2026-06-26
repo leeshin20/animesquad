@@ -66,4 +66,12 @@ public class WatchService {
     public java.util.Optional<WatchEntry> findEntry(Long userId, Long animeId) {
         return entries.findByUserIdAndAnimeId(userId, animeId);
     }
+
+    @Transactional
+    public WatchEntry clearReview(Long userId, Long animeId) {
+        WatchEntry e = entries.findByUserIdAndAnimeId(userId, animeId)
+            .orElseThrow(() -> new IllegalArgumentException("watch entry not found"));
+        e.clearReview();
+        return e;
+    }
 }
