@@ -5,12 +5,14 @@ import com.animesquad.auth.JwtService;
 import com.animesquad.support.AbstractIntegrationTest;
 import com.animesquad.user.User;
 import com.animesquad.user.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.*;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 
 import java.util.Map;
 
@@ -23,6 +25,12 @@ class SquadControllerIT extends AbstractIntegrationTest {
     @Autowired JwtService jwtService;
     @Autowired TestRestTemplate rest;
     @LocalServerPort int port;
+
+    @BeforeEach
+    void enablePatch() {
+        // TestRestTemplate's default factory can't send PATCH bodies.
+        rest.getRestTemplate().setRequestFactory(new JdkClientHttpRequestFactory());
+    }
 
     private HttpHeaders cookieFor(Long userId) {
         HttpHeaders h = new HttpHeaders();
@@ -91,6 +99,72 @@ class SquadControllerIT extends AbstractIntegrationTest {
             new HttpEntity<>("{\"name\":\"x\"}", jsonHeaders()), String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void owner_setsAnnouncement_andDetailReturnsIt() {
+        User owner = userService.upsertFromGoogle("g-an-o", "ano@x.y", "O", null);
+        Integer squadId = createSquad(owner.getId());
+
+        ResponseEntity<Map> patched = rest.exchange(
+            url("/api/squad/" + squadId + "/announcement"), HttpMethod.PATCH,
+            new HttpEntity<>(Map.of("announcement", "이번 주 정주행 모임!"), cookieFor(owner.getId())),
+            Map.class);
+
+        assertThat(patched.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat((String) patched.getBody().get("announcement")).isEqualTo("이번 주 정주행 모임!");
+
+        ResponseEntity<Map> detail = rest.exchange(
+            url("/api/squad/" + squadId), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(owner.getId())), Map.class);
+        assertThat((String) detail.getBody().get("announcement")).isEqualTo("이번 주 정주행 모임!");
+    }
+
+    @Test
+    void nonOwnerMember_cannotSetAnnouncement_returns403() {
+        User owner = userService.upsertFromGoogle("g-an-o2", "ano2@x.y", "O", null);
+        User member = userService.upsertFromGoogle("g-an-m", "anm@x.y", "M", null);
+        Integer squadId = createSquad(owner.getId());
+        String code = inviteCodeOf(squadId, owner.getId());
+        rest.exchange(url("/api/squad/join"), HttpMethod.POST,
+            new HttpEntity<>(Map.of("inviteCode", code), cookieFor(member.getId())), Map.class);
+
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/squad/" + squadId + "/announcement"), HttpMethod.PATCH,
+            new HttpEntity<>(Map.of("announcement", "몰래 수정"), cookieFor(member.getId())),
+            String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void blankAnnouncement_clearsIt() {
+        User owner = userService.upsertFromGoogle("g-an-o3", "ano3@x.y", "O", null);
+        Integer squadId = createSquad(owner.getId());
+        rest.exchange(url("/api/squad/" + squadId + "/announcement"), HttpMethod.PATCH,
+            new HttpEntity<>(Map.of("announcement", "처음 공지"), cookieFor(owner.getId())), Map.class);
+
+        ResponseEntity<Map> cleared = rest.exchange(
+            url("/api/squad/" + squadId + "/announcement"), HttpMethod.PATCH,
+            new HttpEntity<>(Map.of("announcement", "  "), cookieFor(owner.getId())),
+            Map.class);
+
+        assertThat(cleared.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(cleared.getBody().get("announcement")).isNull();
+    }
+
+    private Integer createSquad(Long ownerId) {
+        ResponseEntity<Map> created = rest.exchange(
+            url("/api/squad"), HttpMethod.POST,
+            new HttpEntity<>(Map.of("name", "S"), cookieFor(ownerId)), Map.class);
+        return (Integer) created.getBody().get("id");
+    }
+
+    private String inviteCodeOf(Integer squadId, Long memberId) {
+        ResponseEntity<Map> detail = rest.exchange(
+            url("/api/squad/" + squadId), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(memberId)), Map.class);
+        return (String) detail.getBody().get("inviteCode");
     }
 
     private HttpHeaders jsonHeaders() {

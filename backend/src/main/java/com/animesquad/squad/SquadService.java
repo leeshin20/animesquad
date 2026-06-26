@@ -2,8 +2,10 @@ package com.animesquad.squad;
 
 import com.animesquad.squad.events.SquadJoinedEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -55,6 +57,16 @@ public class SquadService {
         }
         return squads.findById(squadId)
             .orElseThrow(() -> new IllegalArgumentException("squad not found"));
+    }
+
+    @Transactional
+    public Squad updateAnnouncement(Long userId, Long squadId, String announcement) {
+        Squad squad = getSquadForMember(userId, squadId);
+        if (!squad.getOwnerId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "스쿼드 관리자만 공지를 수정할 수 있어요");
+        }
+        squad.updateAnnouncement(announcement);
+        return squads.save(squad);
     }
 
     private String generateUniqueCode() {

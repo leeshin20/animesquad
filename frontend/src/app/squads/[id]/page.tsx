@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { apiGet, type FeedItem, type Squad } from "@/app/lib/api";
+import { apiGet, apiPatch, type FeedItem, type Me, type Squad } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
-import { Stars } from "@/app/components/Stars";
 import { Timeline, Avatar, type FeedItemWithSquad } from "@/app/components/Timeline";
+import { NoticeBanner } from "@/app/components/NoticeBanner";
 
 const PAGE_SIZE = 30;
 
@@ -23,6 +23,7 @@ type SquadWatchItem = {
 export default function SquadFeedPage({ params }: { params: { id: string } }) {
   const squadId = params.id;
   const [squad, setSquad] = useState<Squad | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
   const [items, setItems] = useState<FeedItemWithSquad[]>([]);
   const [recent, setRecent] = useState<SquadWatchItem[] | null>(null);
   const [done, setDone] = useState(false);
@@ -56,13 +57,25 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
     if (didInit.current) return;
     didInit.current = true;
     apiGet<Squad>(`/api/squad/${squadId}`).then(setSquad).catch((e) => setError(String(e)));
+    apiGet<Me>("/api/me").then(setMe).catch(() => setMe(null));
     loadMore();
     loadRecent();
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
 
+  const isOwner = me != null && squad != null && me.id === squad.ownerId;
+
   return (
     <div className="space-y-6">
+      {squad && (
+        <SquadAnnouncementBanner
+          squadId={squadId}
+          announcement={squad.announcement}
+          isOwner={isOwner}
+          onUpdated={(a) => setSquad((s) => (s ? { ...s, announcement: a } : s))}
+        />
+      )}
+
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">
           {squad?.name ?? " "}
@@ -104,6 +117,102 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
   );
 }
 
+function SquadAnnouncementBanner({
+  squadId,
+  announcement,
+  isOwner,
+  onUpdated,
+}: {
+  squadId: string;
+  announcement: string | null;
+  isOwner: boolean;
+  onUpdated: (a: string | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function startEdit() {
+    setDraft(announcement ?? "");
+    setEditing(true);
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      const updated = await apiPatch<Squad>(
+        `/api/squad/${squadId}/announcement`, { announcement: draft });
+      onUpdated(updated.announcement);
+      setEditing(false);
+    } catch {
+      // keep editing so the user can retry
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <NoticeBanner>
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          rows={2}
+          placeholder="스쿼드 공지를 입력하세요 (비우면 삭제)"
+          className="w-full resize-none rounded-md border border-amber-300 bg-white px-2 py-1 text-sm text-neutral-800 outline-none focus:border-amber-400"
+        />
+        <div className="mt-2 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="rounded-md px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className="rounded-md bg-amber-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+          >
+            {saving ? "저장 중…" : "저장"}
+          </button>
+        </div>
+      </NoticeBanner>
+    );
+  }
+
+  if (!announcement) {
+    if (!isOwner) return null;
+    return (
+      <button
+        type="button"
+        onClick={startEdit}
+        className="w-full rounded-lg border border-dashed border-amber-300 bg-amber-50/50 px-4 py-2 text-sm font-medium text-amber-700 transition hover:bg-amber-50"
+      >
+        + 스쿼드 공지 작성
+      </button>
+    );
+  }
+
+  return (
+    <NoticeBanner>
+      <div className="flex items-start justify-between gap-3">
+        <p className="min-w-0 whitespace-pre-wrap break-words">{announcement}</p>
+        {isOwner && (
+          <button
+            type="button"
+            onClick={startEdit}
+            className="shrink-0 rounded-md px-2 py-0.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
+          >
+            수정
+          </button>
+        )}
+      </div>
+    </NoticeBanner>
+  );
+}
+
 function SquadRecentGrid({ items }: { items: SquadWatchItem[] | null }) {
   if (items === null) {
     return (
@@ -126,7 +235,7 @@ function SquadRecentGrid({ items }: { items: SquadWatchItem[] | null }) {
     );
   }
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="flex gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-2 lg:overflow-x-visible lg:pb-0">
       {groupByAnime(items).map((g) => <SquadRecentCard key={g.anime.id} group={g} />)}
     </div>
   );
@@ -160,7 +269,7 @@ function SquadRecentCard({ group }: { group: AnimeWatchGroup }) {
   const title = displayTitle(anime);
   const lead = watchers[0];
   return (
-    <div>
+    <div className="w-28 shrink-0 lg:w-auto">
       <Link href={`/anime/${anime.id}`} className="relative block transition hover:opacity-80">
         {anime.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -182,12 +291,6 @@ function SquadRecentCard({ group }: { group: AnimeWatchGroup }) {
           {lead.progress}
           {lead.episodes ? `/${lead.episodes}` : ""}화
         </span>
-        {lead.score != null && (
-          <>
-            <span>·</span>
-            <Stars value={lead.score} size="sm" />
-          </>
-        )}
       </p>
       <p className="mt-0.5 truncate text-xs text-neutral-400">
         {watchers.length > 1

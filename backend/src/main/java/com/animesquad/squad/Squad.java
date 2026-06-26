@@ -23,6 +23,9 @@ public class Squad {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
+    @Column(columnDefinition = "text")
+    private String announcement;
+
     protected Squad() {}
 
     public Squad(String name, Long ownerId, String inviteCode) {
@@ -36,4 +39,10 @@ public class Squad {
     public Long getOwnerId() { return ownerId; }
     public String getInviteCode() { return inviteCode; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
+    public String getAnnouncement() { return announcement; }
+
+    /** Sets the announcement; blank input clears it (stored as null). */
+    public void updateAnnouncement(String text) {
+        this.announcement = (text == null || text.isBlank()) ? null : text.trim();
+    }
 }

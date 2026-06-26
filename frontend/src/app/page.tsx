@@ -10,9 +10,10 @@ import {
   type WatchEntry,
 } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
-import { Stars } from "@/app/components/Stars";
 import { Timeline, type FeedItemWithSquad } from "@/app/components/Timeline";
 import { EpisodeLogModal } from "@/app/components/EpisodeLogModal";
+import { NoticeBanner } from "@/app/components/NoticeBanner";
+import { MAIN_NOTICE } from "@/app/lib/notice";
 
 export default function HomePage() {
   const [me, setMe] = useState<Me | null>(null);
@@ -83,6 +84,8 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {MAIN_NOTICE && <NoticeBanner>{MAIN_NOTICE}</NoticeBanner>}
+
       {error && (
         <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
           {error}
@@ -136,7 +139,7 @@ function MyRecentGrid({
     );
   }
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="flex gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-2 lg:overflow-x-visible lg:pb-0">
       {entries.map((e) => (
         <MyRecentCard key={e.id} entry={e} onChanged={onChanged} />
       ))}
@@ -169,7 +172,7 @@ function MyRecentCard({
   const maxed = entry.anime.episodes != null && entry.progress >= entry.anime.episodes;
 
   return (
-    <div>
+    <div className="w-28 shrink-0 lg:w-auto">
       <Link href={`/anime/${entry.anime.id}`} className="block transition hover:opacity-80">
         {entry.anime.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -190,12 +193,6 @@ function MyRecentCard({
           {entry.progress}
           {entry.anime.episodes ? `/${entry.anime.episodes}` : ""}화
         </span>
-        {entry.score != null && (
-          <>
-            <span>·</span>
-            <Stars value={entry.score} size="sm" />
-          </>
-        )}
       </p>
       <button
         type="button"

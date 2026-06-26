@@ -4,6 +4,7 @@ import com.animesquad.auth.CurrentUser;
 import com.animesquad.squad.dto.CreateSquadRequest;
 import com.animesquad.squad.dto.JoinSquadRequest;
 import com.animesquad.squad.dto.SquadResponse;
+import com.animesquad.squad.dto.UpdateAnnouncementRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,5 +52,15 @@ public class SquadController {
         @Valid @RequestBody JoinSquadRequest req
     ) {
         return SquadResponse.from(squadService.joinByInviteCode(me.userId(), req.inviteCode()));
+    }
+
+    @PatchMapping("/{id}/announcement")
+    public SquadResponse updateAnnouncement(
+        @AuthenticationPrincipal CurrentUser me,
+        @PathVariable Long id,
+        @RequestBody UpdateAnnouncementRequest req
+    ) {
+        return SquadResponse.from(
+            squadService.updateAnnouncement(me.userId(), id, req.announcement()));
     }
 }

@@ -46,6 +46,7 @@ export type Squad = {
   ownerId: number;
   inviteCode: string;
   createdAt: string;
+  announcement: string | null;
 };
 
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {

@@ -8,10 +8,11 @@ public record SquadResponse(
     String name,
     Long ownerId,
     String inviteCode,
-    OffsetDateTime createdAt
+    OffsetDateTime createdAt,
+    String announcement
 ) {
     public static SquadResponse from(Squad s) {
         return new SquadResponse(s.getId(), s.getName(), s.getOwnerId(),
-            s.getInviteCode(), s.getCreatedAt());
+            s.getInviteCode(), s.getCreatedAt(), s.getAnnouncement());
     }
 }
