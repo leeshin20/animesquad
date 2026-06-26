@@ -195,7 +195,7 @@ function ReviewsSection({
     <section>
       <div className="mb-3 flex gap-1.5">
         <button type="button" onClick={() => setTab("all")} className={tabClass(tab === "all")}>
-          전체 감상평
+          종합 감상평
         </button>
         <button type="button" onClick={() => setTab("episode")} className={tabClass(tab === "episode")}>
           회차별 감상평
