@@ -73,17 +73,36 @@ export function EpisodeLogModal({
         </p>
 
         <div className="mt-5 space-y-4">
-          <label className="block">
-            <span className="text-xs font-medium text-neutral-600">화 번호</span>
-            <input
-              type="number"
-              min={1}
-              max={max ?? undefined}
-              value={ep}
-              onChange={(e) => setEp(e.target.value)}
-              className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
-            />
-          </label>
+          <div>
+            <span className="text-xs font-medium text-neutral-600">회차</span>
+            <div className="mt-1 flex items-center gap-1.5">
+              <button
+                type="button"
+                aria-label="이전 회차"
+                onClick={() => setEp((v) => String(Math.max(1, (Number(v) || 1) - 1)))}
+                disabled={(Number(ep) || 1) <= 1}
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-neutral-300 text-lg text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                −
+              </button>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={ep}
+                onChange={(e) => setEp(e.target.value.replace(/[^0-9]/g, ""))}
+                className="h-9 w-16 rounded-md border border-neutral-300 text-center text-sm focus:border-neutral-900 focus:outline-none"
+              />
+              <button
+                type="button"
+                aria-label="다음 회차"
+                onClick={() => setEp((v) => String(max != null ? Math.min(max, (Number(v) || 0) + 1) : (Number(v) || 0) + 1))}
+                disabled={max != null && (Number(ep) || 0) >= max}
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-neutral-300 text-lg text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                +
+              </button>
+            </div>
+          </div>
 
           <div>
             <span className="text-xs font-medium text-neutral-600">평점 (선택)</span>

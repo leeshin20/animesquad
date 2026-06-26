@@ -54,7 +54,6 @@ export function SeriesReviewModal({
     >
       <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
         <h3 className="text-lg font-semibold tracking-tight">{displayTitle(entry.anime)}</h3>
-        <p className="mt-1 text-xs text-neutral-500">시리즈 전체 평가</p>
 
         <div className="mt-5 space-y-4">
           <label className="block">
