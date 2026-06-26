@@ -1,6 +1,7 @@
 package com.animesquad.episode;
 
 import com.animesquad.episode.events.EpisodeRatedEvent;
+import com.animesquad.episode.events.EpisodeRatingDeletedEvent;
 import com.animesquad.watch.WatchEntry;
 import com.animesquad.watch.WatchEntryRepository;
 import org.springframework.context.ApplicationEventPublisher;
@@ -60,5 +61,6 @@ public class EpisodeRatingService {
                 userId, animeId, episodeNumber)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "감상평이 없어요"));
         ratings.delete(rating);
+        events.publishEvent(new EpisodeRatingDeletedEvent(userId, animeId, episodeNumber));
     }
 }

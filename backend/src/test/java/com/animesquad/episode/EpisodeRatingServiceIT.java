@@ -114,6 +114,18 @@ class EpisodeRatingServiceIT extends AbstractIntegrationTest {
     com.animesquad.squad.SquadService squadServiceForEvents3;
 
     @Test
+    void deleteRating_removesEpisodeActivity_whenInSquad() {
+        Seeded s = seed("del", 9002);
+        squadServiceForEvents3.createSquad(s.user().getId(), "S");
+        service.upsertRating(s.user().getId(), s.anime().getId(), 5, 4, "x");
+        assertThat(activityRepo3.findAll()).hasSize(1);
+
+        service.deleteRating(s.user().getId(), s.anime().getId(), 5);
+
+        assertThat(activityRepo3.findAll()).isEmpty();
+    }
+
+    @Test
     void upsertRating_emitsOnlyEpisodeRated_evenWhenProgressBumps_whenInSquad() {
         Seeded s = seed("evt", 9001);
         squadServiceForEvents3.createSquad(s.user().getId(), "S");

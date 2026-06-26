@@ -1,11 +1,13 @@
 package com.animesquad.activity;
 
 import com.animesquad.episode.events.EpisodeRatedEvent;
+import com.animesquad.episode.events.EpisodeRatingDeletedEvent;
 import com.animesquad.squad.MembershipRepository;
 import com.animesquad.squad.events.SquadJoinedEvent;
 import com.animesquad.watch.events.AnimeAddedEvent;
 import com.animesquad.watch.events.ProgressUpdatedEvent;
 import com.animesquad.watch.events.WatchRatedEvent;
+import com.animesquad.watch.events.WatchReviewClearedEvent;
 import com.animesquad.watch.events.WatchStatusChangedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -45,6 +47,8 @@ public class ActivityListener {
 
     @EventListener
     public void on(WatchRatedEvent e) {
+        // An edit replaces the prior series-review entry so the feed shows it once, freshly.
+        deleteSeriesActivities(e.actorId(), e.animeId());
         Map<String, Object> payload = new HashMap<>();
         payload.put("score", e.score());
         payload.put("progress", e.progress());
@@ -55,7 +59,14 @@ public class ActivityListener {
     }
 
     @EventListener
+    public void on(WatchReviewClearedEvent e) {
+        deleteSeriesActivities(e.actorId(), e.animeId());
+    }
+
+    @EventListener
     public void on(EpisodeRatedEvent e) {
+        // An edit replaces the prior entry for this episode so the feed shows it once, freshly.
+        deleteEpisodeActivities(e.actorId(), e.animeId(), e.episodeNumber());
         Map<String, Object> payload = new HashMap<>();
         payload.put("episode", e.episodeNumber());
         payload.put("score", e.score());
@@ -63,6 +74,26 @@ public class ActivityListener {
             payload.put("comment", e.comment());
         }
         fanOut(e.actorId(), ActivityType.EPISODE_RATED, e.animeId(), payload);
+    }
+
+    @EventListener
+    public void on(EpisodeRatingDeletedEvent e) {
+        deleteEpisodeActivities(e.actorId(), e.animeId(), e.episodeNumber());
+    }
+
+    private void deleteSeriesActivities(Long actorId, Long animeId) {
+        activities.deleteAll(
+            activities.findAllByActorIdAndAnimeIdAndType(actorId, animeId, ActivityType.RATED));
+    }
+
+    private void deleteEpisodeActivities(Long actorId, Long animeId, int episodeNumber) {
+        activities.deleteAll(
+            activities.findAllByActorIdAndAnimeIdAndType(actorId, animeId, ActivityType.EPISODE_RATED).stream()
+                .filter(a -> {
+                    Object ep = a.getPayload().get("episode");
+                    return ep instanceof Number n && n.intValue() == episodeNumber;
+                })
+                .toList());
     }
 
     @EventListener

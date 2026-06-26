@@ -138,4 +138,38 @@ class WatchServiceIT extends AbstractIntegrationTest {
             .extracting(a -> a.getType().name())
             .containsExactlyInAnyOrder("STATUS_CHANGED", "PROGRESS_UPDATED", "RATED");
     }
+
+    @Test
+    void clearReview_removesSeriesActivity_keepsProgressAndStatus() {
+        User me = userService.upsertFromGoogle("g-clr", "clr@x.y", "Clr", null);
+        squadServiceForEvents.createSquad(me.getId(), "S");
+        animeService.upsertFromAniList(media(90));
+        WatchEntry added = watchService.addToList(me.getId(), 90, WatchStatus.WATCHING);
+        watchService.updateEntry(me.getId(), added.getAnimeId(),
+            WatchStatus.COMPLETED, 12, 5, "good");
+
+        watchService.clearReview(me.getId(), added.getAnimeId());
+
+        assertThat(activityRepo2.findAll())
+            .extracting(a -> a.getType().name())
+            .containsExactlyInAnyOrder("STATUS_CHANGED", "PROGRESS_UPDATED");
+    }
+
+    @Test
+    void updateEntry_reEmitsRated_whenOnlyCommentChanges() {
+        User me = userService.upsertFromGoogle("g-cmt", "cmt@x.y", "Cmt", null);
+        squadServiceForEvents.createSquad(me.getId(), "S");
+        animeService.upsertFromAniList(media(91));
+        WatchEntry added = watchService.addToList(me.getId(), 91, WatchStatus.WATCHING);
+        watchService.updateEntry(me.getId(), added.getAnimeId(),
+            WatchStatus.COMPLETED, 12, 5, "first");
+
+        // edit only the comment — score unchanged
+        watchService.updateEntry(me.getId(), added.getAnimeId(), null, null, 5, "edited");
+
+        var rated = activityRepo2.findAll().stream()
+            .filter(a -> a.getType().name().equals("RATED")).toList();
+        assertThat(rated).hasSize(1);
+        assertThat(rated.get(0).getPayload().get("comment")).isEqualTo("edited");
+    }
 }

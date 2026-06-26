@@ -10,4 +10,6 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     List<Activity> findBySquadIdAndIdLessThanOrderByIdDesc(Long squadId, Long cursor, Limit limit);
 
     List<Activity> findBySquadIdOrderByIdDesc(Long squadId, Limit limit);
+
+    List<Activity> findAllByActorIdAndAnimeIdAndType(Long actorId, Long animeId, ActivityType type);
 }

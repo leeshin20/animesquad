@@ -4,6 +4,7 @@ import com.animesquad.anime.Anime;
 import com.animesquad.anime.AnimeService;
 import com.animesquad.watch.events.ProgressUpdatedEvent;
 import com.animesquad.watch.events.WatchRatedEvent;
+import com.animesquad.watch.events.WatchReviewClearedEvent;
 import com.animesquad.watch.events.WatchStatusChangedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,7 @@ public class WatchService {
         WatchStatus oldStatus = e.getStatus();
         int oldProgress = e.getProgress();
         Integer oldScore = e.getScore();
+        String oldComment = e.getComment();
 
         e.apply(status, progress, score, comment);
 
@@ -51,8 +53,10 @@ public class WatchService {
         if (progress != null && progress != oldProgress) {
             events.publishEvent(new ProgressUpdatedEvent(userId, animeId, progress));
         }
-        if (score != null && !score.equals(oldScore)) {
-            events.publishEvent(new WatchRatedEvent(userId, animeId, score, e.getProgress(), e.getComment()));
+        boolean scoreChanged = score != null && !score.equals(oldScore);
+        boolean commentChanged = comment != null && !comment.equals(oldComment);
+        if (e.getScore() != null && (scoreChanged || commentChanged)) {
+            events.publishEvent(new WatchRatedEvent(userId, animeId, e.getScore(), e.getProgress(), e.getComment()));
         }
         return e;
     }
@@ -72,6 +76,7 @@ public class WatchService {
         WatchEntry e = entries.findByUserIdAndAnimeId(userId, animeId)
             .orElseThrow(() -> new IllegalArgumentException("watch entry not found"));
         e.clearReview();
+        events.publishEvent(new WatchReviewClearedEvent(userId, animeId));
         return e;
     }
 }

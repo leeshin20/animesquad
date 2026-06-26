@@ -5,6 +5,7 @@ import com.animesquad.anime.AniListMedia;
 import com.animesquad.anime.Anime;
 import com.animesquad.anime.AnimeService;
 import com.animesquad.episode.events.EpisodeRatedEvent;
+import com.animesquad.episode.events.EpisodeRatingDeletedEvent;
 import com.animesquad.squad.Squad;
 import com.animesquad.squad.SquadService;
 import com.animesquad.squad.events.SquadJoinedEvent;
@@ -15,6 +16,7 @@ import com.animesquad.watch.WatchStatus;
 import com.animesquad.watch.events.AnimeAddedEvent;
 import com.animesquad.watch.events.ProgressUpdatedEvent;
 import com.animesquad.watch.events.WatchRatedEvent;
+import com.animesquad.watch.events.WatchReviewClearedEvent;
 import com.animesquad.watch.events.WatchStatusChangedEvent;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -134,6 +136,80 @@ class ActivityListenerIT extends AbstractIntegrationTest {
         assertThat(row.getType()).isEqualTo(ActivityType.EPISODE_RATED);
         assertThat(((Number) row.getPayload().get("episode")).intValue()).isEqualTo(4);
         assertThat(((Number) row.getPayload().get("score")).intValue()).isEqualTo(4);
+    }
+
+    @Test
+    void episodeRated_replacesPriorActivityForSameEpisode() {
+        Setup s = seedTwoSquadsWithMember();
+
+        events.publishEvent(new EpisodeRatedEvent(s.actor().getId(), s.anime().getId(), 4, 3, "first"));
+        events.publishEvent(new EpisodeRatedEvent(s.actor().getId(), s.anime().getId(), 4, 5, "edited"));
+
+        List<Activity> all = activities.findAll();
+        // one row per squad (2), not 4 — the edit replaced the original
+        assertThat(all).hasSize(2);
+        assertThat(all).allSatisfy(a -> {
+            assertThat(a.getType()).isEqualTo(ActivityType.EPISODE_RATED);
+            assertThat(((Number) a.getPayload().get("episode")).intValue()).isEqualTo(4);
+            assertThat(((Number) a.getPayload().get("score")).intValue()).isEqualTo(5);
+            assertThat(a.getPayload().get("comment")).isEqualTo("edited");
+        });
+    }
+
+    @Test
+    void episodeRated_keepsActivitiesForOtherEpisodes() {
+        Setup s = seedTwoSquadsWithMember();
+
+        events.publishEvent(new EpisodeRatedEvent(s.actor().getId(), s.anime().getId(), 4, 3, null));
+        events.publishEvent(new EpisodeRatedEvent(s.actor().getId(), s.anime().getId(), 5, 4, null));
+        events.publishEvent(new EpisodeRatedEvent(s.actor().getId(), s.anime().getId(), 4, 5, null));
+
+        List<Activity> perSquad = activities.findBySquadIdOrderByIdDesc(s.squadA().getId(), Limit.of(10));
+        assertThat(perSquad)
+            .extracting(a -> ((Number) a.getPayload().get("episode")).intValue())
+            .containsExactlyInAnyOrder(4, 5);
+    }
+
+    @Test
+    void episodeRatingDeleted_removesMatchingEpisodeActivity() {
+        Setup s = seedTwoSquadsWithMember();
+        events.publishEvent(new EpisodeRatedEvent(s.actor().getId(), s.anime().getId(), 4, 3, null));
+        events.publishEvent(new EpisodeRatedEvent(s.actor().getId(), s.anime().getId(), 5, 4, null));
+
+        events.publishEvent(new EpisodeRatingDeletedEvent(s.actor().getId(), s.anime().getId(), 4));
+
+        List<Activity> perSquad = activities.findBySquadIdOrderByIdDesc(s.squadA().getId(), Limit.of(10));
+        assertThat(perSquad).hasSize(1);
+        assertThat(((Number) perSquad.get(0).getPayload().get("episode")).intValue()).isEqualTo(5);
+    }
+
+    @Test
+    void watchRated_replacesPriorSeriesActivity() {
+        Setup s = seedTwoSquadsWithMember();
+
+        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 3, 7, "first"));
+        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 3, 12, "edited comment"));
+
+        List<Activity> rated = activities.findAll().stream()
+            .filter(a -> a.getType() == ActivityType.RATED).toList();
+        assertThat(rated).hasSize(2); // one per squad
+        assertThat(rated).allSatisfy(a -> {
+            assertThat(a.getPayload().get("comment")).isEqualTo("edited comment");
+            assertThat(((Number) a.getPayload().get("progress")).intValue()).isEqualTo(12);
+        });
+    }
+
+    @Test
+    void watchReviewCleared_removesSeriesActivity_keepsOthers() {
+        Setup s = seedTwoSquadsWithMember();
+        events.publishEvent(new ProgressUpdatedEvent(s.actor().getId(), s.anime().getId(), 5));
+        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 3, 7, "x"));
+
+        events.publishEvent(new WatchReviewClearedEvent(s.actor().getId(), s.anime().getId()));
+
+        List<Activity> perSquad = activities.findBySquadIdOrderByIdDesc(s.squadA().getId(), Limit.of(10));
+        assertThat(perSquad).extracting(Activity::getType)
+            .containsExactly(ActivityType.PROGRESS_UPDATED);
     }
 
     @Test
