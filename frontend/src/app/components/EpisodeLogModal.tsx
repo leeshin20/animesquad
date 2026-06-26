@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { apiPut, apiPatch, type WatchEntry } from "@/app/lib/api";
+import { useEffect, useState } from "react";
+import { apiGet, apiPut, apiPatch, type WatchEntry } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { StarsInput } from "@/app/components/Stars";
+import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { DiscardConfirm } from "@/app/components/DiscardConfirm";
 
 export function EpisodeLogModal({
@@ -23,20 +24,40 @@ export function EpisodeLogModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [overwriting, setOverwriting] = useState(false);
+  const [ratedEps, setRatedEps] = useState<Set<number>>(new Set());
+
+  // 이미 평가한 회차를 알아두면 저장 전 덮어쓰기 경고를 띄울 수 있다.
+  useEffect(() => {
+    apiGet<{ episodeNumber: number }[]>(`/api/watch/${entry.anime.id}/episodes`)
+      .then((list) => setRatedEps(new Set(list.map((r) => r.episodeNumber))))
+      .catch(() => { /* 조회 실패 시 경고 없이 진행 */ });
+  }, [entry.anime.id]);
 
   const dirty = score != null || comment.trim() !== "";
   const requestClose = () => (dirty ? setConfirming(true) : onClose());
 
-  async function save() {
+  function save() {
     const epNum = Number(ep);
     if (!Number.isFinite(epNum) || epNum < 1) {
-      setError("유효한 화 번호를 입력해주세요");
+      setError("유효한 회차를 입력해주세요");
       return;
     }
     if (max != null && epNum > max) {
       setError(`최종화는 ${max}화예요`);
       return;
     }
+    // 별점을 새로 매기면서 이미 평가한 회차를 덮어쓰는 경우에만 경고
+    if (score != null && ratedEps.has(epNum)) {
+      setError(null);
+      setOverwriting(true);
+      return;
+    }
+    doSave(epNum);
+  }
+
+  async function doSave(epNum: number) {
+    setOverwriting(false);
     setSaving(true);
     setError(null);
     try {
@@ -151,6 +172,14 @@ export function EpisodeLogModal({
 
       {confirming && (
         <DiscardConfirm onDiscard={onClose} onKeep={() => setConfirming(false)} />
+      )}
+      {overwriting && (
+        <ConfirmDialog
+          message="이미 작성된 감상평이 있습니다. 수정하시겠습니까?"
+          confirmLabel="수정"
+          onConfirm={() => doSave(Number(ep))}
+          onCancel={() => setOverwriting(false)}
+        />
       )}
     </div>
   );
