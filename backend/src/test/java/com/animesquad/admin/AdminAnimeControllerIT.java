@@ -1,0 +1,97 @@
+package com.animesquad.admin;
+
+import com.animesquad.anime.AniListClient;
+import com.animesquad.anime.AniListMedia;
+import com.animesquad.anime.Anime;
+import com.animesquad.anime.AnimeRepository;
+import com.animesquad.anime.AnimeService;
+import com.animesquad.auth.JwtAuthenticationFilter;
+import com.animesquad.auth.JwtService;
+import com.animesquad.support.AbstractIntegrationTest;
+import com.animesquad.user.User;
+import com.animesquad.user.UserService;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.*;
+
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    properties = "app.admin.emails=admin@x.y")
+class AdminAnimeControllerIT extends AbstractIntegrationTest {
+
+    @Autowired UserService userService;
+    @Autowired JwtService jwtService;
+    @Autowired AnimeService animeService;
+    @Autowired AnimeRepository animes;
+    @Autowired TestRestTemplate rest;
+    @LocalServerPort int port;
+
+    @MockBean AniListClient aniList;
+
+    private HttpHeaders cookieFor(Long userId) {
+        HttpHeaders h = new HttpHeaders();
+        h.add(HttpHeaders.COOKIE,
+            JwtAuthenticationFilter.COOKIE_NAME + "=" + jwtService.issue(userId));
+        h.setContentType(MediaType.APPLICATION_JSON);
+        return h;
+    }
+
+    private String url(String path) { return "http://localhost:" + port + path; }
+
+    private Long adminId() {
+        return userService.upsertFromGoogle("g-admin", "admin@x.y", "Admin", null).getId();
+    }
+
+    private Anime seedAnime(int anilistId, String korean) {
+        Anime a = animeService.upsertFromAniList(new AniListMedia(
+            anilistId, "Romaji" + anilistId, "Native", "Eng", "img", 12, "FINISHED", "TV", 2024));
+        if (korean != null) {
+            a.setTitleKorean(korean);
+            animes.save(a);
+        }
+        return a;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void list_withoutQuery_returnsOnlyAnimeMissingKoreanTitle() {
+        Long admin = adminId();
+        seedAnime(101, null);     // missing korean — should appear
+        seedAnime(102, "코난");    // has korean — should be hidden
+
+        ResponseEntity<List> res = rest.exchange(
+            url("/api/admin/anime"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(admin)), List.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        List<Map<String, Object>> body = res.getBody();
+        assertThat(body).hasSize(1);
+        assertThat(body.get(0).get("titleRomaji")).isEqualTo("Romaji101");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void list_withQuery_searchesAll_includingKoreanTitled() {
+        Long admin = adminId();
+        seedAnime(101, null);     // missing korean, title won't match "코난"
+        seedAnime(102, "코난");    // has korean — should be found by search
+
+        ResponseEntity<List> res = rest.exchange(
+            url("/api/admin/anime?q=코난"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(admin)), List.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        List<Map<String, Object>> body = res.getBody();
+        assertThat(body).hasSize(1);
+        assertThat(body.get(0).get("titleKorean")).isEqualTo("코난");
+    }
+}

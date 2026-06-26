@@ -7,7 +7,7 @@ import com.animesquad.anime.dto.AnimeResponse;
 import com.animesquad.auth.CurrentUser;
 import com.animesquad.user.User;
 import com.animesquad.user.UserService;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Limit;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,11 +48,22 @@ public class AdminAnimeController {
     }
 
     @GetMapping
-    public List<AnimeResponse> list(@AuthenticationPrincipal CurrentUser current) {
+    public List<AnimeResponse> list(
+        @AuthenticationPrincipal CurrentUser current,
+        @RequestParam(required = false) String q
+    ) {
         requireAdmin(current);
-        return animes.findAll(Sort.by(Sort.Direction.DESC, "id")).stream()
-            .map(AnimeResponse::from)
-            .toList();
+        List<Anime> result;
+        if (q == null || q.isBlank()) {
+            // Default view is the work queue: only anime still missing a Korean title.
+            result = animes.findByTitleKoreanIsNullOrderByIdDesc();
+        } else {
+            // Search spans everything (Korean-titled included) so entries can be re-edited.
+            String raw = q.trim();
+            String like = "%" + raw.toLowerCase(java.util.Locale.ROOT) + "%";
+            result = animes.searchByTitle(like, "%" + raw + "%", Limit.of(100));
+        }
+        return result.stream().map(AnimeResponse::from).toList();
     }
 
     @PostMapping("/bulk-cache-season")

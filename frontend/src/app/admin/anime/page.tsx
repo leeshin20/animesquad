@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiPatch, apiPost, type AnimeView } from "@/app/lib/api";
 import { aniFormat } from "@/app/lib/anilist-labels";
 
@@ -9,27 +9,23 @@ export default function AdminAnimePage() {
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
 
-  async function refresh() {
+  const refresh = useCallback(async (query: string) => {
     setError(null);
     try {
-      setItems(await apiGet<AnimeView[]>("/api/admin/anime"));
+      const path = query.trim()
+        ? `/api/admin/anime?q=${encodeURIComponent(query.trim())}`
+        : "/api/admin/anime";
+      setItems(await apiGet<AnimeView[]>(path));
     } catch (e) {
       setError(String(e));
     }
-  }
+  }, []);
 
-  useEffect(() => { refresh(); }, []);
-
-  const filtered = (items ?? []).filter((a) => {
-    if (!q.trim()) return true;
-    const needle = q.toLowerCase();
-    return (
-      a.titleRomaji.toLowerCase().includes(needle) ||
-      (a.titleEnglish ?? "").toLowerCase().includes(needle) ||
-      (a.titleKorean ?? "").toLowerCase().includes(needle) ||
-      a.titleNative.includes(q)
-    );
-  });
+  // 검색어가 비면 기본(한글 미설정) 목록, 입력하면 전체 대상 검색 — 300ms 디바운스
+  useEffect(() => {
+    const t = setTimeout(() => { refresh(q); }, 300);
+    return () => clearTimeout(t);
+  }, [q, refresh]);
 
   return (
     <div className="space-y-6">
@@ -46,25 +42,25 @@ export default function AdminAnimePage() {
         </div>
       )}
 
-      <BulkCacheSection onDone={refresh} onError={setError} />
+      <BulkCacheSection onDone={() => refresh(q)} onError={setError} />
 
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="제목으로 필터"
+        placeholder="제목으로 검색 (한글 단 작품도 검색돼요)"
         className="w-full rounded-lg border border-neutral-300 px-4 py-2 text-sm focus:border-neutral-900 focus:outline-none"
       />
 
       {items === null ? (
         <p className="text-sm text-neutral-400">불러오는 중…</p>
-      ) : filtered.length === 0 ? (
+      ) : items.length === 0 ? (
         <p className="rounded-xl border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-500">
-          {items.length === 0 ? "아직 캐시된 작품이 없어요." : "검색 결과 없음"}
+          {q.trim() ? "검색 결과 없음" : "한글 제목 미설정 작품이 없어요 (모두 처리됨)"}
         </p>
       ) : (
         <ul className="space-y-2">
-          {filtered.map((a) => (
-            <Row key={a.id} anime={a} onSaved={refresh} onError={setError} />
+          {items.map((a) => (
+            <Row key={a.id} anime={a} onSaved={() => refresh(q)} onError={setError} />
           ))}
         </ul>
       )}

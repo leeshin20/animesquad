@@ -11,6 +11,8 @@ import java.util.Optional;
 public interface AnimeRepository extends JpaRepository<Anime, Long> {
     Optional<Anime> findByAnilistId(Integer anilistId);
 
+    List<Anime> findByTitleKoreanIsNullOrderByIdDesc();
+
     @Query("""
         SELECT a FROM Anime a
         WHERE LOWER(a.titleRomaji)   LIKE :q
