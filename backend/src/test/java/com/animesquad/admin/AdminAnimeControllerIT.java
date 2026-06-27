@@ -10,6 +10,8 @@ import com.animesquad.auth.JwtService;
 import com.animesquad.support.AbstractIntegrationTest;
 import com.animesquad.user.User;
 import com.animesquad.user.UserService;
+import com.animesquad.watch.WatchService;
+import com.animesquad.watch.WatchStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,6 +34,7 @@ class AdminAnimeControllerIT extends AbstractIntegrationTest {
     @Autowired JwtService jwtService;
     @Autowired AnimeService animeService;
     @Autowired AnimeRepository animes;
+    @Autowired WatchService watchService;
     @Autowired TestRestTemplate rest;
     @LocalServerPort int port;
 
@@ -93,5 +96,33 @@ class AdminAnimeControllerIT extends AbstractIntegrationTest {
         List<Map<String, Object>> body = res.getBody();
         assertThat(body).hasSize(1);
         assertThat(body.get(0).get("titleKorean")).isEqualTo("코난");
+    }
+
+    @Test
+    void delete_removesAnime_whenNoReferences() {
+        Long admin = adminId();
+        Anime a = seedAnime(201, null);
+
+        ResponseEntity<Void> res = rest.exchange(
+            url("/api/admin/anime/" + a.getId()), HttpMethod.DELETE,
+            new HttpEntity<>(cookieFor(admin)), Void.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(animes.findById(a.getId())).isEmpty();
+    }
+
+    @Test
+    void delete_returns409_whenReferencedByWatchEntry() {
+        Long admin = adminId();
+        Anime a = seedAnime(202, null);
+        User viewer = userService.upsertFromGoogle("g-viewer", "viewer@x.y", "V", null);
+        watchService.addToList(viewer.getId(), 202, WatchStatus.WATCHING);
+
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/admin/anime/" + a.getId()), HttpMethod.DELETE,
+            new HttpEntity<>(cookieFor(admin)), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(animes.findById(a.getId())).isPresent();
     }
 }

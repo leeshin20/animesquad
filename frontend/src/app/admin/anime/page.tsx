@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiGet, apiPatch, apiPost, type AnimeView } from "@/app/lib/api";
+import { apiGet, apiPatch, apiPost, apiDelete, type AnimeView } from "@/app/lib/api";
 import { aniFormat } from "@/app/lib/anilist-labels";
+import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 
 export default function AdminAnimePage() {
   const [items, setItems] = useState<AnimeView[] | null>(null);
@@ -154,6 +155,8 @@ function Row({
   const [value, setValue] = useState(anime.titleKorean ?? "");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const dirty = (anime.titleKorean ?? "") !== value.trim();
 
   async function save() {
@@ -166,6 +169,20 @@ function Row({
       onError(String(e));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function remove() {
+    setDeleting(true);
+    try {
+      await apiDelete(`/api/admin/anime/${anime.id}`);
+      setConfirming(false);
+      onSaved();
+    } catch (e) {
+      setConfirming(false);
+      onError(String(e));
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -205,11 +222,26 @@ function Row({
           >
             {saving ? "저장 중…" : "저장"}
           </button>
+          <button
+            onClick={() => setConfirming(true)}
+            disabled={deleting}
+            className="rounded-md border border-rose-200 px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-40"
+          >
+            삭제
+          </button>
           {savedAt && !dirty && (
             <span className="text-xs text-emerald-600">저장됨 ✓</span>
           )}
         </div>
       </div>
+
+      {confirming && (
+        <ConfirmDialog
+          message={`'${anime.titleRomaji}'을(를) 캐시에서 삭제할까요? 되돌릴 수 없어요.`}
+          onConfirm={remove}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
     </li>
   );
 }

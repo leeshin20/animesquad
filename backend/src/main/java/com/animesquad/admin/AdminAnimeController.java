@@ -4,11 +4,15 @@ import com.animesquad.anime.Anime;
 import com.animesquad.anime.AnimeRepository;
 import com.animesquad.anime.AnimeService;
 import com.animesquad.anime.dto.AnimeResponse;
+import com.animesquad.activity.ActivityRepository;
 import com.animesquad.auth.CurrentUser;
+import com.animesquad.episode.EpisodeRatingRepository;
 import com.animesquad.user.User;
 import com.animesquad.user.UserService;
+import com.animesquad.watch.WatchEntryRepository;
 import org.springframework.data.domain.Limit;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -31,13 +35,21 @@ public class AdminAnimeController {
     private final AnimeService animeService;
     private final UserService users;
     private final AdminProperties adminProperties;
+    private final WatchEntryRepository watches;
+    private final EpisodeRatingRepository episodeRatings;
+    private final ActivityRepository activities;
 
     public AdminAnimeController(AnimeRepository animes, AnimeService animeService,
-                                UserService users, AdminProperties adminProperties) {
+                                UserService users, AdminProperties adminProperties,
+                                WatchEntryRepository watches, EpisodeRatingRepository episodeRatings,
+                                ActivityRepository activities) {
         this.animes = animes;
         this.animeService = animeService;
         this.users = users;
         this.adminProperties = adminProperties;
+        this.watches = watches;
+        this.episodeRatings = episodeRatings;
+        this.activities = activities;
     }
 
     private void requireAdmin(CurrentUser current) {
@@ -96,5 +108,21 @@ public class AdminAnimeController {
         String value = body.titleKorean() == null ? null : body.titleKorean().trim();
         anime.setTitleKorean(value == null || value.isEmpty() ? null : value);
         return AnimeResponse.from(anime);
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<Void> delete(
+        @AuthenticationPrincipal CurrentUser current,
+        @PathVariable Long id
+    ) {
+        requireAdmin(current);
+        Anime anime = animes.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "anime not found"));
+        if (watches.existsByAnimeId(id) || episodeRatings.existsByAnimeId(id) || activities.existsByAnimeId(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 시청·평가 기록이 있어 삭제할 수 없어요");
+        }
+        animes.delete(anime);
+        return ResponseEntity.noContent().build();
     }
 }
