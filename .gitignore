@@ -24,3 +24,6 @@ frontend/out/
 .env
 .env.local
 *.local
+
+# Git worktrees
+.worktrees/
