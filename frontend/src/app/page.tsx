@@ -139,7 +139,7 @@ function MyRecentGrid({
     );
   }
   return (
-    <div className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 lg:grid lg:grid-cols-2 lg:overflow-x-visible lg:pb-0 lg:snap-none">
+    <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 lg:grid lg:grid-cols-2 lg:overflow-x-visible lg:pb-0 lg:snap-none">
       {entries.map((e) => (
         <MyRecentCard key={e.id} entry={e} onChanged={onChanged} />
       ))}
