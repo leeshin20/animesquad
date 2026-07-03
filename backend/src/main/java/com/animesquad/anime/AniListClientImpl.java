@@ -55,6 +55,7 @@ public class AniListClientImpl implements AniListClient {
             status
             format
             seasonYear
+            season
           }
         }
         """;
