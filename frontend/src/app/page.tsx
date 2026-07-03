@@ -139,7 +139,7 @@ function MyRecentGrid({
     );
   }
   return (
-    <div className="flex gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-2 lg:overflow-x-visible lg:pb-0">
+    <div className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 lg:grid lg:grid-cols-2 lg:overflow-x-visible lg:pb-0 lg:snap-none">
       {entries.map((e) => (
         <MyRecentCard key={e.id} entry={e} onChanged={onChanged} />
       ))}
@@ -172,7 +172,7 @@ function MyRecentCard({
   const maxed = entry.anime.episodes != null && entry.progress >= entry.anime.episodes;
 
   return (
-    <div className="w-28 shrink-0 lg:w-auto">
+    <div className="w-20 shrink-0 snap-start lg:w-auto lg:snap-align-none">
       <Link href={`/anime/${entry.anime.id}`} className="block transition hover:opacity-80">
         {entry.anime.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
