@@ -88,6 +88,9 @@ export function SeriesReviewModal({
                   placeholder="작품 전체는 어땠나요?"
                   className="mt-1 w-full resize-none rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
                 />
+                <p className="mt-1 text-right text-xs text-neutral-400">
+                  {comment.length}/280
+                </p>
               </label>
             </>
           )}
