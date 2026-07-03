@@ -25,6 +25,12 @@ export default function NavBar() {
     setDrawerOpen(false);
   }, [pathname]);
 
+  // 드로어 열릴 때 바디 스크롤 잠금
+  useEffect(() => {
+    document.body.style.overflow = drawerOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [drawerOpen]);
+
   const links = me?.isAdmin
     ? [...baseLinks, { href: "/admin/anime", label: "관리자" }]
     : baseLinks;
@@ -91,16 +97,15 @@ export default function NavBar() {
         </div>
       </header>
 
-      {/* 모바일 드로어 */}
-      {drawerOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+      {/* 모바일 드로어 — 항상 마운트, CSS로 show/hide */}
+      <div className={`fixed inset-0 z-50 md:hidden ${drawerOpen ? "pointer-events-auto" : "pointer-events-none"}`}>
           {/* 딤 배경 */}
           <div
-            className="absolute inset-0 bg-black/40"
+            className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${drawerOpen ? "opacity-100" : "opacity-0"}`}
             onClick={() => setDrawerOpen(false)}
           />
           {/* 드로어 패널 */}
-          <div className="absolute right-0 top-0 flex h-full w-64 flex-col bg-white shadow-xl">
+          <div className={`absolute right-0 top-0 flex h-full w-64 flex-col bg-white shadow-xl transition-transform duration-200 ease-out ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}>
             {/* 헤더 */}
             <div className="flex h-14 items-center justify-between border-b border-neutral-200 px-4">
               <span className="text-base font-semibold tracking-tight">AnimeSquad</span>
@@ -157,7 +162,7 @@ export default function NavBar() {
             )}
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 }
