@@ -22,4 +22,6 @@ public interface AnimeRepository extends JpaRepository<Anime, Long> {
         ORDER BY a.id DESC
         """)
     List<Anime> searchByTitle(@Param("q") String lowered, @Param("raw") String raw, Limit limit);
+
+    List<Anime> findBySeasonYearAndSeasonOrderByTitleRomajiAsc(Integer seasonYear, String season);
 }

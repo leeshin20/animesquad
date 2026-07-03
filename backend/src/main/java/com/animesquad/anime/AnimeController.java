@@ -23,6 +23,20 @@ public class AnimeController {
         this.animes = animes;
     }
 
+    private static final java.util.Set<String> VALID_SEASONS =
+        java.util.Set.of("WINTER", "SPRING", "SUMMER", "FALL");
+
+    @GetMapping("/browse")
+    public List<AnimeResponse> browse(
+            @RequestParam int year,
+            @RequestParam String season) {
+        if (!VALID_SEASONS.contains(season)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid season: " + season);
+        }
+        return animes.findBySeasonYearAndSeasonOrderByTitleRomajiAsc(year, season)
+            .stream().map(AnimeResponse::from).toList();
+    }
+
     @GetMapping("/search")
     public List<AnimeResponse> search(@RequestParam("q") String q) {
         return searchService.search(q).stream().map(AnimeResponse::from).toList();

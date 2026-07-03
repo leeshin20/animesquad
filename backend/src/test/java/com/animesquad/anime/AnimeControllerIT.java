@@ -15,6 +15,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.*;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -82,6 +83,56 @@ class AnimeControllerIT extends AbstractIntegrationTest {
             HttpMethod.GET, HttpEntity.EMPTY, String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    private void seedBrowse(int anilistId, int year, String season) {
+        animeService.upsertFromAniList(new AniListMedia(
+            anilistId, "Title" + anilistId, "Native", null, null,
+            12, "FINISHED", "TV", year, season));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void browse_returnsAnimeMatchingYearAndSeason() {
+        Long user = userService.upsertFromGoogle("g-br1", "br1@x.y", "BR1", null).getId();
+        seedBrowse(1, 2024, "WINTER");
+        seedBrowse(2, 2024, "SPRING");
+        seedBrowse(3, 2023, "WINTER");
+
+        ResponseEntity<List> res = rest.exchange(
+            "http://localhost:" + port + "/api/anime/browse?year=2024&season=WINTER",
+            HttpMethod.GET, new HttpEntity<>(cookieFor(user)), List.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        List<Map<String, Object>> body = res.getBody();
+        assertThat(body).hasSize(1);
+        assertThat(body.get(0).get("seasonYear")).isEqualTo(2024);
+        assertThat(body.get(0).get("season")).isEqualTo("WINTER");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void browse_emptyResult_whenNoMatchingAnime() {
+        Long user = userService.upsertFromGoogle("g-br2", "br2@x.y", "BR2", null).getId();
+        seedBrowse(1, 2024, "SPRING");
+
+        ResponseEntity<List> res = rest.exchange(
+            "http://localhost:" + port + "/api/anime/browse?year=2024&season=WINTER",
+            HttpMethod.GET, new HttpEntity<>(cookieFor(user)), List.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody()).isEmpty();
+    }
+
+    @Test
+    void browse_returns400_forInvalidSeason() {
+        Long user = userService.upsertFromGoogle("g-br3", "br3@x.y", "BR3", null).getId();
+
+        ResponseEntity<String> res = rest.exchange(
+            "http://localhost:" + port + "/api/anime/browse?year=2024&season=INVALID",
+            HttpMethod.GET, new HttpEntity<>(cookieFor(user)), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
