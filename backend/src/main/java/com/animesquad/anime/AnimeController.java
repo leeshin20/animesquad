@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/anime")
@@ -23,8 +24,8 @@ public class AnimeController {
         this.animes = animes;
     }
 
-    private static final java.util.Set<String> VALID_SEASONS =
-        java.util.Set.of("WINTER", "SPRING", "SUMMER", "FALL");
+    private static final Set<String> VALID_SEASONS =
+        Set.of("WINTER", "SPRING", "SUMMER", "FALL");
 
     @GetMapping("/browse")
     public List<AnimeResponse> browse(
