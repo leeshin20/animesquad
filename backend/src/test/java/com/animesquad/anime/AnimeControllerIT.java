@@ -40,7 +40,7 @@ class AnimeControllerIT extends AbstractIntegrationTest {
     void search_returnsCachedResults() {
         User me = userService.upsertFromGoogle("g-as", "as@x.y", "AS", null);
         animeService.upsertFromAniList(new AniListMedia(
-            1, "Frieren", "葬送のフリーレン", "Frieren", "img", 28, "FINISHED", "TV", 2023));
+            1, "Frieren", "葬送のフリーレン", "Frieren", "img", 28, "FINISHED", "TV", 2023, null));
 
         ResponseEntity<AnimeResponse[]> res = rest.exchange(
             "http://localhost:" + port + "/api/anime/search?q=frieren",
@@ -88,7 +88,7 @@ class AnimeControllerIT extends AbstractIntegrationTest {
     void getById_returnsAnime_and404WhenMissing() {
         User me = userService.upsertFromGoogle("g-gbi", "gbi@x.y", "GBI", null);
         Anime a = animeService.upsertFromAniList(new AniListMedia(
-            101, "Romaji101", "Native", "Eng", "img", 12, "FINISHED", "TV", 2024));
+            101, "Romaji101", "Native", "Eng", "img", 12, "FINISHED", "TV", 2024, null));
 
         ResponseEntity<AnimeResponse> ok = rest.exchange(
             "http://localhost:" + port + "/api/anime/" + a.getId(), HttpMethod.GET,

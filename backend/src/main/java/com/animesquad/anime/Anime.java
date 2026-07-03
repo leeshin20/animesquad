@@ -41,13 +41,17 @@ public class Anime {
     @Column(name = "season_year")
     private Integer seasonYear;
 
+    @Column(length = 10)
+    private String season;
+
     @Column(name = "cached_at", nullable = false)
     private OffsetDateTime cachedAt = OffsetDateTime.now();
 
     protected Anime() {}
 
     public Anime(Integer anilistId, String titleRomaji, String titleNative, String titleEnglish,
-                 String coverImageUrl, Integer episodes, String status, String format, Integer seasonYear) {
+                 String coverImageUrl, Integer episodes, String status, String format, Integer seasonYear,
+                 String season) {
         this.anilistId = anilistId;
         this.titleRomaji = titleRomaji;
         this.titleNative = titleNative;
@@ -57,11 +61,12 @@ public class Anime {
         this.status = status;
         this.format = format;
         this.seasonYear = seasonYear;
+        this.season = season;
     }
 
     public void refreshFrom(String titleRomaji, String titleNative, String titleEnglish,
                             String coverImageUrl, Integer episodes, String status,
-                            String format, Integer seasonYear) {
+                            String format, Integer seasonYear, String season) {
         this.titleRomaji = titleRomaji;
         this.titleNative = titleNative;
         this.titleEnglish = titleEnglish;
@@ -70,6 +75,7 @@ public class Anime {
         this.status = status;
         this.format = format;
         this.seasonYear = seasonYear;
+        this.season = season;
         this.cachedAt = OffsetDateTime.now();
     }
 
@@ -85,5 +91,6 @@ public class Anime {
     public String getStatus() { return status; }
     public String getFormat() { return format; }
     public Integer getSeasonYear() { return seasonYear; }
+    public String getSeason() { return season; }
     public OffsetDateTime getCachedAt() { return cachedAt; }
 }

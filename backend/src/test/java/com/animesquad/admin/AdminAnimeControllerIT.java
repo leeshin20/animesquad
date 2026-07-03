@@ -56,7 +56,7 @@ class AdminAnimeControllerIT extends AbstractIntegrationTest {
 
     private Anime seedAnime(int anilistId, String korean) {
         Anime a = animeService.upsertFromAniList(new AniListMedia(
-            anilistId, "Romaji" + anilistId, "Native", "Eng", "img", 12, "FINISHED", "TV", 2024));
+            anilistId, "Romaji" + anilistId, "Native", "Eng", "img", 12, "FINISHED", "TV", 2024, null));
         if (korean != null) {
             a.setTitleKorean(korean);
             animes.save(a);

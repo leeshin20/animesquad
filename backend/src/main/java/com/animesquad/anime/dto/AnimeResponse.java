@@ -13,14 +13,15 @@ public record AnimeResponse(
     Integer episodes,
     String status,
     String format,
-    Integer seasonYear
+    Integer seasonYear,
+    String season
 ) {
     public static AnimeResponse from(Anime a) {
         return new AnimeResponse(
             a.getId(), a.getAnilistId(),
             a.getTitleRomaji(), a.getTitleNative(), a.getTitleEnglish(), a.getTitleKorean(),
             a.getCoverImageUrl(), a.getEpisodes(),
-            a.getStatus(), a.getFormat(), a.getSeasonYear()
+            a.getStatus(), a.getFormat(), a.getSeasonYear(), a.getSeason()
         );
     }
 }

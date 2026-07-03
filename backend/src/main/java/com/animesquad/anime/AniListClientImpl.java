@@ -39,6 +39,7 @@ public class AniListClientImpl implements AniListClient {
               status
               format
               seasonYear
+              season
             }
           }
         }
@@ -132,7 +133,8 @@ public class AniListClientImpl implements AniListClient {
             m.get("episodes") == null ? null : ((Number) m.get("episodes")).intValue(),
             (String) m.get("status"),
             (String) m.get("format"),
-            m.get("seasonYear") == null ? null : ((Number) m.get("seasonYear")).intValue()
+            m.get("seasonYear") == null ? null : ((Number) m.get("seasonYear")).intValue(),
+            (String) m.get("season")
         );
     }
 }

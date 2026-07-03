@@ -44,7 +44,7 @@ class ActivityListenerIT extends AbstractIntegrationTest {
         Squad a = squadService.createSquad(actor.getId(), "A");
         Squad b = squadService.createSquad(actor.getId(), "B");
         Anime anime = animeService.upsertFromAniList(new AniListMedia(
-            5001, "Romaji", "Native", "Eng", "img", 12, "FINISHED", "TV", 2024));
+            5001, "Romaji", "Native", "Eng", "img", 12, "FINISHED", "TV", 2024, null));
         return new Setup(actor, a, b, anime);
     }
 
@@ -70,7 +70,7 @@ class ActivityListenerIT extends AbstractIntegrationTest {
     void animeAdded_emitsNothing_whenActorHasNoSquads() {
         User loner = userService.upsertFromGoogle("g-loner", "l@x.y", "L", null);
         Anime anime = animeService.upsertFromAniList(new AniListMedia(
-            5002, "R", "N", "E", "img", 12, "FINISHED", "TV", 2024));
+            5002, "R", "N", "E", "img", 12, "FINISHED", "TV", 2024, null));
 
         events.publishEvent(new AnimeAddedEvent(loner.getId(), anime.getId(), WatchStatus.WATCHING));
 

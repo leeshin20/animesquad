@@ -19,7 +19,7 @@ class AnimeServiceIT extends AbstractIntegrationTest {
     @MockBean AniListClient aniList;
 
     private AniListMedia media(int id, String romaji) {
-        return new AniListMedia(id, romaji, "ネイティブ", "Eng", "img", 12, "FINISHED", "TV", 2024);
+        return new AniListMedia(id, romaji, "ネイティブ", "Eng", "img", 12, "FINISHED", "TV", 2024, null);
     }
 
     @Test

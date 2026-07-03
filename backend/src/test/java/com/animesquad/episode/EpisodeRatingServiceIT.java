@@ -33,7 +33,7 @@ class EpisodeRatingServiceIT extends AbstractIntegrationTest {
     private Seeded seed(String suffix, int anilistId) {
         User u = userService.upsertFromGoogle("g-" + suffix, suffix + "@x.y", suffix.toUpperCase(), null);
         Anime a = animeService.upsertFromAniList(new AniListMedia(
-            anilistId, "Romaji", "Native", "Eng", "img", 24, "FINISHED", "TV", 2024));
+            anilistId, "Romaji", "Native", "Eng", "img", 24, "FINISHED", "TV", 2024, null));
         WatchEntry e = watchService.addToList(u.getId(), anilistId, WatchStatus.WATCHING);
         return new Seeded(u, a, e);
     }
@@ -91,7 +91,7 @@ class EpisodeRatingServiceIT extends AbstractIntegrationTest {
     void upsert_throws_whenUserHasNoWatchEntry() {
         User stranger = userService.upsertFromGoogle("g-stranger", "s@x.y", "S", null);
         Anime a = animeService.upsertFromAniList(new AniListMedia(
-            1005, "R", "N", "E", "img", 12, "FINISHED", "TV", 2024));
+            1005, "R", "N", "E", "img", 12, "FINISHED", "TV", 2024, null));
 
         assertThatThrownBy(() -> service.upsertRating(stranger.getId(), a.getId(), 1, 5, null))
             .isInstanceOf(IllegalArgumentException.class);

@@ -9,5 +9,6 @@ public record AniListMedia(
     Integer episodes,
     String status,
     String format,
-    Integer seasonYear
+    Integer seasonYear,
+    String season
 ) {}

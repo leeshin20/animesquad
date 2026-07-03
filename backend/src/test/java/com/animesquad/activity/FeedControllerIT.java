@@ -51,7 +51,7 @@ class FeedControllerIT extends AbstractIntegrationTest {
         User me = userService.upsertFromGoogle("g-feed", "feed@x.y", "Feeder", "avatar");
         Squad s = squadService.createSquad(me.getId(), "S");
         var anime = animeService.upsertFromAniList(new AniListMedia(
-            7001, "Frieren", "葬送", "FrierenE", "img", 28, "FINISHED", "TV", 2023));
+            7001, "Frieren", "葬送", "FrierenE", "img", 28, "FINISHED", "TV", 2023, null));
         watchService.addToList(me.getId(), 7001, WatchStatus.WATCHING);
         watchService.updateEntry(me.getId(), anime.getId(), null, 5, null, null);
 
@@ -71,7 +71,7 @@ class FeedControllerIT extends AbstractIntegrationTest {
         User me = userService.upsertFromGoogle("g-cur", "cur@x.y", "Cur", null);
         Squad s = squadService.createSquad(me.getId(), "S");
         var anime = animeService.upsertFromAniList(new AniListMedia(
-            7002, "R", "N", "E", "img", 12, "FINISHED", "TV", 2024));
+            7002, "R", "N", "E", "img", 12, "FINISHED", "TV", 2024, null));
         watchService.addToList(me.getId(), 7002, WatchStatus.WATCHING);
         watchService.updateEntry(me.getId(), anime.getId(), null, 1, null, null);
         watchService.updateEntry(me.getId(), anime.getId(), null, 2, null, null);

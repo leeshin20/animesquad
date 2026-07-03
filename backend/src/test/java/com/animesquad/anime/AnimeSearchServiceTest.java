@@ -19,7 +19,7 @@ class AnimeSearchServiceTest {
 
     @Test
     void search_delegatesToRepository_withLowercasedLikePattern() {
-        Anime hit = new Anime(1, "Frieren", "葬送", "F", "img", 12, "FINISHED", "TV", 2024);
+        Anime hit = new Anime(1, "Frieren", "葬送", "F", "img", 12, "FINISHED", "TV", 2024, null);
         when(animes.searchByTitle(eq("%frieren%"), eq("%Frieren%"), any(Limit.class)))
             .thenReturn(List.of(hit));
 
