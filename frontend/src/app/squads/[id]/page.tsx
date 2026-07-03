@@ -92,12 +92,12 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
       )}
 
       <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
-        <section>
+        <section className="min-w-0">
           <h2 className="mb-3 text-sm font-semibold text-neutral-700">스쿼드의 최근 감상</h2>
           <SquadRecentGrid items={recent} />
         </section>
 
-        <section>
+        <section className="min-w-0">
           <h2 className="mb-3 text-sm font-semibold text-neutral-700">스쿼드 활동</h2>
           <Timeline items={items} />
           {!done && (
@@ -235,7 +235,7 @@ function SquadRecentGrid({ items }: { items: SquadWatchItem[] | null }) {
     );
   }
   return (
-    <div className="flex gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-2 lg:overflow-x-visible lg:pb-0">
+    <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 lg:grid lg:grid-cols-2 lg:overflow-x-visible lg:pb-0 lg:snap-none">
       {groupByAnime(items).map((g) => <SquadRecentCard key={g.anime.id} group={g} />)}
     </div>
   );
@@ -269,7 +269,7 @@ function SquadRecentCard({ group }: { group: AnimeWatchGroup }) {
   const title = displayTitle(anime);
   const lead = watchers[0];
   return (
-    <div className="w-28 shrink-0 lg:w-auto">
+    <div className="w-20 shrink-0 snap-start lg:w-auto lg:snap-align-none">
       <Link href={`/anime/${anime.id}`} className="relative block transition hover:opacity-80">
         {anime.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
