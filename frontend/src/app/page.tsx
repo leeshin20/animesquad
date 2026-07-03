@@ -93,12 +93,12 @@ function Dashboard() {
       )}
 
       <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
-        <section>
+        <section className="min-w-0">
           <SectionHeader title="내가 최근 기록한 애니" linkHref="/watchlist" linkLabel="내 목록 전체" />
           <MyRecentGrid entries={entries} onChanged={loadAll} />
         </section>
 
-        <section>
+        <section className="min-w-0">
           <SectionHeader title="스쿼드 활동" linkHref="/squads" linkLabel="스쿼드 전체" />
           <Timeline items={feed} showSquad />
         </section>
