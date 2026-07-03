@@ -28,7 +28,7 @@ export default function RootLayout({
     <html lang="ko">
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
         <NavBar />
-        <main className="mx-auto max-w-5xl px-6 py-10">{children}</main>
+        <main className="mx-auto max-w-5xl px-4 py-8 md:px-6 md:py-10">{children}</main>
       </body>
     </html>
   );
