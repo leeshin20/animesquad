@@ -1,5 +1,6 @@
 package com.animesquad.squad;
 
+import com.animesquad.squad.dto.SquadResponse;
 import com.animesquad.squad.events.SquadJoinedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
@@ -61,12 +62,42 @@ public class SquadService {
 
     @Transactional
     public Squad updateAnnouncement(Long userId, Long squadId, String announcement) {
-        Squad squad = getSquadForMember(userId, squadId);
-        if (!squad.getOwnerId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "스쿼드 관리자만 공지를 수정할 수 있어요");
-        }
+        Squad squad = getOwnerSquad(userId, squadId);
         squad.updateAnnouncement(announcement);
         return squads.save(squad);
+    }
+
+    @Transactional
+    public Squad updateAvatarUrl(Long userId, Long squadId, String url) {
+        Squad squad = getOwnerSquad(userId, squadId);
+        squad.updateAvatarUrl(url);
+        return squads.save(squad);
+    }
+
+    @Transactional
+    public Squad updateBannerUrl(Long userId, Long squadId, String url) {
+        Squad squad = getOwnerSquad(userId, squadId);
+        squad.updateBannerUrl(url);
+        return squads.save(squad);
+    }
+
+    @Transactional
+    public Squad updateName(Long userId, Long squadId, String name) {
+        Squad squad = getOwnerSquad(userId, squadId);
+        squad.updateName(name);
+        return squads.save(squad);
+    }
+
+    public SquadResponse toResponse(Squad squad) {
+        return SquadResponse.from(squad, memberships.countBySquadId(squad.getId()));
+    }
+
+    private Squad getOwnerSquad(Long userId, Long squadId) {
+        Squad squad = getSquadForMember(userId, squadId);
+        if (!squad.getOwnerId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "스쿼드 관리자만 수정할 수 있어요");
+        }
+        return squad;
     }
 
     private String generateUniqueCode() {

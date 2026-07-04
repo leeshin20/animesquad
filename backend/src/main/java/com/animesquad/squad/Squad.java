@@ -26,6 +26,12 @@ public class Squad {
     @Column(columnDefinition = "text")
     private String announcement;
 
+    @Column(name = "avatar_url", columnDefinition = "text")
+    private String avatarUrl;
+
+    @Column(name = "banner_url", columnDefinition = "text")
+    private String bannerUrl;
+
     protected Squad() {}
 
     public Squad(String name, Long ownerId, String inviteCode) {
@@ -40,9 +46,14 @@ public class Squad {
     public String getInviteCode() { return inviteCode; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public String getAnnouncement() { return announcement; }
+    public String getAvatarUrl() { return avatarUrl; }
+    public String getBannerUrl() { return bannerUrl; }
 
-    /** Sets the announcement; blank input clears it (stored as null). */
     public void updateAnnouncement(String text) {
         this.announcement = (text == null || text.isBlank()) ? null : text.trim();
     }
+
+    public void updateName(String name) { this.name = name.trim(); }
+    public void updateAvatarUrl(String url) { this.avatarUrl = url; }
+    public void updateBannerUrl(String url) { this.bannerUrl = url; }
 }

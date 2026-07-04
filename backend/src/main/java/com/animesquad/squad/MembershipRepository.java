@@ -9,4 +9,5 @@ public interface MembershipRepository extends JpaRepository<Membership, Long> {
     Optional<Membership> findByUserIdAndSquadId(Long userId, Long squadId);
     boolean existsByUserIdAndSquadId(Long userId, Long squadId);
     List<Membership> findAllBySquadId(Long squadId);
+    long countBySquadId(Long squadId);
 }

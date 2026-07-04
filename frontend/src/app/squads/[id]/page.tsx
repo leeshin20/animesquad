@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { apiGet, apiPatch, type FeedItem, type Me, type Squad } from "@/app/lib/api";
+import { apiGet, apiPatch, apiUpload, type FeedItem, type Me, type Squad } from "@/app/lib/api";
+import { ImageCropModal } from "@/app/components/ImageCropModal";
+import { SquadEditModal } from "@/app/components/SquadEditModal";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { Timeline, Avatar, type FeedItemWithSquad } from "@/app/components/Timeline";
 import { NoticeBanner } from "@/app/components/NoticeBanner";
@@ -67,6 +69,7 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="space-y-6">
+      {/* 최상단 — 공지 */}
       {squad && (
         <SquadAnnouncementBanner
           squadId={squadId}
@@ -76,15 +79,6 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
         />
       )}
 
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {squad?.name ?? " "}
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          {squad ? <>초대 코드 <code className="font-mono">{squad.inviteCode}</code></> : " "}
-        </p>
-      </header>
-
       {error && (
         <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
           {error}
@@ -92,10 +86,18 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
       )}
 
       <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
-        <section className="min-w-0">
-          <h2 className="mb-3 text-sm font-semibold text-neutral-700">스쿼드의 최근 감상</h2>
-          <SquadRecentGrid items={recent} />
-        </section>
+        <div className="flex min-w-0 flex-col gap-6">
+          <SquadHeader
+            squad={squad}
+            isOwner={isOwner}
+            onUpdated={(s) => setSquad(s)}
+          />
+
+          <section className="min-w-0">
+            <h2 className="mb-3 text-sm font-semibold text-neutral-700">스쿼드의 최근 감상</h2>
+            <SquadRecentGrid items={recent} />
+          </section>
+        </div>
 
         <section className="min-w-0">
           <h2 className="mb-3 text-sm font-semibold text-neutral-700">스쿼드 활동</h2>
@@ -320,5 +322,118 @@ function WatcherStack({ watchers }: { watchers: SquadWatchItem[] }) {
         </div>
       )}
     </div>
+  );
+}
+
+function SquadHeader({
+  squad,
+  isOwner,
+  onUpdated,
+}: {
+  squad: Squad | null;
+  isOwner: boolean;
+  onUpdated: (s: Squad) => void;
+}) {
+  const squadId = squad?.id.toString() ?? "";
+  const [uploading, setUploading] = useState<"avatar" | "banner" | null>(null);
+  const [cropState, setCropState] = useState<{ src: string; type: "avatar" | "banner" } | null>(null);
+  const [editing, setEditing] = useState(false);
+
+  const SIZE_LIMIT: Record<"avatar" | "banner", number> = { avatar: 2 * 1024 * 1024, banner: 5 * 1024 * 1024 };
+  const SIZE_LABEL: Record<"avatar" | "banner", string> = { avatar: "2MB", banner: "5MB" };
+
+  const handleImageUpload = useCallback(async (type: "avatar" | "banner", file: File) => {
+    setUploading(type);
+    try {
+      const updated = await apiUpload<Squad>(`/api/squad/${squadId}/${type}`, file);
+      onUpdated(updated);
+    } finally {
+      setUploading(null);
+    }
+  }, [squadId, onUpdated]);
+
+  function pickFile(type: "avatar" | "banner") {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      if (file.size > SIZE_LIMIT[type]) {
+        alert(`이미지가 너무 커요. ${SIZE_LABEL[type]} 이하로 올려주세요.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => setCropState({ src: reader.result as string, type });
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }
+
+  return (
+    <>
+    {cropState && (
+      <ImageCropModal
+        src={cropState.src}
+        aspect={cropState.type === "avatar" ? 1 : 16 / 9}
+        onConfirm={(file) => { setCropState(null); handleImageUpload(cropState.type, file); }}
+        onCancel={() => setCropState(null)}
+      />
+    )}
+    {editing && squad && (
+      <SquadEditModal
+        squad={squad}
+        onUpdated={(s) => onUpdated(s)}
+        onClose={() => setEditing(false)}
+      />
+    )}
+    <div className="relative overflow-hidden rounded-xl border border-neutral-200">
+      {/* 수정 버튼 */}
+      {isOwner && (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-neutral-100 text-neutral-500 hover:bg-neutral-200 hover:text-neutral-800"
+          title="스쿼드 수정"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 2L12 4L5 11H3V9L10 2Z" />
+          </svg>
+        </button>
+      )}
+
+      {/* 아바타 + 정보 */}
+      <div className="flex items-center gap-4 p-4">
+        <div className="relative shrink-0">
+          <div className="h-24 w-24 overflow-hidden rounded-2xl bg-neutral-200 shadow-sm">
+            {squad?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={squad.avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-neutral-400">
+                {squad?.name?.charAt(0).toUpperCase() ?? ""}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          <h1 className="truncate text-base font-semibold tracking-tight text-neutral-900">
+            {squad?.name ?? ""}
+          </h1>
+          {squad && (
+            <>
+              <p className="mt-0.5 text-xs text-neutral-500">
+                멤버 {squad.memberCount}명
+              </p>
+              <p className="mt-0.5 text-xs text-neutral-500">
+                스쿼드 코드 <code className="font-mono text-neutral-700">{squad.inviteCode}</code>
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+    </>
   );
 }

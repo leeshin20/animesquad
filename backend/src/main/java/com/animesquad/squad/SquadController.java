@@ -5,11 +5,14 @@ import com.animesquad.squad.dto.CreateSquadRequest;
 import com.animesquad.squad.dto.JoinSquadRequest;
 import com.animesquad.squad.dto.SquadResponse;
 import com.animesquad.squad.dto.UpdateAnnouncementRequest;
+import com.animesquad.squad.dto.UpdateNameRequest;
+import com.animesquad.user.AvatarStorage;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -18,9 +21,11 @@ import java.util.List;
 public class SquadController {
 
     private final SquadService squadService;
+    private final AvatarStorage storage;
 
-    public SquadController(SquadService squadService) {
+    public SquadController(SquadService squadService, AvatarStorage storage) {
         this.squadService = squadService;
+        this.storage = storage;
     }
 
     @PostMapping
@@ -29,13 +34,13 @@ public class SquadController {
         @Valid @RequestBody CreateSquadRequest req
     ) {
         Squad s = squadService.createSquad(me.userId(), req.name());
-        return ResponseEntity.status(HttpStatus.CREATED).body(SquadResponse.from(s));
+        return ResponseEntity.status(HttpStatus.CREATED).body(squadService.toResponse(s));
     }
 
     @GetMapping
     public List<SquadResponse> listMine(@AuthenticationPrincipal CurrentUser me) {
         return squadService.listMySquads(me.userId()).stream()
-            .map(SquadResponse::from).toList();
+            .map(squadService::toResponse).toList();
     }
 
     @GetMapping("/{id}")
@@ -43,7 +48,7 @@ public class SquadController {
         @AuthenticationPrincipal CurrentUser me,
         @PathVariable Long id
     ) {
-        return SquadResponse.from(squadService.getSquadForMember(me.userId(), id));
+        return squadService.toResponse(squadService.getSquadForMember(me.userId(), id));
     }
 
     @PostMapping("/join")
@@ -51,7 +56,36 @@ public class SquadController {
         @AuthenticationPrincipal CurrentUser me,
         @Valid @RequestBody JoinSquadRequest req
     ) {
-        return SquadResponse.from(squadService.joinByInviteCode(me.userId(), req.inviteCode()));
+        return squadService.toResponse(squadService.joinByInviteCode(me.userId(), req.inviteCode()));
+    }
+
+    @PostMapping("/{id}/avatar")
+    public SquadResponse uploadAvatar(
+        @AuthenticationPrincipal CurrentUser me,
+        @PathVariable Long id,
+        @RequestParam("file") MultipartFile file
+    ) {
+        String url = storage.store(file);
+        return squadService.toResponse(squadService.updateAvatarUrl(me.userId(), id, url));
+    }
+
+    @PostMapping("/{id}/banner")
+    public SquadResponse uploadBanner(
+        @AuthenticationPrincipal CurrentUser me,
+        @PathVariable Long id,
+        @RequestParam("file") MultipartFile file
+    ) {
+        String url = storage.store(file);
+        return squadService.toResponse(squadService.updateBannerUrl(me.userId(), id, url));
+    }
+
+    @PatchMapping("/{id}/name")
+    public SquadResponse updateName(
+        @AuthenticationPrincipal CurrentUser me,
+        @PathVariable Long id,
+        @Valid @RequestBody UpdateNameRequest req
+    ) {
+        return squadService.toResponse(squadService.updateName(me.userId(), id, req.name()));
     }
 
     @PatchMapping("/{id}/announcement")
@@ -60,7 +94,7 @@ public class SquadController {
         @PathVariable Long id,
         @RequestBody UpdateAnnouncementRequest req
     ) {
-        return SquadResponse.from(
+        return squadService.toResponse(
             squadService.updateAnnouncement(me.userId(), id, req.announcement()));
     }
 }
