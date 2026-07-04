@@ -137,7 +137,7 @@ function MyActions({
           onClick={() => setModal("series")}
           className={`rounded-md border px-3 py-1.5 text-sm font-medium transition hover:brightness-95 ${STATUS_STYLE[mine.status]}`}
         >
-          {STATUS_LABEL[mine.status]} · 감상평 작성
+          {STATUS_LABEL[mine.status]} · 감상평 작성하기
         </button>
         <button
           type="button"
