@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import type { FeedItem } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { Stars } from "@/app/components/Stars";
@@ -109,7 +110,7 @@ function ItemBody({ item }: { item: FeedItem }) {
             <span className="text-xs text-neutral-600">{Number(p.progress)}화</span>
           )}
         </div>
-        {comment && <p className="whitespace-pre-wrap text-sm text-neutral-700">{comment}</p>}
+        {comment && <CollapsibleComment text={comment} />}
       </div>
     );
   }
@@ -120,7 +121,7 @@ function ItemBody({ item }: { item: FeedItem }) {
     return (
       <div className="flex flex-col gap-0.5">
         {p.score != null && <Stars value={Number(p.score)} size="sm" />}
-        {comment && <p className="whitespace-pre-wrap text-sm text-neutral-700">{comment}</p>}
+        {comment && <CollapsibleComment text={comment} />}
       </div>
     );
   }
@@ -189,6 +190,35 @@ function actionText(it: FeedItem): string {
     case "JOINED_SQUAD":
       return `스쿼드에 참여했어요`;
   }
+}
+
+function CollapsibleComment({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const ref = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (!expanded && ref.current) {
+      setOverflows(ref.current.scrollHeight > ref.current.clientHeight);
+    }
+  }, [text, expanded]);
+
+  return (
+    <div>
+      <p ref={ref} className={`whitespace-pre-wrap text-sm text-neutral-700 ${expanded ? "" : "line-clamp-3"}`}>
+        {text}
+      </p>
+      {overflows && (
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="mt-1 text-xs text-neutral-500 hover:text-neutral-900"
+        >
+          {expanded ? "접기" : "펼치기"}
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function relativeTime(iso: string): string {
