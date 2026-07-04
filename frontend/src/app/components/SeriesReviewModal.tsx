@@ -69,31 +69,35 @@ export function SeriesReviewModal({
             </select>
           </label>
 
-          {canReview && (
-            <>
-              <div>
-                <span className="text-xs font-medium text-neutral-600">전체 별점 (선택)</span>
-                <div className="mt-1">
-                  <StarsInput value={score} onChange={setScore} />
-                </div>
+          <div className={canReview ? "" : "pointer-events-none opacity-50"}>
+            <div>
+              <span className="text-xs font-medium text-neutral-600">전체 별점 (선택)</span>
+              <div className="mt-1">
+                <StarsInput value={score} onChange={setScore} />
               </div>
+            </div>
 
-              <label className="block">
-                <span className="text-xs font-medium text-neutral-600">감상평 (선택, 최대 280자)</span>
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  maxLength={280}
-                  rows={3}
-                  placeholder="작품 전체는 어땠나요?"
-                  className="mt-1 w-full resize-none rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
-                />
-                <p className="mt-1 text-right text-xs text-neutral-400">
-                  {comment.length}/280
-                </p>
-              </label>
-            </>
-          )}
+            <label className="mt-4 block">
+              <span className="text-xs font-medium text-neutral-600">감상평 (선택, 최대 280자)</span>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                maxLength={280}
+                rows={3}
+                placeholder="작품 전체는 어땠나요?"
+                className="mt-1 w-full resize-none rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+              />
+              <p className="mt-1 text-right text-xs text-neutral-400">
+                {comment.length}/280
+              </p>
+            </label>
+
+            {!canReview && (
+              <p className="mt-2 text-xs text-neutral-500">
+                별점과 감상평을 남기려면 시청 상태가 완료, 보류, 중단이어야 합니다.
+              </p>
+            )}
+          </div>
 
           {error && (
             <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
