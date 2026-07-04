@@ -268,7 +268,7 @@ function ReviewList({
                   {r.score != null && <Stars value={r.score} size="sm" />}
                   <span className="ml-auto text-xs text-neutral-400">{formatDateTime(r.updatedAt)}</span>
                 </div>
-                {r.comment && <p className="mt-1 text-sm text-neutral-600">{r.comment}</p>}
+                {r.comment && <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-600">{r.comment}</p>}
                 {isMine && (
                   <div className="mt-2 flex gap-3">
                     <button type="button" onClick={() => setEditing(true)} className="text-xs font-medium text-neutral-500 hover:text-neutral-900">
@@ -443,7 +443,7 @@ function EpisodeReviewCard({
           </div>
         ) : (
           <>
-            <p className="mt-1 text-sm text-neutral-600">{review.comment}</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-600">{review.comment}</p>
             {isMine && (
               <div className="mt-2 flex gap-3">
                 <button type="button" onClick={startEdit} className="text-xs font-medium text-neutral-500 hover:text-neutral-900">
