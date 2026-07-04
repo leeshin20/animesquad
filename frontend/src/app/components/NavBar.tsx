@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet, type AnimeView, type Me } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 
@@ -23,6 +23,12 @@ export default function NavBar() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSearchQuery("");
+    setSearchResults([]);
+  }, []);
+
   useEffect(() => {
     apiGet<Me>("/api/me").then(setMe).catch(() => {});
   }, []);
@@ -31,7 +37,7 @@ export default function NavBar() {
   useEffect(() => {
     setDrawerOpen(false);
     closeSearch();
-  }, [pathname]);
+  }, [pathname, closeSearch]);
 
   // 드로어 열릴 때 바디 스크롤 잠금
   useEffect(() => {
@@ -53,6 +59,16 @@ export default function NavBar() {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
+  // 드로어 열릴 때 Escape 닫기
+  useEffect(() => {
+    if (!drawerOpen) return;
+    function handle(e: KeyboardEvent) {
+      if (e.key === "Escape") setDrawerOpen(false);
+    }
+    document.addEventListener("keydown", handle);
+    return () => document.removeEventListener("keydown", handle);
+  }, [drawerOpen]);
+
   // 바깥 클릭 시 검색 닫기
   useEffect(() => {
     if (!searchOpen) return;
@@ -63,17 +79,11 @@ export default function NavBar() {
     }
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
-  }, [searchOpen]);
+  }, [searchOpen, closeSearch]);
 
   function openSearch() {
     setSearchOpen(true);
     setTimeout(() => searchInputRef.current?.focus(), 0);
-  }
-
-  function closeSearch() {
-    setSearchOpen(false);
-    setSearchQuery("");
-    setSearchResults([]);
   }
 
   function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -203,7 +213,8 @@ export default function NavBar() {
       </header>
 
       {/* 모바일 드로어 — 항상 마운트, CSS로 show/hide */}
-      <div className={`fixed inset-0 z-50 md:hidden ${drawerOpen ? "pointer-events-auto" : "pointer-events-none"}`}>
+      {/* @ts-expect-error inert is a valid HTML attribute not yet in React types */}
+      <div inert={!drawerOpen ? "" : undefined} aria-hidden={!drawerOpen} className={`fixed inset-0 z-50 md:hidden ${drawerOpen ? "pointer-events-auto" : "pointer-events-none"}`}>
         {/* 딤 배경 */}
         <div
           className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${drawerOpen ? "opacity-100" : "opacity-0"}`}
