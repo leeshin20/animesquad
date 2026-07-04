@@ -46,49 +46,35 @@ export default function BrowsePage() {
       .finally(() => setLoading(false));
   }, [year, season]);
 
+  const selectClass = "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none";
+
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">시즌 탐색</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">탐색</h1>
         <p className="mt-1 text-sm text-neutral-500">연도와 분기를 선택해 작품을 찾아보세요</p>
       </header>
 
-      {/* 연도 태그 */}
-      <div className="flex flex-wrap gap-2">
-        {YEARS.map((y) => (
-          <button
-            key={y}
-            type="button"
-            onClick={() => setYear(y)}
-            className={
-              "rounded-full px-3 py-1 text-sm font-medium transition " +
-              (year === y
-                ? "bg-neutral-900 text-white"
-                : "border border-neutral-300 text-neutral-600 hover:border-neutral-500 hover:text-neutral-900")
-            }
-          >
-            {y}
-          </button>
-        ))}
-      </div>
+      <div className="flex gap-3">
+        <select
+          value={year}
+          onChange={(e) => setYear(Number(e.target.value))}
+          className={selectClass}
+        >
+          {YEARS.map((y) => (
+            <option key={y} value={y}>{y}년</option>
+          ))}
+        </select>
 
-      {/* 분기 태그 */}
-      <div className="flex gap-2">
-        {SEASONS.map((s) => (
-          <button
-            key={s.value}
-            type="button"
-            onClick={() => setSeason(s.value)}
-            className={
-              "rounded-full px-3 py-1 text-sm font-medium transition " +
-              (season === s.value
-                ? "bg-neutral-900 text-white"
-                : "border border-neutral-300 text-neutral-600 hover:border-neutral-500 hover:text-neutral-900")
-            }
-          >
-            {s.label}
-          </button>
-        ))}
+        <select
+          value={season}
+          onChange={(e) => setSeason(e.target.value)}
+          className={selectClass}
+        >
+          {SEASONS.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
       </div>
 
       {error && (
