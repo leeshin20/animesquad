@@ -80,8 +80,7 @@ export default function MyListPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">내 리스트</h1>
-        <p className="mt-1 text-sm text-neutral-500">버튼을 눌러 상태·평점·회차를 기록하세요</p>
+        <h1 className="text-2xl font-semibold tracking-tight">내 목록</h1>
       </header>
 
       {status && (
