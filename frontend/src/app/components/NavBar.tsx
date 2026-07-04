@@ -152,7 +152,7 @@ export default function NavBar() {
           </Link>
 
           {/* 모바일 검색창 — 로고와 햄버거 사이 */}
-          <div className="flex-1 md:hidden">
+          <div className="md:hidden w-36">
             {searchInput(
               mobileSearchRef as React.RefObject<HTMLDivElement>,
               "w-full rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-neutral-900 focus:outline-none",
