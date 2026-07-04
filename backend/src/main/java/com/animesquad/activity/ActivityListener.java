@@ -7,6 +7,7 @@ import com.animesquad.squad.events.SquadJoinedEvent;
 import com.animesquad.watch.events.AnimeAddedEvent;
 import com.animesquad.watch.events.ProgressUpdatedEvent;
 import com.animesquad.watch.events.WatchRatedEvent;
+import com.animesquad.watch.events.WatchEntryRemovedEvent;
 import com.animesquad.watch.events.WatchReviewClearedEvent;
 import com.animesquad.watch.events.WatchStatusChangedEvent;
 import org.springframework.context.event.EventListener;
@@ -80,6 +81,11 @@ public class ActivityListener {
     @EventListener
     public void on(EpisodeRatingDeletedEvent e) {
         deleteEpisodeActivities(e.actorId(), e.animeId(), e.episodeNumber());
+    }
+
+    @EventListener
+    public void on(WatchEntryRemovedEvent e) {
+        activities.deleteAll(activities.findAllByActorIdAndAnimeId(e.actorId(), e.animeId()));
     }
 
     private void deleteSeriesActivities(Long actorId, Long animeId) {

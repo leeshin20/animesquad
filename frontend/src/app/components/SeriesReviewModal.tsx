@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { apiPatch, type WatchEntry, type WatchStatus } from "@/app/lib/api";
+import { apiDelete, apiPatch, type WatchEntry, type WatchStatus } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { StarsInput } from "@/app/components/Stars";
 import { DiscardConfirm } from "@/app/components/DiscardConfirm";
@@ -21,6 +21,8 @@ export function SeriesReviewModal({
   const [score, setScore] = useState<number | null>(entry.score);
   const [comment, setComment] = useState(entry.comment ?? "");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
 
@@ -29,6 +31,19 @@ export function SeriesReviewModal({
 
   const dirty = score !== entry.score || comment.trim() !== (entry.comment ?? "");
   const requestClose = () => (dirty ? setConfirming(true) : onClose());
+
+  async function remove() {
+    setDeleting(true);
+    setError(null);
+    try {
+      await apiDelete(`/api/watch/${entry.anime.id}`);
+      onSaved();
+    } catch (e) {
+      setError(String(e));
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }
 
   async function save() {
     setSaving(true);
@@ -106,23 +121,55 @@ export function SeriesReviewModal({
           )}
         </div>
 
-        <div className="mt-6 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={requestClose}
-            className="rounded-md px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100"
-          >
-            취소
-          </button>
-          <button
-            type="button"
-            onClick={save}
-            disabled={saving}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
-          >
-            {saving ? "저장 중…" : "저장"}
-          </button>
-        </div>
+        {confirmDelete ? (
+          <div className="mt-6 rounded-md bg-rose-50 p-3">
+            <p className="text-sm text-rose-700">목록에서 삭제하면 모든 기록이 사라져요. 계속할까요?</p>
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="rounded-md px-3 py-1.5 text-sm text-neutral-600 hover:bg-rose-100"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={remove}
+                disabled={deleting}
+                className="rounded-md bg-rose-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50"
+              >
+                {deleting ? "삭제 중…" : "삭제"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="rounded-md px-3 py-2 text-sm text-rose-500 hover:bg-rose-50"
+            >
+              목록에서 삭제
+            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={requestClose}
+                className="rounded-md px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                disabled={saving}
+                className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+              >
+                {saving ? "저장 중…" : "저장"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {confirming && (

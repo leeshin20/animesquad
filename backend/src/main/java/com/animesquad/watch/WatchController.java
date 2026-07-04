@@ -68,6 +68,15 @@ public class WatchController {
         return WatchEntryResponse.from(e, a);
     }
 
+    @DeleteMapping("/{animeId}")
+    public ResponseEntity<Void> remove(
+        @AuthenticationPrincipal CurrentUser me,
+        @PathVariable Long animeId
+    ) {
+        watchService.removeFromList(me.userId(), animeId);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{animeId}/review")
     public ResponseEntity<Void> clearReview(
         @AuthenticationPrincipal CurrentUser me,

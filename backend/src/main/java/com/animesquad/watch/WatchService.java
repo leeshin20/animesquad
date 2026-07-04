@@ -4,6 +4,7 @@ import com.animesquad.anime.Anime;
 import com.animesquad.anime.AnimeService;
 import com.animesquad.watch.events.ProgressUpdatedEvent;
 import com.animesquad.watch.events.WatchRatedEvent;
+import com.animesquad.watch.events.WatchEntryRemovedEvent;
 import com.animesquad.watch.events.WatchReviewClearedEvent;
 import com.animesquad.watch.events.WatchStatusChangedEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -69,6 +70,14 @@ public class WatchService {
     @Transactional(readOnly = true)
     public java.util.Optional<WatchEntry> findEntry(Long userId, Long animeId) {
         return entries.findByUserIdAndAnimeId(userId, animeId);
+    }
+
+    @Transactional
+    public void removeFromList(Long userId, Long animeId) {
+        WatchEntry e = entries.findByUserIdAndAnimeId(userId, animeId)
+            .orElseThrow(() -> new IllegalArgumentException("watch entry not found"));
+        entries.delete(e);
+        events.publishEvent(new WatchEntryRemovedEvent(userId, animeId));
     }
 
     @Transactional
