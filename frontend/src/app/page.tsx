@@ -14,6 +14,7 @@ import { Timeline, type FeedItemWithSquad } from "@/app/components/Timeline";
 import { EpisodeLogModal } from "@/app/components/EpisodeLogModal";
 import { NoticeBanner } from "@/app/components/NoticeBanner";
 import { MAIN_NOTICE } from "@/app/lib/notice";
+import { STATUS_LABEL } from "@/app/lib/watch-status";
 
 export default function HomePage() {
   const [me, setMe] = useState<Me | null>(null);
@@ -200,7 +201,7 @@ function MyRecentCard({
         title={maxed ? "기록 수정" : "감상 기록"}
         className="mt-1.5 w-full rounded-md border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100"
       >
-        {maxed ? "기록 수정" : `+ 감상 기록 (${entry.progress + 1}화)`}
+        {maxed ? `기록 수정 (${STATUS_LABEL[entry.status]})` : `+ 감상 기록 (${entry.progress + 1}화)`}
       </button>
 
       {open && (
