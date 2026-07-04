@@ -201,7 +201,7 @@ function MyRecentCard({
         title={maxed ? "기록 수정" : "감상 기록"}
         className="mt-1.5 w-full rounded-md border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100"
       >
-        {maxed ? `기록 수정 (${STATUS_LABEL[entry.status]})` : `+ 감상 기록 (${entry.progress + 1}화)`}
+        {maxed ? <>기록 수정 <span className="whitespace-nowrap">({STATUS_LABEL[entry.status]})</span></> : `+ 감상 기록 (${entry.progress + 1}화)`}
       </button>
 
       {open && (
