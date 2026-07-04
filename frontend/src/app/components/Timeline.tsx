@@ -212,9 +212,13 @@ function CollapsibleComment({ text }: { text: string }) {
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
-          className="mt-1 text-xs text-neutral-500 hover:text-neutral-900"
+          className="mt-1 flex items-center gap-0.5 text-xs text-neutral-500 hover:text-neutral-900"
         >
-          {expanded ? "접기" : "펼치기"}
+          {expanded ? (
+            <>접기 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="2,8 6,4 10,8" /></svg></>
+          ) : (
+            <>더보기 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="2,4 6,8 10,4" /></svg></>
+          )}
         </button>
       )}
     </div>
