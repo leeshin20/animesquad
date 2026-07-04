@@ -207,7 +207,7 @@ export default function NavBar() {
             aria-label="메뉴 열기"
             aria-expanded={drawerOpen}
             onClick={() => setDrawerOpen(true)}
-            className="shrink-0 flex h-9 w-9 items-center justify-center rounded-md text-neutral-600 hover:bg-neutral-100 md:hidden"
+            className="ml-auto shrink-0 flex h-9 w-9 items-center justify-center rounded-md text-neutral-600 hover:bg-neutral-100 md:hidden"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <line x1="3" y1="5" x2="17" y2="5" />
