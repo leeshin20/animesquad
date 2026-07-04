@@ -8,7 +8,10 @@ import { STATUSES, STATUS_LABEL, STATUS_STYLE } from "@/app/lib/watch-status";
 import { SeriesReviewModal } from "@/app/components/SeriesReviewModal";
 
 export default function AnimeSearchPage() {
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("q") ?? "";
+  });
   const [results, setResults] = useState<AnimeView[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [entries, setEntries] = useState<Record<number, WatchEntry>>({});
@@ -24,6 +27,10 @@ export default function AnimeSearchPage() {
   useEffect(() => { loadEntries(); }, []);
 
   useEffect(() => {
+    const next = q.trim()
+      ? `/search?q=${encodeURIComponent(q.trim())}`
+      : "/search";
+    window.history.replaceState(null, "", next);
     if (!q.trim()) { setResults([]); return; }
     const t = setTimeout(async () => {
       try {
