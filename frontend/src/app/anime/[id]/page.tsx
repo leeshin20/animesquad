@@ -135,10 +135,17 @@ function MyActions({
         <button
           type="button"
           onClick={() => setModal("series")}
-          title="시청 상태 · 시리즈 평가"
+          title="시청 상태 변경"
           className={`rounded-md border px-3 py-1.5 text-sm font-medium transition ${STATUS_STYLE[mine.status]}`}
         >
           {STATUS_LABEL[mine.status]}
+        </button>
+        <button
+          type="button"
+          onClick={() => setModal("series")}
+          className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100"
+        >
+          ✏ 감상평
         </button>
         <button
           type="button"
