@@ -1,28 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { apiGet, type Me } from "@/app/lib/api";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { apiGet, type AnimeView, type Me } from "@/app/lib/api";
+import { displayTitle } from "@/app/lib/anilist-labels";
 
 const baseLinks = [
-  { href: "/search", label: "탐색" },
+  { href: "/browse", label: "탐색" },
   { href: "/watchlist", label: "내 목록" },
   { href: "/squads", label: "스쿼드" },
 ];
 
 export default function NavBar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<AnimeView[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     apiGet<Me>("/api/me").then(setMe).catch(() => {});
   }, []);
 
-  // 라우트 변경 시 드로어 닫기
+  // 라우트 변경 시 드로어 + 검색 닫기
   useEffect(() => {
     setDrawerOpen(false);
+    closeSearch();
   }, [pathname]);
 
   // 드로어 열릴 때 바디 스크롤 잠금
@@ -30,6 +38,51 @@ export default function NavBar() {
     document.body.style.overflow = drawerOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [drawerOpen]);
+
+  // 검색 debounce
+  useEffect(() => {
+    if (!searchQuery.trim()) { setSearchResults([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const res = await apiGet<AnimeView[]>(
+          `/api/anime/search?q=${encodeURIComponent(searchQuery)}`
+        );
+        setSearchResults(res.slice(0, 5));
+      } catch { setSearchResults([]); }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // 바깥 클릭 시 검색 닫기
+  useEffect(() => {
+    if (!searchOpen) return;
+    function handle(e: MouseEvent) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        closeSearch();
+      }
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [searchOpen]);
+
+  function openSearch() {
+    setSearchOpen(true);
+    setTimeout(() => searchInputRef.current?.focus(), 0);
+  }
+
+  function closeSearch() {
+    setSearchOpen(false);
+    setSearchQuery("");
+    setSearchResults([]);
+  }
+
+  function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      closeSearch();
+    }
+    if (e.key === "Escape") closeSearch();
+  }
 
   const links = me?.isAdmin
     ? [...baseLinks, { href: "/admin/anime", label: "관리자" }]
@@ -48,6 +101,57 @@ export default function NavBar() {
 
           {/* 데스크탑 nav */}
           <nav className="hidden items-center gap-1 md:flex">
+            {/* 검색창 (searchOpen일 때) */}
+            {searchOpen ? (
+              <div ref={searchContainerRef} className="relative">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="제목 검색…"
+                  className="w-48 rounded-md border border-neutral-300 px-3 py-1.5 text-sm focus:border-neutral-900 focus:outline-none"
+                />
+                {searchResults.length > 0 && (
+                  <ul className="absolute right-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg">
+                    {searchResults.map((a) => (
+                      <li key={a.id}>
+                        <Link
+                          href={`/anime/${a.id}`}
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-50"
+                          onClick={closeSearch}
+                        >
+                          {a.coverImageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={a.coverImageUrl} alt="" className="h-10 w-7 flex-none rounded object-cover" />
+                          ) : (
+                            <div className="h-10 w-7 flex-none rounded bg-neutral-100" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-neutral-900">{displayTitle(a)}</p>
+                            <p className="text-xs text-neutral-500">{a.seasonYear ?? "-"}</p>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                aria-label="검색"
+                onClick={openSearch}
+                className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="6.5" cy="6.5" r="4" />
+                  <line x1="10" y1="10" x2="14" y2="14" />
+                </svg>
+              </button>
+            )}
+
             {links.map((l) => {
               const active = pathname === l.href || pathname.startsWith(l.href + "/");
               return (
@@ -85,6 +189,7 @@ export default function NavBar() {
           <button
             type="button"
             aria-label="메뉴 열기"
+            aria-expanded={drawerOpen}
             onClick={() => setDrawerOpen(true)}
             className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-600 hover:bg-neutral-100 md:hidden"
           >
@@ -99,68 +204,106 @@ export default function NavBar() {
 
       {/* 모바일 드로어 — 항상 마운트, CSS로 show/hide */}
       <div className={`fixed inset-0 z-50 md:hidden ${drawerOpen ? "pointer-events-auto" : "pointer-events-none"}`}>
-          {/* 딤 배경 */}
-          <div
-            className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${drawerOpen ? "opacity-100" : "opacity-0"}`}
-            onClick={() => setDrawerOpen(false)}
-          />
-          {/* 드로어 패널 */}
-          <div className={`absolute right-0 top-0 flex h-full w-64 flex-col bg-white shadow-xl transition-transform duration-200 ease-out ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}>
-            {/* 헤더 */}
-            <div className="flex h-14 items-center justify-between border-b border-neutral-200 px-4">
-              <span className="text-base font-semibold tracking-tight">AnimeSquad</span>
-              <button
-                type="button"
-                aria-label="메뉴 닫기"
-                onClick={() => setDrawerOpen(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100"
-              >
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                  <line x1="3" y1="3" x2="15" y2="15" />
-                  <line x1="15" y1="3" x2="3" y2="15" />
-                </svg>
-              </button>
+        {/* 딤 배경 */}
+        <div
+          className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${drawerOpen ? "opacity-100" : "opacity-0"}`}
+          onClick={() => setDrawerOpen(false)}
+        />
+        {/* 드로어 패널 */}
+        <div className={`absolute right-0 top-0 flex h-full w-64 flex-col bg-white shadow-xl transition-transform duration-200 ease-out ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}>
+          {/* 헤더 */}
+          <div className="flex h-14 items-center justify-between border-b border-neutral-200 px-4">
+            <span className="text-base font-semibold tracking-tight">AnimeSquad</span>
+            <button
+              type="button"
+              aria-label="메뉴 닫기"
+              onClick={() => setDrawerOpen(false)}
+              className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100"
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <line x1="3" y1="3" x2="15" y2="15" />
+                <line x1="15" y1="3" x2="3" y2="15" />
+              </svg>
+            </button>
+          </div>
+
+          {/* 드로어 내 검색창 */}
+          <div className="border-b border-neutral-100 px-4 py-3">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="작품 검색…"
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+              />
+              {searchResults.length > 0 && (
+                <ul className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg">
+                  {searchResults.map((a) => (
+                    <li key={a.id}>
+                      <Link
+                        href={`/anime/${a.id}`}
+                        className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-50"
+                        onClick={closeSearch}
+                      >
+                        {a.coverImageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={a.coverImageUrl} alt="" className="h-10 w-7 flex-none rounded object-cover" />
+                        ) : (
+                          <div className="h-10 w-7 flex-none rounded bg-neutral-100" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-neutral-900">{displayTitle(a)}</p>
+                          <p className="text-xs text-neutral-500">{a.seasonYear ?? "-"}</p>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
+          </div>
 
-            {/* 링크 목록 */}
-            <nav className="flex-1 overflow-y-auto py-3">
-              {links.map((l) => {
-                const active = pathname === l.href || pathname.startsWith(l.href + "/");
-                return (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    className={
-                      "block px-4 py-3 text-sm font-medium transition " +
-                      (active
-                        ? "bg-neutral-100 text-neutral-900"
-                        : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900")
-                    }
-                  >
-                    {l.label}
-                  </Link>
-                );
-              })}
-            </nav>
-
-            {/* 하단 프로필 */}
-            {me && (
-              <div className="border-t border-neutral-200 p-4">
+          {/* 링크 목록 */}
+          <nav className="flex-1 overflow-y-auto py-3">
+            {links.map((l) => {
+              const active = pathname === l.href || pathname.startsWith(l.href + "/");
+              return (
                 <Link
-                  href="/profile"
+                  key={l.href}
+                  href={l.href}
                   className={
-                    "flex items-center gap-3 rounded-lg px-2 py-2 transition " +
-                    (profileActive ? "bg-neutral-100" : "hover:bg-neutral-50")
+                    "block px-4 py-3 text-sm font-medium transition " +
+                    (active
+                      ? "bg-neutral-100 text-neutral-900"
+                      : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900")
                   }
                 >
-                  <Avatar name={me.displayName} url={me.avatarUrl} />
-                  <span className="truncate text-sm font-medium text-neutral-800">
-                    {me.displayName}
-                  </span>
+                  {l.label}
                 </Link>
-              </div>
-            )}
-          </div>
+              );
+            })}
+          </nav>
+
+          {/* 하단 프로필 */}
+          {me && (
+            <div className="border-t border-neutral-200 p-4">
+              <Link
+                href="/profile"
+                className={
+                  "flex items-center gap-3 rounded-lg px-2 py-2 transition " +
+                  (profileActive ? "bg-neutral-100" : "hover:bg-neutral-50")
+                }
+              >
+                <Avatar name={me.displayName} url={me.avatarUrl} />
+                <span className="truncate text-sm font-medium text-neutral-800">
+                  {me.displayName}
+                </span>
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
