@@ -109,7 +109,7 @@ function ItemBody({ item }: { item: FeedItem }) {
             <span className="text-xs text-neutral-600">{Number(p.progress)}화</span>
           )}
         </div>
-        {comment && <p className="text-sm text-neutral-700">{comment}</p>}
+        {comment && <p className="whitespace-pre-wrap text-sm text-neutral-700">{comment}</p>}
       </div>
     );
   }
@@ -120,7 +120,7 @@ function ItemBody({ item }: { item: FeedItem }) {
     return (
       <div className="flex flex-col gap-0.5">
         {p.score != null && <Stars value={Number(p.score)} size="sm" />}
-        {comment && <p className="text-sm text-neutral-700">{comment}</p>}
+        {comment && <p className="whitespace-pre-wrap text-sm text-neutral-700">{comment}</p>}
       </div>
     );
   }
