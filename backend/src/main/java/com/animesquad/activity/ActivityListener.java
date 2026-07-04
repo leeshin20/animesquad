@@ -55,6 +55,7 @@ public class ActivityListener {
         if (e.comment() != null && !e.comment().isBlank()) {
             payload.put("comment", e.comment());
         }
+        payload.put("status", e.status());
         fanOut(e.actorId(), ActivityType.RATED, e.animeId(), payload);
     }
 
