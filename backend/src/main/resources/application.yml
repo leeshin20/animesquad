@@ -21,7 +21,7 @@ server:
 app:
   jwt:
     secret: ${JWT_SECRET:dev-secret-change-me-please-at-least-32-bytes!!}
-    ttl-minutes: 1440
+    ttl-minutes: 43200
   oauth:
     success-redirect: ${OAUTH_SUCCESS_REDIRECT:http://localhost:3000/}
   cookie:
