@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPost, type AnimeView, type WatchEntry, type WatchStatus } from "@/app/lib/api";
 import { aniFormat, aniStatus, displayTitle } from "@/app/lib/anilist-labels";
@@ -8,10 +9,12 @@ import { STATUSES, STATUS_LABEL, STATUS_STYLE } from "@/app/lib/watch-status";
 import { SeriesReviewModal } from "@/app/components/SeriesReviewModal";
 
 export default function AnimeSearchPage() {
-  const [q, setQ] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return new URLSearchParams(window.location.search).get("q") ?? "";
-  });
+  const searchParams = useSearchParams();
+  const [q, setQ] = useState(searchParams.get("q") ?? "");
+
+  useEffect(() => {
+    setQ(searchParams.get("q") ?? "");
+  }, [searchParams]);
   const [results, setResults] = useState<AnimeView[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [entries, setEntries] = useState<Record<number, WatchEntry>>({});
