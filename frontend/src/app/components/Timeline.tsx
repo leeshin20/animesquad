@@ -105,7 +105,10 @@ function ItemBody({ item }: { item: FeedItem }) {
     return (
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-2 text-sm text-neutral-700">
-          {p.score != null && <Stars value={Number(p.score)} size="sm" />}
+          {p.score != null
+            ? <Stars value={Number(p.score)} size="sm" />
+            : <span className="text-xs text-neutral-400">별점 없음.</span>
+          }
           {p.status != null && (
             <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${statusBadge(p.status)}`}>
               {statusLabel(p.status)}

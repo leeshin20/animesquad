@@ -55,7 +55,7 @@ public class WatchService {
         }
         boolean scoreChanged = score != null && !score.equals(oldScore);
         boolean commentChanged = comment != null && !comment.equals(oldComment);
-        if (e.getScore() != null && (scoreChanged || commentChanged)) {
+        if (scoreChanged || commentChanged) {
             events.publishEvent(new WatchRatedEvent(userId, animeId, e.getScore(), e.getProgress(), e.getComment(), e.getStatus().name()));
         }
         return e;
