@@ -1,6 +1,5 @@
 package com.animesquad.anime;
 
-import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,15 +12,22 @@ public interface AnimeRepository extends JpaRepository<Anime, Long> {
 
     List<Anime> findByTitleKoreanIsNullOrderByIdDesc();
 
-    @Query("""
-        SELECT a FROM Anime a
-        WHERE LOWER(a.titleRomaji)   LIKE :q
-           OR LOWER(COALESCE(a.titleEnglish, '')) LIKE :q
-           OR LOWER(COALESCE(a.titleKorean, '')) LIKE :q
-           OR a.titleNative LIKE :raw
+    @Query(value = """
+        SELECT * FROM anime a
+        WHERE LOWER(a.title_romaji) LIKE :q
+           OR LOWER(COALESCE(a.title_english, '')) LIKE :q
+           OR LOWER(COALESCE(a.title_korean, '')) LIKE :q
+           OR a.title_native LIKE :raw
+           OR REPLACE(LOWER(a.title_romaji), ' ', '') LIKE :qs
+           OR REPLACE(LOWER(COALESCE(a.title_english, '')), ' ', '') LIKE :qs
+           OR REPLACE(LOWER(COALESCE(a.title_korean, '')), ' ', '') LIKE :qs
+           OR REPLACE(a.title_native, ' ', '') LIKE :raws
         ORDER BY a.id DESC
-        """)
-    List<Anime> searchByTitle(@Param("q") String lowered, @Param("raw") String raw, Limit limit);
+        LIMIT 20
+        """, nativeQuery = true)
+    List<Anime> searchByTitle(
+        @Param("q") String lowered, @Param("raw") String raw,
+        @Param("qs") String loweredStripped, @Param("raws") String rawStripped);
 
     List<Anime> findBySeasonYearAndSeasonOrderByTitleRomajiAsc(Integer seasonYear, String season);
 }

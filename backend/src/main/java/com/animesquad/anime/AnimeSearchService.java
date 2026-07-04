@@ -1,6 +1,5 @@
 package com.animesquad.anime;
 
-import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,8 +23,11 @@ public class AnimeSearchService {
             throw new IllegalArgumentException("query is required");
         }
         String raw = query.trim();
+        String stripped = raw.replace(" ", "");
         String like = "%" + raw.toLowerCase(Locale.ROOT) + "%";
         String rawLike = "%" + raw + "%";
-        return animes.searchByTitle(like, rawLike, Limit.of(LIMIT));
+        String likeStripped = "%" + stripped.toLowerCase(Locale.ROOT) + "%";
+        String rawLikeStripped = "%" + stripped + "%";
+        return animes.searchByTitle(like, rawLike, likeStripped, rawLikeStripped);
     }
 }

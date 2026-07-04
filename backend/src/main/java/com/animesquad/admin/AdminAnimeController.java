@@ -10,7 +10,7 @@ import com.animesquad.episode.EpisodeRatingRepository;
 import com.animesquad.user.User;
 import com.animesquad.user.UserService;
 import com.animesquad.watch.WatchEntryRepository;
-import org.springframework.data.domain.Limit;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -72,8 +72,10 @@ public class AdminAnimeController {
         } else {
             // Search spans everything (Korean-titled included) so entries can be re-edited.
             String raw = q.trim();
+            String stripped = raw.replace(" ", "");
             String like = "%" + raw.toLowerCase(java.util.Locale.ROOT) + "%";
-            result = animes.searchByTitle(like, "%" + raw + "%", Limit.of(100));
+            String likeStripped = "%" + stripped.toLowerCase(java.util.Locale.ROOT) + "%";
+            result = animes.searchByTitle(like, "%" + raw + "%", likeStripped, "%" + stripped + "%");
         }
         return result.stream().map(AnimeResponse::from).toList();
     }
