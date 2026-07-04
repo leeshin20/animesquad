@@ -2,6 +2,8 @@ package com.animesquad.activity;
 
 import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
@@ -13,7 +15,9 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
     List<Activity> findAllByActorIdAndAnimeIdAndType(Long actorId, Long animeId, ActivityType type);
 
-    List<Activity> findAllByActorIdAndAnimeId(Long actorId, Long animeId);
+    @Modifying
+    @Query("DELETE FROM Activity a WHERE a.actorId = :actorId AND a.animeId = :animeId")
+    void deleteAllByActorIdAndAnimeId(Long actorId, Long animeId);
 
     boolean existsByAnimeId(Long animeId);
 }

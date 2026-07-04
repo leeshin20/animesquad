@@ -85,7 +85,7 @@ public class ActivityListener {
 
     @EventListener
     public void on(WatchEntryRemovedEvent e) {
-        activities.deleteAll(activities.findAllByActorIdAndAnimeId(e.actorId(), e.animeId()));
+        activities.deleteAllByActorIdAndAnimeId(e.actorId(), e.animeId());
     }
 
     private void deleteSeriesActivities(Long actorId, Long animeId) {
