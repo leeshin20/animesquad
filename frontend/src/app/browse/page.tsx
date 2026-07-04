@@ -13,8 +13,9 @@ const SEASONS = [
 ] as const;
 
 function getCurrentSeason(): { year: number; season: string } {
-  const month = new Date().getMonth() + 1;
-  const year = new Date().getFullYear();
+  const d = new Date();
+  const month = d.getMonth() + 1;
+  const year = d.getFullYear();
   const season =
     month <= 3 ? "WINTER" :
     month <= 6 ? "SPRING" :
@@ -22,10 +23,10 @@ function getCurrentSeason(): { year: number; season: string } {
   return { year, season };
 }
 
-function getYearRange(): number[] {
+const YEARS = (() => {
   const current = new Date().getFullYear();
   return Array.from({ length: 7 }, (_, i) => current - 5 + i);
-}
+})();
 
 export default function BrowsePage() {
   const { year: defaultYear, season: defaultSeason } = getCurrentSeason();
@@ -33,17 +34,17 @@ export default function BrowsePage() {
   const [season, setSeason] = useState(defaultSeason);
   const [results, setResults] = useState<AnimeView[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
     setResults(null);
+    setError(null);
     apiGet<AnimeView[]>(`/api/anime/browse?year=${year}&season=${season}`)
       .then(setResults)
-      .catch(() => setResults([]))
+      .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
   }, [year, season]);
-
-  const years = getYearRange();
 
   return (
     <div className="space-y-6">
@@ -54,7 +55,7 @@ export default function BrowsePage() {
 
       {/* 연도 태그 */}
       <div className="flex flex-wrap gap-2">
-        {years.map((y) => (
+        {YEARS.map((y) => (
           <button
             key={y}
             type="button"
@@ -90,6 +91,12 @@ export default function BrowsePage() {
         ))}
       </div>
 
+      {error && (
+        <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
+
       {/* 결과 */}
       {loading && (
         <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
@@ -102,7 +109,7 @@ export default function BrowsePage() {
         </div>
       )}
 
-      {!loading && results !== null && results.length === 0 && (
+      {!loading && !error && results !== null && results.length === 0 && (
         <div className="rounded-xl border border-dashed border-neutral-300 px-4 py-12 text-center text-sm text-neutral-500">
           이 시즌 캐시된 작품이 없어요.
         </div>
