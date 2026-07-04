@@ -12,19 +12,24 @@ const baseLinks = [
   { href: "/squads", label: "스쿼드" },
 ];
 
+const SearchIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="6.5" cy="6.5" r="4" />
+    <line x1="10" y1="10" x2="14" y2="14" />
+  </svg>
+);
+
 export default function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<AnimeView[]>([]);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
 
   const closeSearch = useCallback(() => {
-    setSearchOpen(false);
     setSearchQuery("");
     setSearchResults([]);
   }, []);
@@ -69,22 +74,17 @@ export default function NavBar() {
     return () => document.removeEventListener("keydown", handle);
   }, [drawerOpen]);
 
-  // 바깥 클릭 시 검색 닫기
+  // 검색 결과 바깥 클릭 시 닫기
   useEffect(() => {
-    if (!searchOpen) return;
+    if (searchResults.length === 0) return;
     function handle(e: MouseEvent) {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
-        closeSearch();
-      }
+      const inDesktop = desktopSearchRef.current?.contains(e.target as Node);
+      const inMobile = mobileSearchRef.current?.contains(e.target as Node);
+      if (!inDesktop && !inMobile) closeSearch();
     }
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
-  }, [searchOpen, closeSearch]);
-
-  function openSearch() {
-    setSearchOpen(true);
-    setTimeout(() => searchInputRef.current?.focus(), 0);
-  }
+  }, [searchResults.length, closeSearch]);
 
   function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && searchQuery.trim()) {
@@ -101,65 +101,71 @@ export default function NavBar() {
   const profileActive =
     pathname === "/profile" || pathname.startsWith("/profile/");
 
+  const searchInput = (ref: React.RefObject<HTMLDivElement>, inputClass: string, dropdownClass: string) => (
+    <div ref={ref} className="relative">
+      <div className="relative flex items-center">
+        <span className="pointer-events-none absolute left-2.5 text-neutral-400">
+          <SearchIcon />
+        </span>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder="제목 검색…"
+          className={inputClass}
+        />
+      </div>
+      {searchResults.length > 0 && (
+        <ul className={dropdownClass}>
+          {searchResults.map((a) => (
+            <li key={a.id}>
+              <Link
+                href={`/anime/${a.id}`}
+                className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-50"
+                onClick={closeSearch}
+              >
+                {a.coverImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.coverImageUrl} alt="" className="h-10 w-7 flex-none rounded object-cover" />
+                ) : (
+                  <div className="h-10 w-7 flex-none rounded bg-neutral-100" />
+                )}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-neutral-900">{displayTitle(a)}</p>
+                  <p className="text-xs text-neutral-500">{a.seasonYear ?? "-"}</p>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
   return (
     <>
       <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 md:px-6">
-          <Link href="/" className="text-base font-semibold tracking-tight">
+        <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4 md:px-6">
+          <Link href="/" className="shrink-0 text-base font-semibold tracking-tight">
             AnimeSquad
           </Link>
 
+          {/* 모바일 검색창 — 로고와 햄버거 사이 */}
+          <div className="flex-1 md:hidden">
+            {searchInput(
+              mobileSearchRef as React.RefObject<HTMLDivElement>,
+              "w-full rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-neutral-900 focus:outline-none",
+              "absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg"
+            )}
+          </div>
+
           {/* 데스크탑 nav */}
-          <nav className="hidden items-center gap-1 md:flex">
-            {/* 검색창 (searchOpen일 때) */}
-            {searchOpen ? (
-              <div ref={searchContainerRef} className="relative">
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleSearchKeyDown}
-                  placeholder="제목 검색…"
-                  className="w-48 rounded-md border border-neutral-300 px-3 py-1.5 text-sm focus:border-neutral-900 focus:outline-none"
-                />
-                {searchResults.length > 0 && (
-                  <ul className="absolute right-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg">
-                    {searchResults.map((a) => (
-                      <li key={a.id}>
-                        <Link
-                          href={`/anime/${a.id}`}
-                          className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-50"
-                          onClick={closeSearch}
-                        >
-                          {a.coverImageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={a.coverImageUrl} alt="" className="h-10 w-7 flex-none rounded object-cover" />
-                          ) : (
-                            <div className="h-10 w-7 flex-none rounded bg-neutral-100" />
-                          )}
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-neutral-900">{displayTitle(a)}</p>
-                            <p className="text-xs text-neutral-500">{a.seasonYear ?? "-"}</p>
-                          </div>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ) : (
-              <button
-                type="button"
-                aria-label="검색"
-                onClick={openSearch}
-                className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="6.5" cy="6.5" r="4" />
-                  <line x1="10" y1="10" x2="14" y2="14" />
-                </svg>
-              </button>
+          <nav className="ml-auto hidden items-center gap-1 md:flex">
+            {searchInput(
+              desktopSearchRef as React.RefObject<HTMLDivElement>,
+              "w-44 rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-neutral-900 focus:outline-none",
+              "absolute right-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg"
             )}
 
             {links.map((l) => {
@@ -201,7 +207,7 @@ export default function NavBar() {
             aria-label="메뉴 열기"
             aria-expanded={drawerOpen}
             onClick={() => setDrawerOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-600 hover:bg-neutral-100 md:hidden"
+            className="shrink-0 flex h-9 w-9 items-center justify-center rounded-md text-neutral-600 hover:bg-neutral-100 md:hidden"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <line x1="3" y1="5" x2="17" y2="5" />
@@ -236,44 +242,6 @@ export default function NavBar() {
                 <line x1="15" y1="3" x2="3" y2="15" />
               </svg>
             </button>
-          </div>
-
-          {/* 드로어 내 검색창 */}
-          <div className="border-b border-neutral-100 px-4 py-3">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="작품 검색…"
-                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
-              />
-              {searchResults.length > 0 && (
-                <ul className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg">
-                  {searchResults.map((a) => (
-                    <li key={a.id}>
-                      <Link
-                        href={`/anime/${a.id}`}
-                        className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-50"
-                        onClick={closeSearch}
-                      >
-                        {a.coverImageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={a.coverImageUrl} alt="" className="h-10 w-7 flex-none rounded object-cover" />
-                        ) : (
-                          <div className="h-10 w-7 flex-none rounded bg-neutral-100" />
-                        )}
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-neutral-900">{displayTitle(a)}</p>
-                          <p className="text-xs text-neutral-500">{a.seasonYear ?? "-"}</p>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
           </div>
 
           {/* 링크 목록 */}
