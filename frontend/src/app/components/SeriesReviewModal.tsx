@@ -93,7 +93,7 @@ export function SeriesReviewModal({
             </label>
 
             {!canReview && (
-              <p className="mt-2 text-xs text-neutral-500">
+              <p className="mt-2 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-600">
                 별점과 감상평을 남기려면 시청 상태가 완료, 보류, 중단이어야 합니다.
               </p>
             )}

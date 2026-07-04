@@ -132,25 +132,13 @@ function MyActions({
   return (
     <>
       <div className="mt-auto flex flex-wrap gap-2 pt-4">
-        {/* 상태 + 감상평 분리 버튼 (하나의 pill처럼 보이도록) */}
-        <div className={`flex overflow-hidden rounded-md border text-sm font-medium ${STATUS_STYLE[mine.status]}`}>
-          <button
-            type="button"
-            onClick={() => setModal("series")}
-            title="시청 상태 변경"
-            className="px-3 py-1.5 transition hover:brightness-95"
-          >
-            {STATUS_LABEL[mine.status]}
-          </button>
-          <span className="opacity-30 self-stretch border-l border-current" />
-          <button
-            type="button"
-            onClick={() => setModal("series")}
-            className="px-3 py-1.5 transition hover:brightness-95"
-          >
-            종합 감상평
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setModal("series")}
+          className={`rounded-md border px-3 py-1.5 text-sm font-medium transition hover:brightness-95 ${STATUS_STYLE[mine.status]}`}
+        >
+          {STATUS_LABEL[mine.status]} · 감상평 작성
+        </button>
         <button
           type="button"
           onClick={() => setModal("episode")}
