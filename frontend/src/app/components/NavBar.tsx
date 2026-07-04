@@ -87,6 +87,7 @@ export default function NavBar() {
   }, [searchResults.length, closeSearch]);
 
   function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.nativeEvent.isComposing) return;
     if (e.key === "Enter" && searchQuery.trim()) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       closeSearch();
