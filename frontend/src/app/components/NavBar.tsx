@@ -151,8 +151,8 @@ export default function NavBar() {
             AnimeSquad
           </Link>
 
-          {/* 모바일 검색창 — 로고와 햄버거 사이 */}
-          <div className="md:hidden w-36">
+          {/* 모바일 검색창 — 햄버거 바로 왼쪽 */}
+          <div className="ml-auto md:hidden w-36">
             {searchInput(
               mobileSearchRef as React.RefObject<HTMLDivElement>,
               "w-full rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-neutral-900 focus:outline-none",
@@ -207,7 +207,7 @@ export default function NavBar() {
             aria-label="메뉴 열기"
             aria-expanded={drawerOpen}
             onClick={() => setDrawerOpen(true)}
-            className="ml-auto shrink-0 flex h-9 w-9 items-center justify-center rounded-md text-neutral-600 hover:bg-neutral-100 md:hidden"
+            className="shrink-0 flex h-9 w-9 items-center justify-center rounded-md text-neutral-600 hover:bg-neutral-100 md:hidden"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <line x1="3" y1="5" x2="17" y2="5" />
