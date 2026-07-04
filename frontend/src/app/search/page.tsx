@@ -56,7 +56,6 @@ export default function AnimeSearchPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">작품 검색</h1>
-        <p className="mt-1 text-sm text-neutral-500">캐시된 작품 중에서 찾습니다</p>
       </header>
 
       <input
