@@ -35,18 +35,21 @@ function sortEntries(entries: WatchEntry[], key: SortKey, dir: SortDir): WatchEn
 
 export default function MyListPage() {
   const [entries, setEntries] = useState<WatchEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>("ALL");
   const [sort, setSort] = useState<SortKey>("UPDATED");
   const [sortDir, setSortDir] = useState<SortDir>("DESC");
 
-  async function refresh() {
+  async function refresh(showLoading = false) {
+    if (showLoading) setLoading(true);
     try { setEntries(await apiGet<WatchEntry[]>("/api/watch")); }
     catch (e) { setStatus(String(e)); }
+    finally { setLoading(false); }
   }
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(true); }, []);
 
   const statusCounts: Record<StatusFilter, number> = {
     ALL: entries.length,
@@ -87,7 +90,23 @@ export default function MyListPage() {
         </div>
       )}
 
-      {entries.length === 0 ? (
+      {loading ? (
+        <ul className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <li key={i} className="flex gap-4 rounded-xl border border-neutral-200 p-4">
+              <div className="h-24 w-16 flex-none animate-pulse rounded-md bg-neutral-100" />
+              <div className="flex flex-1 flex-col gap-2">
+                <div className="h-4 w-1/2 animate-pulse rounded bg-neutral-100" />
+                <div className="h-3 w-1/3 animate-pulse rounded bg-neutral-100" />
+                <div className="mt-auto flex gap-2 pt-1">
+                  <div className="h-8 w-20 animate-pulse rounded-md bg-neutral-100" />
+                  <div className="h-8 w-28 animate-pulse rounded-md bg-neutral-100" />
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : entries.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-300 px-6 py-10 text-center text-sm text-neutral-500">
           아직 리스트가 비어 있어요.{" "}
           <Link href="/search" className="font-medium text-neutral-900 underline underline-offset-2">
