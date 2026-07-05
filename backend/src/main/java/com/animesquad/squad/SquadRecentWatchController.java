@@ -70,8 +70,13 @@ public class SquadRecentWatchController {
             .toList();
         if (memberIds.isEmpty()) return List.of();
 
-        List<WatchEntry> rows = entries.findAllByUserIdInOrderByUpdatedAtDesc(memberIds, Limit.of(bounded));
-        if (rows.isEmpty()) return List.of();
+        // Seed with the most recent entries to pick which anime to show,
+        // then fetch every member's entry for those anime so past watchers appear too.
+        List<WatchEntry> seed = entries.findAllByUserIdInOrderByUpdatedAtDesc(memberIds, Limit.of(bounded));
+        if (seed.isEmpty()) return List.of();
+        List<Long> seedAnimeIds = seed.stream().map(WatchEntry::getAnimeId).distinct().toList();
+        List<WatchEntry> rows =
+            entries.findAllByUserIdInAndAnimeIdInOrderByUpdatedAtDesc(memberIds, seedAnimeIds);
 
         Map<Long, Anime> animeById = animes.findAllById(
             rows.stream().map(WatchEntry::getAnimeId).distinct().toList()

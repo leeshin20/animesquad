@@ -11,6 +11,8 @@ public interface WatchEntryRepository extends JpaRepository<WatchEntry, Long> {
     List<WatchEntry> findAllByUserIdOrderByUpdatedAtDesc(Long userId);
     Optional<WatchEntry> findByUserIdAndAnimeId(Long userId, Long animeId);
     List<WatchEntry> findAllByUserIdInOrderByUpdatedAtDesc(Collection<Long> userIds, Limit limit);
+    List<WatchEntry> findAllByUserIdInAndAnimeIdInOrderByUpdatedAtDesc(
+        Collection<Long> userIds, Collection<Long> animeIds);
     List<WatchEntry> findAllByAnimeIdOrderByUpdatedAtDesc(Long animeId);
     boolean existsByAnimeId(Long animeId);
 }

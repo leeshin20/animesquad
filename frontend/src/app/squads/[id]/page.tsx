@@ -288,12 +288,6 @@ function SquadRecentCard({ group }: { group: AnimeWatchGroup }) {
       <p className="mt-2 truncate text-sm font-medium text-neutral-800" title={title}>
         {title}
       </p>
-      <p className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
-        <span>
-          {lead.progress}
-          {lead.episodes ? `/${lead.episodes}` : ""}화
-        </span>
-      </p>
       <p className="mt-0.5 truncate text-xs text-neutral-400">
         {watchers.length > 1
           ? `${watchers.length}명 감상 중`
