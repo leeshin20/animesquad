@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPost, type AnimeView, type WatchEntry, type WatchStatus } from "@/app/lib/api";
@@ -9,6 +9,14 @@ import { STATUSES, STATUS_LABEL, STATUS_STYLE } from "@/app/lib/watch-status";
 import { SeriesReviewModal } from "@/app/components/SeriesReviewModal";
 
 export default function AnimeSearchPage() {
+  return (
+    <Suspense>
+      <AnimeSearch />
+    </Suspense>
+  );
+}
+
+function AnimeSearch() {
   const searchParams = useSearchParams();
   const [q, setQ] = useState(searchParams.get("q") ?? "");
 

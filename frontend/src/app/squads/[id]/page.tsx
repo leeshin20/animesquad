@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { apiGet, apiPatch, apiUpload, type FeedItem, type Me, type Squad } from "@/app/lib/api";
-import { ImageCropModal } from "@/app/components/ImageCropModal";
+import { apiGet, apiPatch, type FeedItem, type Me, type Squad } from "@/app/lib/api";
 import { SquadEditModal } from "@/app/components/SquadEditModal";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { Timeline, Avatar, type FeedItemWithSquad } from "@/app/components/Timeline";
@@ -328,52 +327,10 @@ function SquadHeader({
   isOwner: boolean;
   onUpdated: (s: Squad) => void;
 }) {
-  const squadId = squad?.id.toString() ?? "";
-  const [uploading, setUploading] = useState<"avatar" | "banner" | null>(null);
-  const [cropState, setCropState] = useState<{ src: string; type: "avatar" | "banner" } | null>(null);
   const [editing, setEditing] = useState(false);
-
-  const SIZE_LIMIT: Record<"avatar" | "banner", number> = { avatar: 2 * 1024 * 1024, banner: 5 * 1024 * 1024 };
-  const SIZE_LABEL: Record<"avatar" | "banner", string> = { avatar: "2MB", banner: "5MB" };
-
-  const handleImageUpload = useCallback(async (type: "avatar" | "banner", file: File) => {
-    setUploading(type);
-    try {
-      const updated = await apiUpload<Squad>(`/api/squad/${squadId}/${type}`, file);
-      onUpdated(updated);
-    } finally {
-      setUploading(null);
-    }
-  }, [squadId, onUpdated]);
-
-  function pickFile(type: "avatar" | "banner") {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      if (file.size > SIZE_LIMIT[type]) {
-        alert(`이미지가 너무 커요. ${SIZE_LABEL[type]} 이하로 올려주세요.`);
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => setCropState({ src: reader.result as string, type });
-      reader.readAsDataURL(file);
-    };
-    input.click();
-  }
 
   return (
     <>
-    {cropState && (
-      <ImageCropModal
-        src={cropState.src}
-        aspect={cropState.type === "avatar" ? 1 : 16 / 9}
-        onConfirm={(file) => { setCropState(null); handleImageUpload(cropState.type, file); }}
-        onCancel={() => setCropState(null)}
-      />
-    )}
     {editing && squad && (
       <SquadEditModal
         squad={squad}
