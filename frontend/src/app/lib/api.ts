@@ -179,6 +179,15 @@ export type EpisodeReview = {
   updatedAt: string;
 };
 
+export type MyEpisodeReview = {
+  id: number;
+  anime: { id: number; titleRomaji: string; titleKorean: string | null; coverImageUrl: string | null } | null;
+  episodeNumber: number;
+  score: number;
+  comment: string;
+  updatedAt: string;
+};
+
 export type AnimeStats = {
   averageScore: number | null;
   watcherCount: number;

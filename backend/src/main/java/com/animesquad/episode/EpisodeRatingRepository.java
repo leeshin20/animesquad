@@ -1,5 +1,6 @@
 package com.animesquad.episode;
 
+import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -15,4 +16,7 @@ public interface EpisodeRatingRepository extends JpaRepository<EpisodeRating, Lo
     List<EpisodeRating> findAllByAnimeIdOrderByEpisodeNumberAscUpdatedAtDesc(Long animeId);
 
     boolean existsByAnimeId(Long animeId);
+
+    List<EpisodeRating> findAllByUserIdAndCommentIsNotNullOrderByUpdatedAtDesc(
+        Long userId, Limit limit);
 }
