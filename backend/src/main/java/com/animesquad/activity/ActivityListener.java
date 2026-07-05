@@ -69,6 +69,8 @@ public class ActivityListener {
     public void on(EpisodeRatedEvent e) {
         // An edit replaces the prior entry for this episode so the feed shows it once, freshly.
         deleteEpisodeActivities(e.actorId(), e.animeId(), e.episodeNumber());
+        // A plain "watched ep N" record for the same episode is superseded by this review.
+        deleteProgressActivities(e.actorId(), e.animeId(), e.episodeNumber());
         Map<String, Object> payload = new HashMap<>();
         payload.put("episode", e.episodeNumber());
         payload.put("score", e.score());
@@ -91,6 +93,16 @@ public class ActivityListener {
     private void deleteSeriesActivities(Long actorId, Long animeId) {
         activities.deleteAll(
             activities.findAllByActorIdAndAnimeIdAndType(actorId, animeId, ActivityType.RATED));
+    }
+
+    private void deleteProgressActivities(Long actorId, Long animeId, int episodeNumber) {
+        activities.deleteAll(
+            activities.findAllByActorIdAndAnimeIdAndType(actorId, animeId, ActivityType.PROGRESS_UPDATED).stream()
+                .filter(a -> {
+                    Object p = a.getPayload().get("progress");
+                    return p instanceof Number n && n.intValue() == episodeNumber;
+                })
+                .toList());
     }
 
     private void deleteEpisodeActivities(Long actorId, Long animeId, int episodeNumber) {
