@@ -29,11 +29,12 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
     try {
       const [a, m, r, er, st, meRes] = await Promise.all([
         apiGet<AnimeView>(`/api/anime/${animeId}`),
-        apiGetOrNull<WatchEntry>(`/api/watch/${animeId}`),
+        // 로그인 없으면 401 — 상세 페이지 자체는 보여야 하니 null 처리
+        apiGetOrNull<WatchEntry>(`/api/watch/${animeId}`).catch(() => null),
         apiGet<AnimeReview[]>(`/api/anime/${animeId}/reviews`),
         apiGet<EpisodeReview[]>(`/api/anime/${animeId}/episode-reviews`),
         apiGet<AnimeStats>(`/api/anime/${animeId}/stats`),
-        apiGetOrNull<Me>("/api/me"),
+        apiGetOrNull<Me>("/api/me").catch(() => null),
       ]);
       setAnime(a); setMine(m); setReviews(r); setEpisodeReviews(er); setStats(st); setMe(meRes);
     } catch (e) { setError(String(e)); }
@@ -82,7 +83,7 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
             <p className="mt-1 text-xs text-neutral-500">
               {aniFormat(anime.format)} · {anime.episodes ?? "?"}화
             </p>
-            <MyActions anime={anime} mine={mine} onSaved={loadAll} onError={setError} />
+            <MyActions anime={anime} mine={mine} loggedIn={me != null} onSaved={loadAll} onError={setError} />
           </div>
         </header>
       )}
@@ -100,14 +101,27 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
 }
 
 function MyActions({
-  anime, mine, onSaved, onError,
+  anime, mine, loggedIn, onSaved, onError,
 }: {
   anime: AnimeView;
   mine: WatchEntry | null;
+  loggedIn: boolean;
   onSaved: () => void;
   onError: (s: string) => void;
 }) {
   const [modal, setModal] = useState<"series" | "episode" | null>(null);
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8080";
+
+  if (!loggedIn) {
+    return (
+      <a
+        href={`${apiBase}/oauth2/authorization/google`}
+        className="mt-auto self-start rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
+      >
+        로그인하고 내 목록에 추가
+      </a>
+    );
+  }
 
   if (!mine) {
     return (
