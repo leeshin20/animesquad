@@ -135,6 +135,7 @@ export type AnimeView = {
   format: string;
   seasonYear: number | null;
   season: string | null;
+  startDate: string | null;
 };
 
 export type WatchStatus =

@@ -1,13 +1,11 @@
 package com.animesquad.anime;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Limit;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -19,8 +17,8 @@ class AnimeSearchServiceTest {
 
     @Test
     void search_delegatesToRepository_withLowercasedLikePattern() {
-        Anime hit = new Anime(1, "Frieren", "葬送", "F", "img", 12, "FINISHED", "TV", 2024, null);
-        when(animes.searchByTitle(eq("%frieren%"), eq("%Frieren%"), any(Limit.class)))
+        Anime hit = new Anime(1, "Frieren", "葬送", "F", "img", 12, "FINISHED", "TV", 2024, null, null);
+        when(animes.searchByTitle(eq("%frieren%"), eq("%Frieren%"), eq("%frieren%"), eq("%Frieren%")))
             .thenReturn(List.of(hit));
 
         List<Anime> result = service.search("Frieren");

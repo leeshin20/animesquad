@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { apiGet, type AnimeView } from "@/app/lib/api";
-import { displayTitle, aniFormat } from "@/app/lib/anilist-labels";
+import { apiGet, apiPost, type AnimeView, type WatchEntry, type WatchStatus } from "@/app/lib/api";
+import { displayTitle, aniFormat, aniStatus } from "@/app/lib/anilist-labels";
+import { STATUSES, STATUS_LABEL, STATUS_STYLE } from "@/app/lib/watch-status";
+import { SeriesReviewModal } from "@/app/components/SeriesReviewModal";
 
 const SEASONS = [
   { value: "WINTER", label: "겨울" },
@@ -11,6 +13,17 @@ const SEASONS = [
   { value: "SUMMER", label: "여름" },
   { value: "FALL",   label: "가을" },
 ] as const;
+
+const SEASON_LABEL: Record<string, string> =
+  Object.fromEntries(SEASONS.map((s) => [s.value, s.label]));
+
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+/** "2026-07-05" → "7월 5일 (수) 방영 시작" */
+function airingLabel(startDate: string): string {
+  const d = new Date(`${startDate}T00:00:00`);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]}) 방영 시작`;
+}
 
 function getCurrentSeason(): { year: number; season: string } {
   const d = new Date();
@@ -35,6 +48,20 @@ export default function BrowsePage() {
   const [results, setResults] = useState<AnimeView[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // null = 로그인 안 됨 (추가 버튼 대신 로그인 안내)
+  const [entries, setEntries] = useState<Record<number, WatchEntry> | null>(null);
+  const [modalEntry, setModalEntry] = useState<WatchEntry | null>(null);
+
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8080";
+
+  async function loadEntries() {
+    try {
+      const mine = await apiGet<WatchEntry[]>("/api/watch");
+      setEntries(Object.fromEntries(mine.map((e) => [e.anime.anilistId, e])));
+    } catch { setEntries(null); }
+  }
+
+  useEffect(() => { loadEntries(); }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -45,6 +72,13 @@ export default function BrowsePage() {
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
   }, [year, season]);
+
+  async function add(anilistId: number, status: WatchStatus) {
+    try {
+      await apiPost("/api/watch", { anilistId, status });
+      loadEntries();
+    } catch (e) { setError(String(e)); }
+  }
 
   const selectClass = "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none";
 
@@ -85,12 +119,9 @@ export default function BrowsePage() {
 
       {/* 결과 */}
       {loading && (
-        <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i}>
-              <div className="aspect-[2/3] w-full animate-pulse rounded-lg bg-neutral-100" />
-              <div className="mt-2 h-3 w-3/4 animate-pulse rounded bg-neutral-100" />
-            </div>
+        <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-44 animate-pulse rounded-xl bg-neutral-100" />
           ))}
         </div>
       )}
@@ -102,28 +133,93 @@ export default function BrowsePage() {
       )}
 
       {!loading && results !== null && results.length > 0 && (
-        <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
-          {results.map((anime) => (
-            <Link key={anime.id} href={`/anime/${anime.id}`} className="group">
-              {anime.coverImageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={anime.coverImageUrl}
-                  alt=""
-                  className="aspect-[2/3] w-full rounded-lg object-cover transition group-hover:opacity-80"
-                />
-              ) : (
-                <div className="aspect-[2/3] w-full rounded-lg bg-neutral-100" />
-              )}
-              <p className="mt-2 truncate text-sm font-medium text-neutral-800">
-                {displayTitle(anime)}
-              </p>
-              <p className="mt-0.5 text-xs text-neutral-500">
-                {aniFormat(anime.format)} · {anime.episodes ?? "?"}화
-              </p>
-            </Link>
-          ))}
+        <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
+          {results.map((anime) => {
+            const entry = entries?.[anime.anilistId];
+            return (
+              <div
+                key={anime.id}
+                className="flex overflow-hidden rounded-xl border border-neutral-200 transition hover:border-neutral-300"
+              >
+                <Link href={`/anime/${anime.id}`} className="flex-none transition hover:opacity-80">
+                  {anime.coverImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={anime.coverImageUrl}
+                      alt=""
+                      className="h-full w-28 object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-28 bg-neutral-100" />
+                  )}
+                </Link>
+
+                <div className="flex min-w-0 flex-1 flex-col p-4">
+                  <Link
+                    href={`/anime/${anime.id}`}
+                    className="line-clamp-2 text-sm font-medium text-neutral-900 hover:underline"
+                  >
+                    {displayTitle(anime)}
+                  </Link>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    {aniFormat(anime.format)} · {anime.episodes ?? "?"}화 · {aniStatus(anime.status)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-neutral-500">
+                    {anime.seasonYear ?? "-"}년 {anime.season ? SEASON_LABEL[anime.season] ?? "" : ""}
+                  </p>
+                  {anime.startDate && (
+                    <p className="mt-0.5 text-xs text-neutral-500">
+                      {airingLabel(anime.startDate)}
+                    </p>
+                  )}
+
+                  <div className="mt-auto flex justify-end pt-3">
+                    {entries === null ? (
+                      <a
+                        href={`${apiBase}/oauth2/authorization/google`}
+                        className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50"
+                      >
+                        로그인하고 추가
+                      </a>
+                    ) : entry ? (
+                      <button
+                        type="button"
+                        onClick={() => setModalEntry(entry)}
+                        title="시청 상태 · 시리즈 평가"
+                        className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${STATUS_STYLE[entry.status]}`}
+                      >
+                        {STATUS_LABEL[entry.status]}
+                      </button>
+                    ) : (
+                      <select
+                        defaultValue=""
+                        onChange={(e) => {
+                          const s = e.target.value as WatchStatus;
+                          if (s) add(anime.anilistId, s);
+                        }}
+                        className="rounded-md border border-neutral-300 px-2 py-1 text-xs focus:border-neutral-900 focus:outline-none"
+                      >
+                        <option value="">추가하기…</option>
+                        {STATUSES.map((s) => (
+                          <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
+      )}
+
+      {modalEntry && (
+        <SeriesReviewModal
+          entry={modalEntry}
+          statusOptions={STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
+          onClose={() => setModalEntry(null)}
+          onSaved={() => { setModalEntry(null); loadEntries(); }}
+        />
       )}
     </div>
   );

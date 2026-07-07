@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ public class AniListClientImpl implements AniListClient {
               status
               format
               seasonYear
+              startDate { year month day }
             }
           }
         }
@@ -40,6 +42,7 @@ public class AniListClientImpl implements AniListClient {
               format
               seasonYear
               season
+              startDate { year month day }
             }
           }
         }
@@ -56,6 +59,7 @@ public class AniListClientImpl implements AniListClient {
             format
             seasonYear
             season
+            startDate { year month day }
           }
         }
         """;
@@ -135,7 +139,18 @@ public class AniListClientImpl implements AniListClient {
             (String) m.get("status"),
             (String) m.get("format"),
             m.get("seasonYear") == null ? null : ((Number) m.get("seasonYear")).intValue(),
-            (String) m.get("season")
+            (String) m.get("season"),
+            toDate((Map<String, Object>) m.get("startDate"))
         );
+    }
+
+    /** AniList fuzzy date — 연/월/일 중 하나라도 없으면 null. */
+    private LocalDate toDate(Map<String, Object> d) {
+        if (d == null) return null;
+        Number y = (Number) d.get("year");
+        Number mo = (Number) d.get("month");
+        Number day = (Number) d.get("day");
+        if (y == null || mo == null || day == null) return null;
+        return LocalDate.of(y.intValue(), mo.intValue(), day.intValue());
     }
 }

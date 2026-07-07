@@ -50,7 +50,7 @@ class EpisodeRatingControllerIT extends AbstractIntegrationTest {
     private Setup seed(String suffix, int anilistId) {
         User u = userService.upsertFromGoogle("g-" + suffix, suffix + "@x.y", suffix.toUpperCase(), null);
         Anime a = animeService.upsertFromAniList(new AniListMedia(
-            anilistId, "Romaji", "Native", "Eng", "img", 24, "FINISHED", "TV", 2024, null));
+            anilistId, "Romaji", "Native", "Eng", "img", 24, "FINISHED", "TV", 2024, null, null));
         watchService.addToList(u.getId(), anilistId, WatchStatus.WATCHING);
         return new Setup(u.getId(), a.getId());
     }
@@ -92,7 +92,7 @@ class EpisodeRatingControllerIT extends AbstractIntegrationTest {
     void put_returns400_whenUserHasNoWatchEntry() {
         User stranger = userService.upsertFromGoogle("g-ec3", "ec3@x.y", "EC3", null);
         Anime a = animeService.upsertFromAniList(new AniListMedia(
-            2003, "R", "N", "E", "img", 12, "FINISHED", "TV", 2024, null));
+            2003, "R", "N", "E", "img", 12, "FINISHED", "TV", 2024, null, null));
 
         ResponseEntity<String> res = rest.exchange(
             url("/api/watch/" + a.getId() + "/episodes/1"), HttpMethod.PUT,

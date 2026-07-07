@@ -19,12 +19,14 @@ public class AnimeService {
         return animes.findByAnilistId(m.anilistId())
             .map(existing -> {
                 existing.refreshFrom(m.titleRomaji(), m.titleNative(), m.titleEnglish(),
-                    m.coverImageUrl(), m.episodes(), m.status(), m.format(), m.seasonYear(), m.season());
+                    m.coverImageUrl(), m.episodes(), m.status(), m.format(), m.seasonYear(), m.season(),
+                    m.startDate());
                 return existing;
             })
             .orElseGet(() -> animes.save(new Anime(
                 m.anilistId(), m.titleRomaji(), m.titleNative(), m.titleEnglish(),
-                m.coverImageUrl(), m.episodes(), m.status(), m.format(), m.seasonYear(), m.season())));
+                m.coverImageUrl(), m.episodes(), m.status(), m.format(), m.seasonYear(), m.season(),
+                m.startDate())));
     }
 
     @Transactional

@@ -54,7 +54,7 @@ class WatchControllerIT extends AbstractIntegrationTest {
     private void seedAnime(int anilistId) {
         animeService.upsertFromAniList(new AniListMedia(
             anilistId, "Romaji" + anilistId, "Native", "Eng",
-            "img", 12, "FINISHED", "TV", 2024, null));
+            "img", 12, "FINISHED", "TV", 2024, null, null));
     }
 
     @Test

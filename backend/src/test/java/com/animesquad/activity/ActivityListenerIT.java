@@ -44,7 +44,7 @@ class ActivityListenerIT extends AbstractIntegrationTest {
         Squad a = squadService.createSquad(actor.getId(), "A");
         Squad b = squadService.createSquad(actor.getId(), "B");
         Anime anime = animeService.upsertFromAniList(new AniListMedia(
-            5001, "Romaji", "Native", "Eng", "img", 12, "FINISHED", "TV", 2024, null));
+            5001, "Romaji", "Native", "Eng", "img", 12, "FINISHED", "TV", 2024, null, null));
         return new Setup(actor, a, b, anime);
     }
 
@@ -70,7 +70,7 @@ class ActivityListenerIT extends AbstractIntegrationTest {
     void animeAdded_emitsNothing_whenActorHasNoSquads() {
         User loner = userService.upsertFromGoogle("g-loner", "l@x.y", "L", null);
         Anime anime = animeService.upsertFromAniList(new AniListMedia(
-            5002, "R", "N", "E", "img", 12, "FINISHED", "TV", 2024, null));
+            5002, "R", "N", "E", "img", 12, "FINISHED", "TV", 2024, null, null));
 
         events.publishEvent(new AnimeAddedEvent(loner.getId(), anime.getId(), WatchStatus.WATCHING));
 
@@ -105,7 +105,7 @@ class ActivityListenerIT extends AbstractIntegrationTest {
     void watchRated_emitsWithScore() {
         Setup s = seedTwoSquadsWithMember();
 
-        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 5, 7, "재밌었다"));
+        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 5, 7, "재밌었다", "WATCHING"));
 
         Activity row = activities.findBySquadIdOrderByIdDesc(s.squadA().getId(), Limit.of(1)).get(0);
         assertThat(row.getType()).isEqualTo(ActivityType.RATED);
@@ -118,7 +118,7 @@ class ActivityListenerIT extends AbstractIntegrationTest {
     void watchRated_omitsComment_whenBlank() {
         Setup s = seedTwoSquadsWithMember();
 
-        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 4, 3, null));
+        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 4, 3, null, "WATCHING"));
 
         Activity row = activities.findBySquadIdOrderByIdDesc(s.squadA().getId(), Limit.of(1)).get(0);
         assertThat(row.getType()).isEqualTo(ActivityType.RATED);
@@ -187,8 +187,8 @@ class ActivityListenerIT extends AbstractIntegrationTest {
     void watchRated_replacesPriorSeriesActivity() {
         Setup s = seedTwoSquadsWithMember();
 
-        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 3, 7, "first"));
-        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 3, 12, "edited comment"));
+        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 3, 7, "first", "WATCHING"));
+        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 3, 12, "edited comment", "WATCHING"));
 
         List<Activity> rated = activities.findAll().stream()
             .filter(a -> a.getType() == ActivityType.RATED).toList();
@@ -203,7 +203,7 @@ class ActivityListenerIT extends AbstractIntegrationTest {
     void watchReviewCleared_removesSeriesActivity_keepsOthers() {
         Setup s = seedTwoSquadsWithMember();
         events.publishEvent(new ProgressUpdatedEvent(s.actor().getId(), s.anime().getId(), 5));
-        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 3, 7, "x"));
+        events.publishEvent(new WatchRatedEvent(s.actor().getId(), s.anime().getId(), 3, 7, "x", "WATCHING"));
 
         events.publishEvent(new WatchReviewClearedEvent(s.actor().getId(), s.anime().getId()));
 

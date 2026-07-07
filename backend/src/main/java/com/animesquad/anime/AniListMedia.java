@@ -1,5 +1,7 @@
 package com.animesquad.anime;
 
+import java.time.LocalDate;
+
 public record AniListMedia(
     Integer anilistId,
     String titleRomaji,
@@ -10,5 +12,6 @@ public record AniListMedia(
     String status,
     String format,
     Integer seasonYear,
-    String season
+    String season,
+    LocalDate startDate
 ) {}

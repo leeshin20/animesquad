@@ -26,7 +26,7 @@ class WatchServiceIT extends AbstractIntegrationTest {
     @MockBean AniListClient aniList;
 
     private AniListMedia media(int id) {
-        return new AniListMedia(id, "Romaji" + id, "Native", "Eng", "img", 12, "FINISHED", "TV", 2024, null);
+        return new AniListMedia(id, "Romaji" + id, "Native", "Eng", "img", 12, "FINISHED", "TV", 2024, null, null);
     }
 
     @Test

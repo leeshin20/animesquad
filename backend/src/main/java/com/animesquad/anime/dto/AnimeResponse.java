@@ -1,6 +1,7 @@
 package com.animesquad.anime.dto;
 
 import com.animesquad.anime.Anime;
+import java.time.LocalDate;
 
 public record AnimeResponse(
     Long id,
@@ -14,14 +15,16 @@ public record AnimeResponse(
     String status,
     String format,
     Integer seasonYear,
-    String season
+    String season,
+    LocalDate startDate
 ) {
     public static AnimeResponse from(Anime a) {
         return new AnimeResponse(
             a.getId(), a.getAnilistId(),
             a.getTitleRomaji(), a.getTitleNative(), a.getTitleEnglish(), a.getTitleKorean(),
             a.getCoverImageUrl(), a.getEpisodes(),
-            a.getStatus(), a.getFormat(), a.getSeasonYear(), a.getSeason()
+            a.getStatus(), a.getFormat(), a.getSeasonYear(), a.getSeason(),
+            a.getStartDate()
         );
     }
 }

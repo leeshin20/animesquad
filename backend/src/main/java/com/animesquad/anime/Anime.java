@@ -1,6 +1,7 @@
 package com.animesquad.anime;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 @Entity
@@ -44,6 +45,9 @@ public class Anime {
     @Column(length = 10)
     private String season;
 
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
     @Column(name = "cached_at", nullable = false)
     private OffsetDateTime cachedAt = OffsetDateTime.now();
 
@@ -51,7 +55,7 @@ public class Anime {
 
     public Anime(Integer anilistId, String titleRomaji, String titleNative, String titleEnglish,
                  String coverImageUrl, Integer episodes, String status, String format, Integer seasonYear,
-                 String season) {
+                 String season, LocalDate startDate) {
         this.anilistId = anilistId;
         this.titleRomaji = titleRomaji;
         this.titleNative = titleNative;
@@ -62,11 +66,12 @@ public class Anime {
         this.format = format;
         this.seasonYear = seasonYear;
         this.season = season;
+        this.startDate = startDate;
     }
 
     public void refreshFrom(String titleRomaji, String titleNative, String titleEnglish,
                             String coverImageUrl, Integer episodes, String status,
-                            String format, Integer seasonYear, String season) {
+                            String format, Integer seasonYear, String season, LocalDate startDate) {
         this.titleRomaji = titleRomaji;
         this.titleNative = titleNative;
         this.titleEnglish = titleEnglish;
@@ -76,6 +81,7 @@ public class Anime {
         this.format = format;
         this.seasonYear = seasonYear;
         this.season = season;
+        this.startDate = startDate;
         this.cachedAt = OffsetDateTime.now();
     }
 
@@ -92,5 +98,6 @@ public class Anime {
     public String getFormat() { return format; }
     public Integer getSeasonYear() { return seasonYear; }
     public String getSeason() { return season; }
+    public LocalDate getStartDate() { return startDate; }
     public OffsetDateTime getCachedAt() { return cachedAt; }
 }

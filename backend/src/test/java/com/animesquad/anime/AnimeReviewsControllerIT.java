@@ -41,7 +41,7 @@ class AnimeReviewsControllerIT extends AbstractIntegrationTest {
     }
     private String url(String p) { return "http://localhost:" + port + p; }
     private AniListMedia media(int id) {
-        return new AniListMedia(id, "Romaji" + id, "Native", "Eng", "img", 12, "FINISHED", "TV", 2024, null);
+        return new AniListMedia(id, "Romaji" + id, "Native", "Eng", "img", 12, "FINISHED", "TV", 2024, null, null);
     }
 
     private ResponseEntity<List<Map<String, Object>>> getReviews(Long animeId, Long asUserId) {
