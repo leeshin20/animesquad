@@ -19,10 +19,10 @@ const SEASON_LABEL: Record<string, string> =
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-/** "2026-07-05" → "7월 5일 (수) 방영 시작" */
+/** "2026-07-05" → "2026년 7월 5일 (일)" */
 function airingLabel(startDate: string): string {
   const d = new Date(`${startDate}T00:00:00`);
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]}) 방영 시작`;
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`;
 }
 
 function getCurrentSeason(): { year: number; season: string } {
@@ -165,13 +165,10 @@ export default function BrowsePage() {
                     {aniFormat(anime.format)} · {anime.episodes ?? "?"}화 · {aniStatus(anime.status)}
                   </p>
                   <p className="mt-0.5 text-xs text-neutral-500">
-                    {anime.seasonYear ?? "-"}년 {anime.season ? SEASON_LABEL[anime.season] ?? "" : ""}
+                    {anime.startDate
+                      ? airingLabel(anime.startDate)
+                      : `${anime.seasonYear ?? "-"}년 ${anime.season ? SEASON_LABEL[anime.season] ?? "" : ""}`}
                   </p>
-                  {anime.startDate && (
-                    <p className="mt-0.5 text-xs text-neutral-500">
-                      {airingLabel(anime.startDate)}
-                    </p>
-                  )}
 
                   <div className="mt-auto flex justify-end pt-3">
                     {entries === null ? (
