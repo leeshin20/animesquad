@@ -27,6 +27,8 @@ public class AdminAnimeController {
     public record UpdateTitleKoreanRequest(String titleKorean) {}
     public record BulkCacheSeasonRequest(Integer year, String season) {}
     public record BulkCacheResult(int cached) {}
+    public record BulkDeleteRequest(List<Long> ids) {}
+    public record BulkDeleteResult(int deleted, int skipped) {}
 
     private static final java.util.Set<String> VALID_SEASONS =
         java.util.Set.of("WINTER", "SPRING", "SUMMER", "FALL");
@@ -110,6 +112,31 @@ public class AdminAnimeController {
         String value = body.titleKorean() == null ? null : body.titleKorean().trim();
         anime.setTitleKorean(value == null || value.isEmpty() ? null : value);
         return AnimeResponse.from(anime);
+    }
+
+    @PostMapping("/bulk-delete")
+    @Transactional
+    public BulkDeleteResult bulkDelete(
+        @AuthenticationPrincipal CurrentUser current,
+        @RequestBody BulkDeleteRequest body
+    ) {
+        requireAdmin(current);
+        if (body.ids() == null || body.ids().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ids required");
+        }
+        int deleted = 0;
+        int skipped = 0;
+        for (Long id : body.ids()) {
+            Anime anime = animes.findById(id).orElse(null);
+            if (anime == null
+                || watches.existsByAnimeId(id) || episodeRatings.existsByAnimeId(id) || activities.existsByAnimeId(id)) {
+                skipped++;
+                continue;
+            }
+            animes.delete(anime);
+            deleted++;
+        }
+        return new BulkDeleteResult(deleted, skipped);
     }
 
     @DeleteMapping("/{id}")

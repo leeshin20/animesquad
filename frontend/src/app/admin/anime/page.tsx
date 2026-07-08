@@ -9,6 +9,10 @@ export default function AdminAnimePage() {
   const [items, setItems] = useState<AnimeView[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [bulkConfirming, setBulkConfirming] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkResult, setBulkResult] = useState<string | null>(null);
 
   const refresh = useCallback(async (query: string) => {
     setError(null);
@@ -16,11 +20,51 @@ export default function AdminAnimePage() {
       const path = query.trim()
         ? `/api/admin/anime?q=${encodeURIComponent(query.trim())}`
         : "/api/admin/anime";
-      setItems(await apiGet<AnimeView[]>(path));
+      const list = await apiGet<AnimeView[]>(path);
+      setItems(list);
+      // 목록이 바뀌면 화면에 없는 항목은 선택에서 제거
+      setSelected((prev) => new Set(list.filter((a) => prev.has(a.id)).map((a) => a.id)));
     } catch (e) {
       setError(String(e));
     }
   }, []);
+
+  function toggle(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (!items) return;
+    setSelected(selected.size === items.length ? new Set() : new Set(items.map((a) => a.id)));
+  }
+
+  async function bulkDelete() {
+    setBulkDeleting(true);
+    setBulkResult(null);
+    try {
+      const res = await apiPost<{ deleted: number; skipped: number }>(
+        "/api/admin/anime/bulk-delete",
+        { ids: Array.from(selected) }
+      );
+      setBulkConfirming(false);
+      setBulkResult(
+        res.skipped > 0
+          ? `${res.deleted}개 삭제, ${res.skipped}개 건너뜀 (시청·평가 기록 있음)`
+          : `${res.deleted}개 삭제됨`
+      );
+      refresh(q);
+    } catch (e) {
+      setBulkConfirming(false);
+      setError(String(e));
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
 
   // 검색어가 비면 기본(한글 미설정) 목록, 입력하면 전체 대상 검색 — 300ms 디바운스
   useEffect(() => {
@@ -59,11 +103,47 @@ export default function AdminAnimePage() {
           {q.trim() ? "검색 결과 없음" : "한글 제목 미설정 작품이 없어요 (모두 처리됨)"}
         </p>
       ) : (
-        <ul className="space-y-2">
-          {items.map((a) => (
-            <Row key={a.id} anime={a} onSaved={() => refresh(q)} onError={setError} />
-          ))}
-        </ul>
+        <>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-neutral-600">
+              <input
+                type="checkbox"
+                checked={selected.size === items.length}
+                onChange={toggleAll}
+                className="h-4 w-4 accent-neutral-900"
+              />
+              전체 선택
+            </label>
+            <button
+              onClick={() => setBulkConfirming(true)}
+              disabled={selected.size === 0 || bulkDeleting}
+              className="rounded-md border border-rose-200 px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-40"
+            >
+              {bulkDeleting ? "삭제 중…" : `선택 삭제 (${selected.size}개)`}
+            </button>
+            {bulkResult && <span className="text-sm text-emerald-600">{bulkResult}</span>}
+          </div>
+          <ul className="space-y-2">
+            {items.map((a) => (
+              <Row
+                key={a.id}
+                anime={a}
+                checked={selected.has(a.id)}
+                onToggle={() => toggle(a.id)}
+                onSaved={() => refresh(q)}
+                onError={setError}
+              />
+            ))}
+          </ul>
+        </>
+      )}
+
+      {bulkConfirming && (
+        <ConfirmDialog
+          message={`선택한 ${selected.size}개 작품을 캐시에서 삭제할까요? 되돌릴 수 없어요.`}
+          onConfirm={bulkDelete}
+          onCancel={() => setBulkConfirming(false)}
+        />
       )}
     </div>
   );
@@ -145,10 +225,14 @@ function BulkCacheSection({
 
 function Row({
   anime,
+  checked,
+  onToggle,
   onSaved,
   onError,
 }: {
   anime: AnimeView;
+  checked: boolean;
+  onToggle: () => void;
   onSaved: () => void;
   onError: (s: string) => void;
 }) {
@@ -188,6 +272,12 @@ function Row({
 
   return (
     <li className="flex gap-4 rounded-xl border border-neutral-200 p-4">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onToggle}
+        className="mt-1 h-4 w-4 flex-none self-start accent-neutral-900"
+      />
       {anime.coverImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img

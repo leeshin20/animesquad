@@ -111,6 +111,42 @@ class AdminAnimeControllerIT extends AbstractIntegrationTest {
         assertThat(animes.findById(a.getId())).isEmpty();
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    void bulkDelete_deletesUnreferenced_andSkipsReferenced() {
+        Long admin = adminId();
+        Anime free1 = seedAnime(301, null);
+        Anime referenced = seedAnime(302, null);
+        Anime free2 = seedAnime(303, null);
+        User viewer = userService.upsertFromGoogle("g-viewer2", "viewer2@x.y", "V", null);
+        watchService.addToList(viewer.getId(), 302, WatchStatus.WATCHING);
+
+        ResponseEntity<Map> res = rest.exchange(
+            url("/api/admin/anime/bulk-delete"), HttpMethod.POST,
+            new HttpEntity<>(Map.of("ids", List.of(free1.getId(), referenced.getId(), free2.getId())),
+                cookieFor(admin)), Map.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody().get("deleted")).isEqualTo(2);
+        assertThat(res.getBody().get("skipped")).isEqualTo(1);
+        assertThat(animes.findById(free1.getId())).isEmpty();
+        assertThat(animes.findById(free2.getId())).isEmpty();
+        assertThat(animes.findById(referenced.getId())).isPresent();
+    }
+
+    @Test
+    void bulkDelete_returns403_forNonAdmin() {
+        User viewer = userService.upsertFromGoogle("g-viewer3", "viewer3@x.y", "V", null);
+        Anime a = seedAnime(304, null);
+
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/admin/anime/bulk-delete"), HttpMethod.POST,
+            new HttpEntity<>(Map.of("ids", List.of(a.getId())), cookieFor(viewer.getId())), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(animes.findById(a.getId())).isPresent();
+    }
+
     @Test
     void delete_returns409_whenReferencedByWatchEntry() {
         Long admin = adminId();
