@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPost, type AnimeView, type WatchEntry, type WatchStatus } from "@/app/lib/api";
 import { displayTitle, aniFormat, aniStatus } from "@/app/lib/anilist-labels";
@@ -42,9 +43,28 @@ const YEARS = (() => {
 })();
 
 export default function BrowsePage() {
+  return (
+    <Suspense>
+      <BrowseContent />
+    </Suspense>
+  );
+}
+
+function BrowseContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { year: defaultYear, season: defaultSeason } = getCurrentSeason();
-  const [year, setYear] = useState(defaultYear);
-  const [season, setSeason] = useState(defaultSeason);
+
+  // URL이 상태의 원본 — 새로고침·공유해도 선택한 시즌 유지
+  const yearParam = Number(searchParams.get("year"));
+  const year = YEARS.includes(yearParam) ? yearParam : defaultYear;
+  const seasonParam = searchParams.get("season")?.toUpperCase() ?? "";
+  const season = seasonParam in SEASON_LABEL ? seasonParam : defaultSeason;
+
+  function setSelection(nextYear: number, nextSeason: string) {
+    router.replace(`/browse?year=${nextYear}&season=${nextSeason}`, { scroll: false });
+  }
+
   const [results, setResults] = useState<AnimeView[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +112,7 @@ export default function BrowsePage() {
       <div className="flex gap-3">
         <select
           value={year}
-          onChange={(e) => setYear(Number(e.target.value))}
+          onChange={(e) => setSelection(Number(e.target.value), season)}
           className={selectClass}
         >
           {YEARS.map((y) => (
@@ -102,7 +122,7 @@ export default function BrowsePage() {
 
         <select
           value={season}
-          onChange={(e) => setSeason(e.target.value)}
+          onChange={(e) => setSelection(year, e.target.value)}
           className={selectClass}
         >
           {SEASONS.map((s) => (
