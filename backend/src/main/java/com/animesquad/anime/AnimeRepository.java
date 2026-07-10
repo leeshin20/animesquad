@@ -17,10 +17,12 @@ public interface AnimeRepository extends JpaRepository<Anime, Long> {
         WHERE LOWER(a.title_romaji) LIKE :q
            OR LOWER(COALESCE(a.title_english, '')) LIKE :q
            OR LOWER(COALESCE(a.title_korean, '')) LIKE :q
+           OR LOWER(COALESCE(a.search_keywords, '')) LIKE :q
            OR a.title_native LIKE :raw
            OR REPLACE(LOWER(a.title_romaji), ' ', '') LIKE :qs
            OR REPLACE(LOWER(COALESCE(a.title_english, '')), ' ', '') LIKE :qs
            OR REPLACE(LOWER(COALESCE(a.title_korean, '')), ' ', '') LIKE :qs
+           OR REPLACE(LOWER(COALESCE(a.search_keywords, '')), ' ', '') LIKE :qs
            OR REPLACE(a.title_native, ' ', '') LIKE :raws
         ORDER BY a.id DESC
         LIMIT 20

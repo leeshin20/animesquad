@@ -24,6 +24,7 @@ class AnimeControllerIT extends AbstractIntegrationTest {
 
     @Autowired UserService userService;
     @Autowired AnimeService animeService;
+    @Autowired AnimeRepository animes;
     @Autowired JwtService jwtService;
     @Autowired TestRestTemplate rest;
     @LocalServerPort int port;
@@ -83,6 +84,38 @@ class AnimeControllerIT extends AbstractIntegrationTest {
             HttpMethod.GET, HttpEntity.EMPTY, String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void search_matchesSearchKeywords() {
+        Anime a = animeService.upsertFromAniList(new AniListMedia(
+            2, "BanG Dream!", "バンドリ！", "BanG Dream!", "img", 13, "FINISHED", "TV", 2017, null, null));
+        a.setSearchKeywords("뱅드림, 방드림");
+        animes.save(a);
+
+        ResponseEntity<AnimeResponse[]> res = rest.exchange(
+            "http://localhost:" + port + "/api/anime/search?q=뱅드림",
+            HttpMethod.GET, HttpEntity.EMPTY, AnimeResponse[].class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody()).hasSize(1);
+        assertThat(res.getBody()[0].anilistId()).isEqualTo(2);
+    }
+
+    @Test
+    void search_matchesSearchKeywords_ignoringSpaces() {
+        Anime a = animeService.upsertFromAniList(new AniListMedia(
+            3, "KonoSuba", "この素晴らしい世界に祝福を！", null, "img", 10, "FINISHED", "TV", 2016, null, null));
+        a.setSearchKeywords("코노 스바");
+        animes.save(a);
+
+        ResponseEntity<AnimeResponse[]> res = rest.exchange(
+            "http://localhost:" + port + "/api/anime/search?q=코노스바",
+            HttpMethod.GET, HttpEntity.EMPTY, AnimeResponse[].class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody()).hasSize(1);
+        assertThat(res.getBody()[0].anilistId()).isEqualTo(3);
     }
 
     private void seedBrowse(int anilistId, int year, String season) {
