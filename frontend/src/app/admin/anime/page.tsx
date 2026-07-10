@@ -237,16 +237,19 @@ function Row({
   onError: (s: string) => void;
 }) {
   const [value, setValue] = useState(anime.titleKorean ?? "");
+  const [keywords, setKeywords] = useState(anime.searchKeywords ?? "");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const dirty = (anime.titleKorean ?? "") !== value.trim();
+  const dirty =
+    (anime.titleKorean ?? "") !== value.trim() ||
+    (anime.searchKeywords ?? "") !== keywords.trim();
 
   async function save() {
     setSaving(true);
     try {
-      await apiPatch(`/api/admin/anime/${anime.id}`, { titleKorean: value });
+      await apiPatch(`/api/admin/anime/${anime.id}`, { titleKorean: value, searchKeywords: keywords });
       setSavedAt(Date.now());
       onSaved();
     } catch (e) {
@@ -303,6 +306,12 @@ function Row({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="한국어 제목 (비우면 미설정)"
+            className="min-w-[240px] flex-1 rounded-md border border-neutral-300 px-3 py-1.5 text-sm focus:border-neutral-900 focus:outline-none"
+          />
+          <input
+            value={keywords}
+            onChange={(e) => setKeywords(e.target.value)}
+            placeholder="검색 키워드 (쉼표 구분, 예: 뱅드림, 방드림)"
             className="min-w-[240px] flex-1 rounded-md border border-neutral-300 px-3 py-1.5 text-sm focus:border-neutral-900 focus:outline-none"
           />
           <button

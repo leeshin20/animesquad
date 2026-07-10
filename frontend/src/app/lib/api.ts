@@ -129,6 +129,7 @@ export type AnimeView = {
   titleNative: string;
   titleEnglish: string | null;
   titleKorean: string | null;
+  searchKeywords: string | null;
   coverImageUrl: string | null;
   episodes: number | null;
   status: string;
