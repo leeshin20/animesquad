@@ -6,6 +6,7 @@ import { displayTitle } from "@/app/lib/anilist-labels";
 import { StarsInput } from "@/app/components/Stars";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { DiscardConfirm } from "@/app/components/DiscardConfirm";
+import { buildEpisodeTweetText, openTwitterIntent } from "@/app/lib/twitter";
 
 export function EpisodeLogModal({
   entry,
@@ -26,6 +27,7 @@ export function EpisodeLogModal({
   const [confirming, setConfirming] = useState(false);
   const [overwriting, setOverwriting] = useState(false);
   const [ratedEps, setRatedEps] = useState<Set<number>>(new Set());
+  const [shareOnSave, setShareOnSave] = useState(false);
 
   // 이미 평가한 회차를 알아두면 저장 전 덮어쓰기 경고를 띄울 수 있다.
   useEffect(() => {
@@ -62,14 +64,16 @@ export function EpisodeLogModal({
     setError(null);
     try {
       if (score != null) {
-        // PUT episode rating — backend auto-bumps progress to epNum
         await apiPut(`/api/watch/${entry.anime.id}/episodes/${epNum}`, {
           score,
           comment: comment.trim() || null,
         });
       } else {
-        // Just bump progress
         await apiPatch(`/api/watch/${entry.anime.id}`, { progress: epNum });
+      }
+      if (shareOnSave) {
+        const title = displayTitle(entry.anime);
+        openTwitterIntent(buildEpisodeTweetText(title, epNum, score, comment));
       }
       onSaved();
     } catch (e) {
@@ -153,6 +157,16 @@ export function EpisodeLogModal({
             </p>
           )}
         </div>
+
+        <label className="flex items-center gap-2 text-sm text-neutral-600">
+          <input
+            type="checkbox"
+            checked={shareOnSave}
+            onChange={(e) => setShareOnSave(e.target.checked)}
+            className="h-4 w-4 rounded border-neutral-300"
+          />
+          트위터에 공유하기
+        </label>
 
         <div className="mt-6 flex justify-end gap-2">
           <button
