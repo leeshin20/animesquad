@@ -98,6 +98,43 @@ class AdminAnimeControllerIT extends AbstractIntegrationTest {
         assertThat(body.get(0).get("titleKorean")).isEqualTo("코난");
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    void patch_updatesTitleKoreanAndSearchKeywords() {
+        Long admin = adminId();
+        Anime a = seedAnime(103, null);
+
+        ResponseEntity<Map> res = rest.exchange(
+            url("/api/admin/anime/" + a.getId()), HttpMethod.PATCH,
+            new HttpEntity<>(Map.of("titleKorean", "BanG Dream!", "searchKeywords", "뱅드림, 방드림"),
+                cookieFor(admin)), Map.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody().get("titleKorean")).isEqualTo("BanG Dream!");
+        assertThat(res.getBody().get("searchKeywords")).isEqualTo("뱅드림, 방드림");
+        Anime saved = animes.findById(a.getId()).orElseThrow();
+        assertThat(saved.getTitleKorean()).isEqualTo("BanG Dream!");
+        assertThat(saved.getSearchKeywords()).isEqualTo("뱅드림, 방드림");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void patch_clearsSearchKeywords_whenBlank() {
+        Long admin = adminId();
+        Anime a = seedAnime(104, "코난");
+        a.setSearchKeywords("명탐정");
+        animes.save(a);
+
+        ResponseEntity<Map> res = rest.exchange(
+            url("/api/admin/anime/" + a.getId()), HttpMethod.PATCH,
+            new HttpEntity<>(Map.of("titleKorean", "코난", "searchKeywords", "  "),
+                cookieFor(admin)), Map.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody().get("searchKeywords")).isNull();
+        assertThat(animes.findById(a.getId()).orElseThrow().getSearchKeywords()).isNull();
+    }
+
     @Test
     void delete_removesAnime_whenNoReferences() {
         Long admin = adminId();

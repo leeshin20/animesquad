@@ -10,6 +10,7 @@ public record AnimeResponse(
     String titleNative,
     String titleEnglish,
     String titleKorean,
+    String searchKeywords,
     String coverImageUrl,
     Integer episodes,
     String status,
@@ -22,6 +23,7 @@ public record AnimeResponse(
         return new AnimeResponse(
             a.getId(), a.getAnilistId(),
             a.getTitleRomaji(), a.getTitleNative(), a.getTitleEnglish(), a.getTitleKorean(),
+            a.getSearchKeywords(),
             a.getCoverImageUrl(), a.getEpisodes(),
             a.getStatus(), a.getFormat(), a.getSeasonYear(), a.getSeason(),
             a.getStartDate()

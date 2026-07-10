@@ -24,7 +24,7 @@ import java.util.List;
 @RequestMapping("/api/admin/anime")
 public class AdminAnimeController {
 
-    public record UpdateTitleKoreanRequest(String titleKorean) {}
+    public record UpdateAnimeRequest(String titleKorean, String searchKeywords) {}
     public record BulkCacheSeasonRequest(Integer year, String season) {}
     public record BulkCacheResult(int cached) {}
     public record BulkDeleteRequest(List<Long> ids) {}
@@ -101,17 +101,23 @@ public class AdminAnimeController {
 
     @PatchMapping("/{id}")
     @Transactional
-    public AnimeResponse updateTitleKorean(
+    public AnimeResponse update(
         @AuthenticationPrincipal CurrentUser current,
         @PathVariable Long id,
-        @RequestBody UpdateTitleKoreanRequest body
+        @RequestBody UpdateAnimeRequest body
     ) {
         requireAdmin(current);
         Anime anime = animes.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "anime not found"));
-        String value = body.titleKorean() == null ? null : body.titleKorean().trim();
-        anime.setTitleKorean(value == null || value.isEmpty() ? null : value);
+        anime.setTitleKorean(normalize(body.titleKorean()));
+        anime.setSearchKeywords(normalize(body.searchKeywords()));
         return AnimeResponse.from(anime);
+    }
+
+    private static String normalize(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     @PostMapping("/bulk-delete")
