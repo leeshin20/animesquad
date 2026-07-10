@@ -5,6 +5,8 @@ import { apiDelete, apiPatch, type WatchEntry, type WatchStatus } from "@/app/li
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { StarsInput } from "@/app/components/Stars";
 import { DiscardConfirm } from "@/app/components/DiscardConfirm";
+import { buildSeriesTweetText, openTwitterIntent } from "@/app/lib/twitter";
+import { STATUS_LABEL } from "@/app/lib/watch-status";
 
 export function SeriesReviewModal({
   entry,
@@ -25,6 +27,7 @@ export function SeriesReviewModal({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [shareOnSave, setShareOnSave] = useState(false);
 
   // A review only makes sense once watching has progressed past 볼 예정/보는 중.
   const canReview = status !== "PLAN_TO_WATCH" && status !== "WATCHING";
@@ -54,6 +57,11 @@ export function SeriesReviewModal({
         score,
         comment: comment.trim() || null,
       });
+      if (shareOnSave) {
+        const title = displayTitle(entry.anime);
+        const label = STATUS_LABEL[status];
+        openTwitterIntent(buildSeriesTweetText(title, label, score, comment));
+      }
       onSaved();
     } catch (e) {
       setError(String(e));
@@ -111,6 +119,18 @@ export function SeriesReviewModal({
               <p className="mt-2 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-600">
                 별점과 감상평을 남기려면 시청 상태가 완료, 보류, 중단이어야 합니다.
               </p>
+            )}
+
+            {canReview && (
+              <label className="flex items-center gap-2 text-sm text-neutral-600">
+                <input
+                  type="checkbox"
+                  checked={shareOnSave}
+                  onChange={(e) => setShareOnSave(e.target.checked)}
+                  className="h-4 w-4 rounded border-neutral-300"
+                />
+                트위터에 공유하기
+              </label>
             )}
           </div>
 
