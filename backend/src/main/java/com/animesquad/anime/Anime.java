@@ -27,6 +27,9 @@ public class Anime {
     @Column(name = "title_korean")
     private String titleKorean;
 
+    @Column(name = "search_keywords")
+    private String searchKeywords;
+
     @Column(name = "cover_image_url")
     private String coverImageUrl;
 
@@ -92,6 +95,8 @@ public class Anime {
     public String getTitleEnglish() { return titleEnglish; }
     public String getTitleKorean() { return titleKorean; }
     public void setTitleKorean(String titleKorean) { this.titleKorean = titleKorean; }
+    public String getSearchKeywords() { return searchKeywords; }
+    public void setSearchKeywords(String searchKeywords) { this.searchKeywords = searchKeywords; }
     public String getCoverImageUrl() { return coverImageUrl; }
     public Integer getEpisodes() { return episodes; }
     public String getStatus() { return status; }
