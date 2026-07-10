@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiGet, apiPatch, type FeedItem, type Me, type Squad } from "@/app/lib/api";
 import { SquadEditModal } from "@/app/components/SquadEditModal";
 import { displayTitle } from "@/app/lib/anilist-labels";
+import { nextFeedCursor } from "@/app/lib/feed-pagination";
 import { Timeline, Avatar, type FeedItemWithSquad } from "@/app/components/Timeline";
 import { NoticeBanner } from "@/app/components/NoticeBanner";
 
@@ -27,6 +28,7 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
   const [me, setMe] = useState<Me | null>(null);
   const [items, setItems] = useState<FeedItemWithSquad[]>([]);
   const [recent, setRecent] = useState<SquadWatchItem[] | null>(null);
+  const [cursor, setCursor] = useState<number | null>(null);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,12 +38,13 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
     setLoading(true);
     setError(null);
     try {
-      const cursor = items.length === 0 ? "" : `&cursor=${items[items.length - 1].id}`;
+      const cursorParam = cursor == null ? "" : `&cursor=${cursor}`;
       const page = await apiGet<FeedItem[]>(
-        `/api/squad/${squadId}/feed?limit=${PAGE_SIZE}${cursor}`);
+        `/api/squad/${squadId}/feed?limit=${PAGE_SIZE}${cursorParam}`);
       const visible = page.filter(
         (it) => it.type !== "ANIME_ADDED" && it.type !== "STATUS_CHANGED");
       setItems((cur) => [...cur, ...visible]);
+      setCursor(nextFeedCursor(page, cursor));
       if (page.length < PAGE_SIZE) setDone(true);
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
