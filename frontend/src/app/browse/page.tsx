@@ -68,8 +68,8 @@ function BrowseContent() {
   const [results, setResults] = useState<AnimeView[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // null = 로그인 안 됨 (추가 버튼 대신 로그인 안내)
-  const [entries, setEntries] = useState<Record<number, WatchEntry> | null>(null);
+  // undefined = 로딩 중, null = 로그인 안 됨
+  const [entries, setEntries] = useState<Record<number, WatchEntry> | null | undefined>(undefined);
   const [modalEntry, setModalEntry] = useState<WatchEntry | null>(null);
 
   const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8080";
@@ -191,7 +191,9 @@ function BrowseContent() {
                   </p>
 
                   <div className="mt-auto flex justify-end pt-3">
-                    {entries === null ? (
+                    {entries === undefined ? (
+                      <div className="h-6 w-16 rounded-md bg-neutral-100" />
+                    ) : entries === null ? (
                       <a
                         href={`${apiBase}/oauth2/authorization/google`}
                         className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50"
