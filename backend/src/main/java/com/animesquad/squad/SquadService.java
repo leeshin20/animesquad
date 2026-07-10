@@ -2,11 +2,13 @@ package com.animesquad.squad;
 
 import com.animesquad.squad.dto.SquadResponse;
 import com.animesquad.squad.events.SquadJoinedEvent;
+import com.animesquad.user.AvatarStorage;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -17,13 +19,16 @@ public class SquadService {
     private final MembershipRepository memberships;
     private final InviteCodeGenerator codes;
     private final ApplicationEventPublisher events;
+    private final AvatarStorage storage;
 
     public SquadService(SquadRepository squads, MembershipRepository memberships,
-                        InviteCodeGenerator codes, ApplicationEventPublisher events) {
+                        InviteCodeGenerator codes, ApplicationEventPublisher events,
+                        AvatarStorage storage) {
         this.squads = squads;
         this.memberships = memberships;
         this.codes = codes;
         this.events = events;
+        this.storage = storage;
     }
 
     @Transactional
@@ -68,16 +73,16 @@ public class SquadService {
     }
 
     @Transactional
-    public Squad updateAvatarUrl(Long userId, Long squadId, String url) {
+    public Squad updateAvatar(Long userId, Long squadId, MultipartFile file) {
         Squad squad = getOwnerSquad(userId, squadId);
-        squad.updateAvatarUrl(url);
+        squad.updateAvatarUrl(storage.store(file));
         return squads.save(squad);
     }
 
     @Transactional
-    public Squad updateBannerUrl(Long userId, Long squadId, String url) {
+    public Squad updateBanner(Long userId, Long squadId, MultipartFile file) {
         Squad squad = getOwnerSquad(userId, squadId);
-        squad.updateBannerUrl(url);
+        squad.updateBannerUrl(storage.store(file));
         return squads.save(squad);
     }
 

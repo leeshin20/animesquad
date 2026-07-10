@@ -6,7 +6,6 @@ import com.animesquad.squad.dto.JoinSquadRequest;
 import com.animesquad.squad.dto.SquadResponse;
 import com.animesquad.squad.dto.UpdateAnnouncementRequest;
 import com.animesquad.squad.dto.UpdateNameRequest;
-import com.animesquad.user.AvatarStorage;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,11 +20,9 @@ import java.util.List;
 public class SquadController {
 
     private final SquadService squadService;
-    private final AvatarStorage storage;
 
-    public SquadController(SquadService squadService, AvatarStorage storage) {
+    public SquadController(SquadService squadService) {
         this.squadService = squadService;
-        this.storage = storage;
     }
 
     @PostMapping
@@ -65,8 +62,7 @@ public class SquadController {
         @PathVariable Long id,
         @RequestParam("file") MultipartFile file
     ) {
-        String url = storage.store(file);
-        return squadService.toResponse(squadService.updateAvatarUrl(me.userId(), id, url));
+        return squadService.toResponse(squadService.updateAvatar(me.userId(), id, file));
     }
 
     @PostMapping("/{id}/banner")
@@ -75,8 +71,7 @@ public class SquadController {
         @PathVariable Long id,
         @RequestParam("file") MultipartFile file
     ) {
-        String url = storage.store(file);
-        return squadService.toResponse(squadService.updateBannerUrl(me.userId(), id, url));
+        return squadService.toResponse(squadService.updateBanner(me.userId(), id, file));
     }
 
     @PatchMapping("/{id}/name")

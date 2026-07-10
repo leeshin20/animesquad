@@ -3,20 +3,26 @@ package com.animesquad.squad;
 import com.animesquad.auth.JwtAuthenticationFilter;
 import com.animesquad.auth.JwtService;
 import com.animesquad.support.AbstractIntegrationTest;
+import com.animesquad.user.AvatarStorage;
 import com.animesquad.user.User;
 import com.animesquad.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class SquadControllerIT extends AbstractIntegrationTest {
@@ -24,6 +30,7 @@ class SquadControllerIT extends AbstractIntegrationTest {
     @Autowired UserService userService;
     @Autowired JwtService jwtService;
     @Autowired TestRestTemplate rest;
+    @MockBean AvatarStorage storage;
     @LocalServerPort int port;
 
     @BeforeEach
@@ -135,6 +142,60 @@ class SquadControllerIT extends AbstractIntegrationTest {
             String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void nonOwner_cannotStoreSquadAvatar() {
+        User owner = userService.upsertFromGoogle("g-avatar-o", "avatar-o@x.y", "Owner", null);
+        User member = userService.upsertFromGoogle("g-avatar-m", "avatar-m@x.y", "Member", null);
+        Integer squadId = createSquad(owner.getId());
+        String code = inviteCodeOf(squadId, owner.getId());
+        rest.exchange(url("/api/squad/join"), HttpMethod.POST,
+            new HttpEntity<>(Map.of("inviteCode", code), cookieFor(member.getId())), Map.class);
+
+        HttpHeaders headers = cookieFor(member.getId());
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        ByteArrayResource image = new ByteArrayResource(new byte[] {1, 2, 3, 4}) {
+            @Override public String getFilename() { return "avatar.png"; }
+        };
+        HttpHeaders partHeaders = new HttpHeaders();
+        partHeaders.setContentType(MediaType.IMAGE_PNG);
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", new HttpEntity<>(image, partHeaders));
+
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/squad/" + squadId + "/avatar"), HttpMethod.POST,
+            new HttpEntity<>(body, headers), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void nonOwner_cannotStoreSquadBanner() {
+        User owner = userService.upsertFromGoogle("g-banner-o", "banner-o@x.y", "Owner", null);
+        User member = userService.upsertFromGoogle("g-banner-m", "banner-m@x.y", "Member", null);
+        Integer squadId = createSquad(owner.getId());
+        String code = inviteCodeOf(squadId, owner.getId());
+        rest.exchange(url("/api/squad/join"), HttpMethod.POST,
+            new HttpEntity<>(Map.of("inviteCode", code), cookieFor(member.getId())), Map.class);
+
+        HttpHeaders headers = cookieFor(member.getId());
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        ByteArrayResource image = new ByteArrayResource(new byte[] {1, 2, 3, 4}) {
+            @Override public String getFilename() { return "banner.png"; }
+        };
+        HttpHeaders partHeaders = new HttpHeaders();
+        partHeaders.setContentType(MediaType.IMAGE_PNG);
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", new HttpEntity<>(image, partHeaders));
+
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/squad/" + squadId + "/banner"), HttpMethod.POST,
+            new HttpEntity<>(body, headers), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        verifyNoInteractions(storage);
     }
 
     @Test
