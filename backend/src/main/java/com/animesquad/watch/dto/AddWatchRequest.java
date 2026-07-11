@@ -4,6 +4,7 @@ import com.animesquad.watch.WatchStatus;
 import jakarta.validation.constraints.NotNull;
 
 public record AddWatchRequest(
-    @NotNull Integer anilistId,
+    Integer anilistId,
+    Long animeId,
     @NotNull WatchStatus status
 ) {}

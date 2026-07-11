@@ -35,6 +35,12 @@ public class WatchService {
     }
 
     @Transactional
+    public WatchEntry addToListById(Long userId, Long animeId, WatchStatus status) {
+        return entries.findByUserIdAndAnimeId(userId, animeId)
+            .orElseGet(() -> entries.save(new WatchEntry(userId, animeId, status)));
+    }
+
+    @Transactional
     public WatchEntry updateEntry(Long userId, Long animeId,
                                   WatchStatus status, Integer progress,
                                   Integer score, String comment) {

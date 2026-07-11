@@ -77,7 +77,7 @@ function BrowseContent() {
   async function loadEntries() {
     try {
       const mine = await apiGet<WatchEntry[]>("/api/watch");
-      setEntries(Object.fromEntries(mine.map((e) => [e.anime.anilistId, e])));
+      setEntries(Object.fromEntries(mine.map((e) => [e.anime.id, e])));
     } catch { setEntries(null); }
   }
 
@@ -93,9 +93,9 @@ function BrowseContent() {
       .finally(() => setLoading(false));
   }, [year, season]);
 
-  async function add(anilistId: number, status: WatchStatus) {
+  async function add(animeId: number, status: WatchStatus) {
     try {
-      await apiPost("/api/watch", { anilistId, status });
+      await apiPost("/api/watch", { animeId, status });
       loadEntries();
     } catch (e) { setError(String(e)); }
   }
@@ -155,7 +155,7 @@ function BrowseContent() {
       {!loading && results !== null && results.length > 0 && (
         <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
           {results.map((anime) => {
-            const entry = entries?.[anime.anilistId];
+            const entry = entries?.[anime.id];
             return (
               <div
                 key={anime.id}
@@ -214,7 +214,7 @@ function BrowseContent() {
                         defaultValue=""
                         onChange={(e) => {
                           const s = e.target.value as WatchStatus;
-                          if (s) add(anime.anilistId, s);
+                          if (s) add(anime.id, s);
                         }}
                         className="rounded-md border border-neutral-300 px-2 py-1 text-xs focus:border-neutral-900 focus:outline-none"
                       >

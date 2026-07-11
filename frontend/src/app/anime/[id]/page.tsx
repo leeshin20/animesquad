@@ -130,7 +130,7 @@ function MyActions({
         onChange={async (e) => {
           const s = e.target.value as WatchStatus;
           if (!s) return;
-          try { await apiPost("/api/watch", { anilistId: anime.anilistId, status: s }); onSaved(); }
+          try { await apiPost("/api/watch", { animeId: anime.id, status: s }); onSaved(); }
           catch (err) { onError(String(err)); }
         }}
         className="mt-auto self-start rounded-md border border-neutral-300 px-2 py-1 text-sm focus:border-neutral-900 focus:outline-none"

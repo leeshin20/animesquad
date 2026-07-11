@@ -32,7 +32,16 @@ public class WatchController {
         @AuthenticationPrincipal CurrentUser me,
         @Valid @RequestBody AddWatchRequest req
     ) {
-        WatchEntry e = watchService.addToList(me.userId(), req.anilistId(), req.status());
+        WatchEntry e;
+        if (req.animeId() != null) {
+            Anime a = animes.findById(req.animeId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "anime not found"));
+            e = watchService.addToListById(me.userId(), a.getId(), req.status());
+        } else if (req.anilistId() != null) {
+            e = watchService.addToList(me.userId(), req.anilistId(), req.status());
+        } else {
+            throw new IllegalArgumentException("animeId 또는 anilistId 중 하나는 필요해요");
+        }
         Anime a = animes.findById(e.getAnimeId()).orElseThrow();
         return ResponseEntity.status(HttpStatus.CREATED).body(WatchEntryResponse.from(e, a));
     }
