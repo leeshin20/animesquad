@@ -35,6 +35,10 @@ export default function RootLayout({
             개인정보처리방침
           </Link>
           <span className="mx-2">·</span>
+          <Link href="/terms" className="underline underline-offset-2 hover:text-neutral-600">
+            이용약관
+          </Link>
+          <span className="mx-2">·</span>
           <a href="mailto:leeshin0213@gmail.com" className="hover:text-neutral-600">
             문의
           </a>
