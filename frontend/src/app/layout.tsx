@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import Link from "next/link";
 import "./globals.css";
 import NavBar from "./components/NavBar";
 
@@ -29,6 +30,15 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
         <NavBar />
         <main className="mx-auto max-w-5xl px-4 py-8 md:px-6 md:py-10">{children}</main>
+        <footer className="mt-16 border-t border-neutral-100 py-6 text-center text-xs text-neutral-400">
+          <Link href="/privacy" className="underline underline-offset-2 hover:text-neutral-600">
+            개인정보처리방침
+          </Link>
+          <span className="mx-2">·</span>
+          <a href="mailto:leeshin0213@gmail.com" className="hover:text-neutral-600">
+            문의
+          </a>
+        </footer>
       </body>
     </html>
   );
