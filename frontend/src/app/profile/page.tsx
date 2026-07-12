@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  apiGet, apiPatch, apiUpload, apiPostEmpty,
+  apiGet, apiPatch, apiUpload, apiPostEmpty, apiDelete,
   type Me, type MyEpisodeReview, type Squad, type WatchEntry,
 } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
@@ -35,6 +35,23 @@ export default function MePage() {
       router.push("/");
     } catch (e) {
       setError(String(e));
+    }
+  }
+
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function deleteAccount() {
+    if (!confirm("정말 탈퇴할까요? 모든 기록이 삭제되며 복구할 수 없어요.")) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await apiDelete("/api/me");
+      router.push("/");
+    } catch (e) {
+      setDeleteError(String(e));
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -142,6 +159,17 @@ export default function MePage() {
       >
         로그아웃
       </button>
+      <button
+        type="button"
+        onClick={deleteAccount}
+        disabled={deleting}
+        className="rounded-md border border-rose-200 px-3 py-1.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
+      >
+        {deleting ? "탈퇴 중…" : "회원 탈퇴"}
+      </button>
+      {deleteError && (
+        <p className="text-sm text-rose-600">{deleteError}</p>
+      )}
     </div>
   );
 }
