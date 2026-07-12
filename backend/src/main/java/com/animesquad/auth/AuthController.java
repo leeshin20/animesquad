@@ -68,6 +68,20 @@ public class AuthController {
 
     @PostMapping("/me/logout")
     public ResponseEntity<Void> logout() {
+        return ResponseEntity.noContent()
+            .header(HttpHeaders.SET_COOKIE, buildClearCookie())
+            .build();
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal CurrentUser current) {
+        userService.deleteAccount(current.userId());
+        return ResponseEntity.noContent()
+            .header(HttpHeaders.SET_COOKIE, buildClearCookie())
+            .build();
+    }
+
+    private String buildClearCookie() {
         StringBuilder sb = new StringBuilder();
         sb.append(JwtAuthenticationFilter.COOKIE_NAME).append("=");
         sb.append("; Path=/");
@@ -78,9 +92,7 @@ public class AuthController {
         if (cookieDomain != null && !cookieDomain.isBlank()) {
             sb.append("; Domain=").append(cookieDomain);
         }
-        return ResponseEntity.noContent()
-            .header(HttpHeaders.SET_COOKIE, sb.toString())
-            .build();
+        return sb.toString();
     }
 
     private MeResponse toResponse(User u) {

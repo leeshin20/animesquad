@@ -1,7 +1,10 @@
 package com.animesquad.auth;
 
+import com.animesquad.squad.Squad;
+import com.animesquad.squad.SquadRepository;
 import com.animesquad.support.AbstractIntegrationTest;
 import com.animesquad.user.User;
+import com.animesquad.user.UserRepository;
 import com.animesquad.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +29,8 @@ class AuthControllerIT extends AbstractIntegrationTest {
     @Autowired JwtService jwtService;
     @Autowired TestRestTemplate rest;
     @LocalServerPort int port;
+    @Autowired UserRepository userRepository;
+    @Autowired SquadRepository squadRepository;
 
     @BeforeEach
     void usePatchCapableClient() {
@@ -141,5 +146,39 @@ class AuthControllerIT extends AbstractIntegrationTest {
         String setCookie = res.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
         assertThat(setCookie).contains(JwtAuthenticationFilter.COOKIE_NAME + "=");
         assertThat(setCookie).contains("Max-Age=0");
+    }
+
+    @Test
+    void deleteAccount_returns401_whenNotLoggedIn() {
+        ResponseEntity<Void> res = rest.exchange(
+            url("/api/me"), HttpMethod.DELETE, HttpEntity.EMPTY, Void.class);
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void deleteAccount_deletesUserAndExpiresCookie() {
+        User u = userService.upsertFromGoogle("g-del-1", "del1@test.com", "Del", "url");
+        Long userId = u.getId();
+
+        ResponseEntity<Void> res = rest.exchange(
+            url("/api/me"), HttpMethod.DELETE, new HttpEntity<>(cookieFor(userId)), Void.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        String setCookie = res.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        assertThat(setCookie).contains(JwtAuthenticationFilter.COOKIE_NAME + "=");
+        assertThat(setCookie).contains("Max-Age=0");
+        assertThat(userRepository.existsById(userId)).isFalse();
+    }
+
+    @Test
+    void deleteAccount_returns409_whenUserOwnsSquad() {
+        User u = userService.upsertFromGoogle("g-del-2", "del2@test.com", "Owner", "url");
+        Squad squad = new Squad("테스트스쿼드", u.getId(), "TESTCODE1");
+        squadRepository.save(squad);
+
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/me"), HttpMethod.DELETE, new HttpEntity<>(cookieFor(u.getId())), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     }
 }
