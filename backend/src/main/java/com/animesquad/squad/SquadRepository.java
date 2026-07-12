@@ -6,4 +6,5 @@ import java.util.Optional;
 public interface SquadRepository extends JpaRepository<Squad, Long> {
     Optional<Squad> findByInviteCode(String inviteCode);
     boolean existsByInviteCode(String inviteCode);
+    boolean existsByOwnerId(Long ownerId);
 }

@@ -2,6 +2,8 @@ package com.animesquad.episode;
 
 import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,4 +21,8 @@ public interface EpisodeRatingRepository extends JpaRepository<EpisodeRating, Lo
 
     List<EpisodeRating> findAllByUserIdAndCommentIsNotNullOrderByUpdatedAtDesc(
         Long userId, Limit limit);
+
+    @Modifying
+    @Query("DELETE FROM EpisodeRating r WHERE r.userId = :userId")
+    void deleteAllByUserId(Long userId);
 }

@@ -2,6 +2,8 @@ package com.animesquad.watch;
 
 import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.Collection;
 import java.util.List;
@@ -15,4 +17,8 @@ public interface WatchEntryRepository extends JpaRepository<WatchEntry, Long> {
         Collection<Long> userIds, Collection<Long> animeIds);
     List<WatchEntry> findAllByAnimeIdOrderByUpdatedAtDesc(Long animeId);
     boolean existsByAnimeId(Long animeId);
+
+    @Modifying
+    @Query("DELETE FROM WatchEntry w WHERE w.userId = :userId")
+    void deleteAllByUserId(Long userId);
 }

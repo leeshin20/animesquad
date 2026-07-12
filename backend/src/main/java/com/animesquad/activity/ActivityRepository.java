@@ -19,5 +19,9 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     @Query("DELETE FROM Activity a WHERE a.actorId = :actorId AND a.animeId = :animeId")
     void deleteAllByActorIdAndAnimeId(Long actorId, Long animeId);
 
+    @Modifying
+    @Query("DELETE FROM Activity a WHERE a.actorId = :actorId")
+    void deleteAllByActorId(Long actorId);
+
     boolean existsByAnimeId(Long animeId);
 }
