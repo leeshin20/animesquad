@@ -9,7 +9,7 @@ export default function TermsPage() {
       <p className="text-neutral-500">최종 수정일: 2026년 7월 13일</p>
 
       <p>
-        본 약관은 animesquad(이하 "서비스")와 이용자 간의 권리·의무 및 서비스 이용 조건을 규정합니다.
+        본 약관은 animesquad(이하 &ldquo;서비스&rdquo;)와 이용자 간의 권리·의무 및 서비스 이용 조건을 규정합니다.
         서비스에 가입하거나 이용함으로써 본 약관에 동의한 것으로 간주됩니다.
       </p>
 

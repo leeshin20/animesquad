@@ -9,7 +9,7 @@ export default function PrivacyPage() {
       <p className="text-neutral-500">최종 수정일: 2026년 7월 13일</p>
 
       <p>
-        animesquad(이하 "서비스")는 이용자의 개인정보를 소중히 여기며, 개인정보보호법 등 관련 법령을 준수합니다.
+        animesquad(이하 &ldquo;서비스&rdquo;)는 이용자의 개인정보를 소중히 여기며, 개인정보보호법 등 관련 법령을 준수합니다.
         본 방침은 서비스가 어떤 정보를 수집하고 어떻게 이용하는지 안내합니다.
       </p>
 
