@@ -51,8 +51,11 @@ function Landing() {
   );
 }
 
+const HOME_PAGE_SIZE = 20;
+
 function Dashboard() {
   const [feed, setFeed] = useState<FeedItemWithSquad[] | null>(null);
+  const [displayCount, setDisplayCount] = useState(HOME_PAGE_SIZE);
   const [entries, setEntries] = useState<WatchEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,15 +69,14 @@ function Dashboard() {
 
       const pages = await Promise.all(
         squads.map(async (s) => {
-          const items = await apiGet<FeedItem[]>(`/api/squad/${s.id}/feed?limit=20`);
+          const items = await apiGet<FeedItem[]>(`/api/squad/${s.id}/feed?limit=50`);
           return items.map((it) => ({ ...it, squad: { id: s.id, name: s.name } }));
         })
       );
       const merged = pages
         .flat()
         .filter((it) => it.type !== "ANIME_ADDED" && it.type !== "STATUS_CHANGED")
-        .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
-        .slice(0, 30);
+        .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
       setFeed(merged);
     } catch (e) {
       setError(String(e));
@@ -82,6 +84,9 @@ function Dashboard() {
   }
 
   useEffect(() => { loadAll(); }, []);
+
+  const visibleFeed = feed ? feed.slice(0, displayCount) : null;
+  const hasMore = feed != null && displayCount < feed.length;
 
   return (
     <div className="space-y-6">
@@ -101,7 +106,18 @@ function Dashboard() {
 
         <section className="min-w-0">
           <SectionHeader title="스쿼드 활동" linkHref="/squads" linkLabel="스쿼드 전체" />
-          <Timeline items={feed} showSquad />
+          <Timeline items={visibleFeed} showSquad />
+          {hasMore && (
+            <div className="mt-3 text-center">
+              <button
+                type="button"
+                onClick={() => setDisplayCount((c) => c + HOME_PAGE_SIZE)}
+                className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
+              >
+                더 보기
+              </button>
+            </div>
+          )}
         </section>
       </div>
     </div>
