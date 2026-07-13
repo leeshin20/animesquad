@@ -52,20 +52,21 @@ function TimelineItem({
 }: { item: FeedItemWithSquad; showSquad: boolean }) {
   const name = item.actor?.displayName ?? "누군가";
   const ep = episodeOf(item);
+  const score = scoreOf(item);
   return (
     <li className="flex gap-3 px-4 py-4 transition hover:bg-neutral-50">
       <Avatar name={name} url={item.actor?.avatarUrl ?? null} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-          <span className="font-semibold text-neutral-900">{name}</span>
           {showSquad && item.squad && (
             <Link
               href={`/squads/${item.squad.id}`}
-              className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 hover:bg-neutral-200"
+              className="rounded-full bg-neutral-700 px-2 py-0.5 text-xs text-white hover:bg-neutral-600"
             >
               {item.squad.name}
             </Link>
           )}
+          <span className="font-semibold text-neutral-900">{name}</span>
           <span className="text-xs text-neutral-500">{relativeTime(item.createdAt)}</span>
         </div>
         <ItemBody item={item} />
@@ -84,12 +85,17 @@ function TimelineItem({
             ) : (
               <div className="h-12 w-9 flex-none rounded-sm bg-neutral-100" />
             )}
-            <span className="min-w-0 flex-1 truncate text-sm text-neutral-900">
-              {displayTitle(item.anime)}
-            </span>
-            {ep != null && (
-              <span className="flex-none text-xs font-medium text-neutral-600">{ep}화</span>
-            )}
+            <div className="flex min-w-0 flex-1 items-center gap-1.5">
+              <span className="min-w-0 truncate text-sm text-neutral-900">
+                {displayTitle(item.anime)}
+              </span>
+              {ep != null && (
+                <span className="flex-none whitespace-nowrap text-xs font-medium text-neutral-500">{ep}화</span>
+              )}
+              {score != null && (
+                <span className="flex-none"><Stars value={score} size="sm" /></span>
+              )}
+            </div>
           </Link>
         )}
       </div>
@@ -102,19 +108,14 @@ function ItemBody({ item }: { item: FeedItem }) {
 
   if (item.type === "RATED") {
     const comment = typeof p.comment === "string" ? p.comment : null;
+    if (!p.status && !comment) return null;
     return (
       <div className="flex flex-col gap-0.5">
-        <div className="flex items-center gap-2 text-sm text-neutral-700">
-          {p.score != null
-            ? <Stars value={Number(p.score)} size="sm" />
-            : <span className="text-xs text-neutral-400">별점 없음.</span>
-          }
-          {p.status != null && (
-            <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${statusBadge(p.status)}`}>
-              {statusLabel(p.status)}
-            </span>
-          )}
-        </div>
+        {p.status != null && (
+          <span className={`self-start rounded px-1.5 py-0.5 text-xs font-medium ${statusBadge(p.status)}`}>
+            {statusLabel(p.status)}
+          </span>
+        )}
         {comment && <CollapsibleComment text={comment} />}
       </div>
     );
@@ -122,13 +123,8 @@ function ItemBody({ item }: { item: FeedItem }) {
 
   if (item.type === "EPISODE_RATED") {
     const comment = typeof p.comment === "string" ? p.comment : null;
-    if (p.score == null && !comment) return null;
-    return (
-      <div className="flex flex-col gap-0.5">
-        {p.score != null && <Stars value={Number(p.score)} size="sm" />}
-        {comment && <CollapsibleComment text={comment} />}
-      </div>
-    );
+    if (!comment) return null;
+    return <CollapsibleComment text={comment} />;
   }
 
   if (item.type === "STATUS_CHANGED") {
@@ -159,6 +155,14 @@ function episodeOf(item: FeedItem): number | null {
   const p = item.payload as Record<string, unknown>;
   if (item.type === "EPISODE_RATED" && p.episode != null) return Number(p.episode);
   if (item.type === "PROGRESS_UPDATED" && p.progress != null) return Number(p.progress);
+  return null;
+}
+
+function scoreOf(item: FeedItem): number | null {
+  const p = item.payload as Record<string, unknown>;
+  if ((item.type === "RATED" || item.type === "EPISODE_RATED") && p.score != null) {
+    return Number(p.score);
+  }
   return null;
 }
 
