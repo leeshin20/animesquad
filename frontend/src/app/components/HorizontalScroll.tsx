@@ -10,18 +10,18 @@ export function HorizontalScroll({ children }: { children: React.ReactNode }) {
   }
 
   const btnClass =
-    "absolute top-1/2 -translate-y-1/2 z-10 hidden md:flex lg:hidden h-8 w-8 items-center justify-center rounded-full bg-white border border-neutral-200 shadow text-neutral-600 hover:bg-neutral-50";
+    "absolute top-0 bottom-0 z-10 hidden md:flex lg:hidden w-10 items-center justify-center bg-black/30 text-white transition hover:bg-black/50";
 
   return (
     <div className="relative">
       <button
         type="button"
         onClick={() => scroll(-176)}
-        className={`${btnClass} -left-4`}
+        className={`${btnClass} left-0`}
         aria-label="이전"
       >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9,2 4,7 9,12" />
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="10,3 5,8 10,13" />
         </svg>
       </button>
 
@@ -35,11 +35,11 @@ export function HorizontalScroll({ children }: { children: React.ReactNode }) {
       <button
         type="button"
         onClick={() => scroll(176)}
-        className={`${btnClass} -right-4`}
+        className={`${btnClass} right-0`}
         aria-label="다음"
       >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="5,2 10,7 5,12" />
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6,3 11,8 6,13" />
         </svg>
       </button>
     </div>
