@@ -29,8 +29,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <GoogleAnalytics gaId="G-4BNLZYYHB8" />
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
+        <GoogleAnalytics gaId="G-4BNLZYYHB8" />
         <NavBar />
         <main className="mx-auto max-w-5xl px-4 py-8 md:px-6 md:py-10">{children}</main>
         <ScrollToTop />
