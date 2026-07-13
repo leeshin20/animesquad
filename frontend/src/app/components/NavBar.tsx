@@ -37,7 +37,7 @@ export default function NavBar() {
   useEffect(() => {
     apiGet<Me>("/api/me").then((m) => {
       setMe(m);
-      if (!m.onboardingComplete && pathname !== "/onboarding") {
+      if (!m.onboardingComplete && pathname !== "/onboarding" && pathname !== "/terms" && pathname !== "/privacy") {
         router.push("/onboarding");
       }
     }).catch(() => {});

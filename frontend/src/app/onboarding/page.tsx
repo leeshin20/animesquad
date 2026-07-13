@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiGet, apiPatch, apiUpload, apiPostEmpty, type Me } from "@/app/lib/api";
+import { ImageCropModal } from "@/app/components/ImageCropModal";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function OnboardingPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [termsChecked, setTermsChecked] = useState(false);
   const [privacyChecked, setPrivacyChecked] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -33,6 +35,12 @@ export default function OnboardingPage() {
   function pickFile(f: File | null) {
     setFile(f);
     setPreview(f ? URL.createObjectURL(f) : null);
+  }
+
+  function onFileSelected(f: File | undefined) {
+    if (!f) return;
+    setCropSrc(URL.createObjectURL(f));
+    if (fileInput.current) fileInput.current.value = "";
   }
 
   async function submit() {
@@ -63,6 +71,20 @@ export default function OnboardingPage() {
 
   const avatarSrc = preview ?? me.avatarUrl ?? "/default-avatar.png";
 
+  if (cropSrc) {
+    return (
+      <ImageCropModal
+        src={cropSrc}
+        aspect={1}
+        onConfirm={(cropped) => {
+          pickFile(cropped);
+          setCropSrc(null);
+        }}
+        onCancel={() => setCropSrc(null)}
+      />
+    );
+  }
+
   return (
     <div className="mx-auto max-w-md space-y-6">
       <div>
@@ -80,7 +102,7 @@ export default function OnboardingPage() {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => onFileSelected(e.target.files?.[0])}
           />
           <button
             type="button"
@@ -89,7 +111,7 @@ export default function OnboardingPage() {
           >
             사진 선택
           </button>
-          {file && <p className="mt-1 text-xs text-neutral-500">{file.name}</p>}
+          <p className="mt-1 text-xs text-neutral-400">JPG, PNG, GIF · 최대 5MB</p>
         </div>
       </div>
 
