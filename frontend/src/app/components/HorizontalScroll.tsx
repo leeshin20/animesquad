@@ -10,7 +10,7 @@ export function HorizontalScroll({ children }: { children: React.ReactNode }) {
   }
 
   const btnClass =
-    "absolute top-0 bottom-0 z-10 hidden md:flex lg:hidden w-10 items-center justify-center bg-black/30 text-white transition hover:bg-black/50";
+    "absolute top-0 bottom-0 z-10 flex lg:hidden w-10 items-center justify-center bg-transparent text-white transition hover:bg-black/30 [filter:drop-shadow(0_0_3px_rgba(0,0,0,0.7))]";
 
   return (
     <div className="relative">
