@@ -131,9 +131,15 @@ export default function MyListPage() {
                 type="button"
                 onClick={() => setSortDir((d) => (d === "ASC" ? "DESC" : "ASC"))}
                 className="inline-flex items-center gap-1 rounded-md border border-neutral-300 px-2 py-1 text-sm text-neutral-600 hover:bg-neutral-100"
-                title={sortDir === "DESC" ? "내림차순" : "오름차순"}
+                title={
+                  sort === "UPDATED"
+                    ? sortDir === "DESC" ? "최신순" : "오래된순"
+                    : sortDir === "DESC" ? "Z~A" : "A~Z"
+                }
               >
-                {sortDir === "DESC" ? "↓ 내림차순" : "↑ 오름차순"}
+                {sort === "UPDATED"
+                  ? sortDir === "DESC" ? "↓ 최신순" : "↑ 오래된순"
+                  : sortDir === "DESC" ? "↓ Z~A" : "↑ A~Z"}
               </button>
             </label>
           </div>
