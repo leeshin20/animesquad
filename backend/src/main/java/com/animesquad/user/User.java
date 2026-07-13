@@ -26,6 +26,9 @@ public class User {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
+    @Column(name = "terms_agreed_at")
+    private OffsetDateTime termsAgreedAt;
+
     protected User() {}
 
     public User(String googleSub, String email, String displayName, String avatarUrl) {
@@ -43,10 +46,15 @@ public class User {
         this.avatarUrl = avatarUrl;
     }
 
+    public void agreeTerms() {
+        this.termsAgreedAt = OffsetDateTime.now();
+    }
+
     public Long getId() { return id; }
     public String getGoogleSub() { return googleSub; }
     public String getEmail() { return email; }
     public String getDisplayName() { return displayName; }
     public String getAvatarUrl() { return avatarUrl; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
+    public OffsetDateTime getTermsAgreedAt() { return termsAgreedAt; }
 }
