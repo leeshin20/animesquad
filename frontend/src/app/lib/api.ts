@@ -38,6 +38,7 @@ export type Me = {
   displayName: string;
   avatarUrl: string | null;
   isAdmin: boolean;
+  onboardingComplete: boolean;
 };
 
 export type Squad = {

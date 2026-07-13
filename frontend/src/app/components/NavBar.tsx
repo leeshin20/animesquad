@@ -35,7 +35,12 @@ export default function NavBar() {
   }, []);
 
   useEffect(() => {
-    apiGet<Me>("/api/me").then(setMe).catch(() => {});
+    apiGet<Me>("/api/me").then((m) => {
+      setMe(m);
+      if (!m.onboardingComplete && pathname !== "/onboarding") {
+        router.push("/onboarding");
+      }
+    }).catch(() => {});
   }, []);
 
   // 라우트 변경 시 드로어 + 검색 닫기
@@ -290,14 +295,6 @@ export default function NavBar() {
 }
 
 function Avatar({ name, url }: { name: string; url: string | null }) {
-  if (url) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={url} alt="" className="h-7 w-7 flex-none rounded-full object-cover" />;
-  }
-  const initial = name.trim().charAt(0).toUpperCase() || "?";
-  return (
-    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-neutral-200 text-xs font-medium text-neutral-600">
-      {initial}
-    </div>
-  );
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url ?? "/default-avatar.png"} alt={name} className="h-7 w-7 flex-none rounded-full object-cover" />;
 }
