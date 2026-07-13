@@ -54,6 +54,9 @@ public class AuthController {
         if (name.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "닉네임을 입력해주세요");
         }
+        if (name.length() > 50) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "닉네임은 50자 이하여야 해요");
+        }
         return ResponseEntity.ok(toResponse(userService.updateDisplayName(current.userId(), name)));
     }
 

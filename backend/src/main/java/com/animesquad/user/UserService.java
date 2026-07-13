@@ -45,7 +45,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public User getById(Long id) {
         return repository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("user not found: " + id));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "user not found"));
     }
 
     @Transactional

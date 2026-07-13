@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/watch")
@@ -48,8 +50,13 @@ public class WatchController {
 
     @GetMapping
     public List<WatchEntryResponse> listMine(@AuthenticationPrincipal CurrentUser me) {
-        return watchService.listMine(me.userId()).stream()
-            .map(e -> WatchEntryResponse.from(e, animes.findById(e.getAnimeId()).orElseThrow()))
+        List<WatchEntry> entries = watchService.listMine(me.userId());
+        Map<Long, Anime> animeMap = animes.findAllById(
+                entries.stream().map(WatchEntry::getAnimeId).toList()
+            ).stream()
+            .collect(Collectors.toMap(Anime::getId, a -> a));
+        return entries.stream()
+            .map(e -> WatchEntryResponse.from(e, animeMap.get(e.getAnimeId())))
             .toList();
     }
 
