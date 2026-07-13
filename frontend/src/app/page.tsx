@@ -11,6 +11,7 @@ import {
 } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { Timeline, type FeedItemWithSquad } from "@/app/components/Timeline";
+import { HorizontalScroll } from "@/app/components/HorizontalScroll";
 import { EpisodeLogModal } from "@/app/components/EpisodeLogModal";
 import { NoticeBanner } from "@/app/components/NoticeBanner";
 import { MAIN_NOTICE } from "@/app/lib/notice";
@@ -65,7 +66,7 @@ function Dashboard() {
         apiGet<Squad[]>("/api/squad"),
         apiGet<WatchEntry[]>("/api/watch"),
       ]);
-      setEntries(mine.filter((e) => e.status !== "PLAN_TO_WATCH").slice(0, 10));
+      setEntries(mine.filter((e) => e.status !== "PLAN_TO_WATCH").slice(0, 30));
 
       const pages = await Promise.all(
         squads.map(async (s) => {
@@ -156,11 +157,11 @@ function MyRecentGrid({
     );
   }
   return (
-    <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 lg:grid lg:grid-cols-2 lg:overflow-x-visible lg:pb-0 lg:snap-none">
+    <HorizontalScroll>
       {entries.map((e) => (
         <MyRecentCard key={e.id} entry={e} onChanged={onChanged} />
       ))}
-    </div>
+    </HorizontalScroll>
   );
 }
 

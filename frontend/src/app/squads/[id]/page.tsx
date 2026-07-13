@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { apiGet, apiPatch, type FeedItem, type Me, type Squad } from "@/app/lib/api";
 import { SquadEditModal } from "@/app/components/SquadEditModal";
+import { HorizontalScroll } from "@/app/components/HorizontalScroll";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { nextFeedCursor } from "@/app/lib/feed-pagination";
 import { Timeline, Avatar, type FeedItemWithSquad } from "@/app/components/Timeline";
@@ -52,7 +53,7 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
 
   async function loadRecent() {
     try {
-      const data = await apiGet<SquadWatchItem[]>(`/api/squad/${squadId}/recent-watch?limit=10`);
+      const data = await apiGet<SquadWatchItem[]>(`/api/squad/${squadId}/recent-watch?limit=30`);
       setRecent(data.filter((it) => it.status !== "PLAN_TO_WATCH"));
     } catch (e) { setError(String(e)); }
   }
@@ -239,9 +240,9 @@ function SquadRecentGrid({ items }: { items: SquadWatchItem[] | null }) {
     );
   }
   return (
-    <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 lg:grid lg:grid-cols-2 lg:overflow-x-visible lg:pb-0 lg:snap-none">
+    <HorizontalScroll>
       {groupByAnime(items).map((g) => <SquadRecentCard key={g.anime.id} group={g} />)}
-    </div>
+    </HorizontalScroll>
   );
 }
 
