@@ -63,6 +63,12 @@ public class UserService {
     }
 
     @Transactional
+    public void agreeTerms(Long userId) {
+        User user = getById(userId);
+        user.agreeTerms();
+    }
+
+    @Transactional
     public void deleteAccount(Long userId) {
         if (squadRepository.existsByOwnerId(userId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,

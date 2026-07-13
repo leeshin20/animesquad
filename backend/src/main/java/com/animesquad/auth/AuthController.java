@@ -36,7 +36,7 @@ public class AuthController {
         this.adminProperties = adminProperties;
     }
 
-    public record MeResponse(Long id, String email, String displayName, String avatarUrl, boolean isAdmin) {}
+    public record MeResponse(Long id, String email, String displayName, String avatarUrl, boolean isAdmin, boolean onboardingComplete) {}
 
     public record UpdateProfileRequest(String displayName) {}
 
@@ -73,6 +73,12 @@ public class AuthController {
             .build();
     }
 
+    @PostMapping("/me/agree-terms")
+    public ResponseEntity<Void> agreeTerms(@AuthenticationPrincipal CurrentUser current) {
+        userService.agreeTerms(current.userId());
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal CurrentUser current) {
         userService.deleteAccount(current.userId());
@@ -97,6 +103,7 @@ public class AuthController {
 
     private MeResponse toResponse(User u) {
         boolean isAdmin = adminProperties.isAdminEmail(u.getEmail());
-        return new MeResponse(u.getId(), u.getEmail(), u.getDisplayName(), u.getAvatarUrl(), isAdmin);
+        boolean onboardingComplete = u.getTermsAgreedAt() != null;
+        return new MeResponse(u.getId(), u.getEmail(), u.getDisplayName(), u.getAvatarUrl(), isAdmin, onboardingComplete);
     }
 }

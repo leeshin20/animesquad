@@ -46,12 +46,11 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String sub = principal.getAttribute("sub");
         String email = principal.getAttribute("email");
         String name = principal.getAttribute("name");
-        String picture = principal.getAttribute("picture");
 
-        User user = userService.upsertFromGoogle(sub, email, name, picture);
+        // Google 프로필 사진은 저장하지 않음 — 앱 기본 이미지 사용
+        User user = userService.upsertFromGoogle(sub, email, name, null);
         String token = jwtService.issue(user.getId());
 
-        // Build cookie manually for SameSite support (Servlet Cookie doesn't expose it)
         StringBuilder sb = new StringBuilder();
         sb.append(JwtAuthenticationFilter.COOKIE_NAME).append("=").append(token);
         sb.append("; Path=/");
@@ -64,6 +63,13 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         }
         res.addHeader("Set-Cookie", sb.toString());
 
-        getRedirectStrategy().sendRedirect(req, res, successRedirect);
+        // 온보딩 미완료 유저는 /onboarding으로 리다이렉트
+        String base = successRedirect.endsWith("/")
+            ? successRedirect.substring(0, successRedirect.length() - 1)
+            : successRedirect;
+        String redirectUrl = user.getTermsAgreedAt() == null
+            ? base + "/onboarding"
+            : successRedirect;
+        getRedirectStrategy().sendRedirect(req, res, redirectUrl);
     }
 }

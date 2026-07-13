@@ -181,4 +181,40 @@ class AuthControllerIT extends AbstractIntegrationTest {
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     }
+
+    @Test
+    void agreeTerms_returns401_whenNotLoggedIn() {
+        ResponseEntity<Void> res = rest.exchange(
+            url("/api/me/agree-terms"), HttpMethod.POST, HttpEntity.EMPTY, Void.class);
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void agreeTerms_setsTermsAgreedAt() {
+        User u = userService.upsertFromGoogle("g-terms-1", "terms1@test.com", "T", null);
+        assertThat(u.getTermsAgreedAt()).isNull();
+
+        ResponseEntity<Void> res = rest.exchange(
+            url("/api/me/agree-terms"), HttpMethod.POST,
+            new HttpEntity<>(cookieFor(u.getId())), Void.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(userRepository.findById(u.getId()).get().getTermsAgreedAt()).isNotNull();
+    }
+
+    @Test
+    void me_includesOnboardingComplete() {
+        User u = userService.upsertFromGoogle("g-oc-1", "oc1@test.com", "OC", null);
+
+        ResponseEntity<String> before = rest.exchange(
+            url("/api/me"), HttpMethod.GET, new HttpEntity<>(cookieFor(u.getId())), String.class);
+        assertThat(before.getBody()).contains("\"onboardingComplete\":false");
+
+        rest.exchange(url("/api/me/agree-terms"), HttpMethod.POST,
+            new HttpEntity<>(cookieFor(u.getId())), Void.class);
+
+        ResponseEntity<String> after = rest.exchange(
+            url("/api/me"), HttpMethod.GET, new HttpEntity<>(cookieFor(u.getId())), String.class);
+        assertThat(after.getBody()).contains("\"onboardingComplete\":true");
+    }
 }
