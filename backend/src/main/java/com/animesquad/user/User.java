@@ -47,7 +47,9 @@ public class User {
     }
 
     public void agreeTerms() {
-        this.termsAgreedAt = OffsetDateTime.now();
+        if (this.termsAgreedAt == null) {
+            this.termsAgreedAt = OffsetDateTime.now();
+        }
     }
 
     public Long getId() { return id; }

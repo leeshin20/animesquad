@@ -64,12 +64,10 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         res.addHeader("Set-Cookie", sb.toString());
 
         // 온보딩 미완료 유저는 /onboarding으로 리다이렉트
-        String base = successRedirect.endsWith("/")
+        String onboardingRedirect = (successRedirect.endsWith("/")
             ? successRedirect.substring(0, successRedirect.length() - 1)
-            : successRedirect;
-        String redirectUrl = user.getTermsAgreedAt() == null
-            ? base + "/onboarding"
-            : successRedirect;
+            : successRedirect) + "/onboarding";
+        String redirectUrl = user.getTermsAgreedAt() == null ? onboardingRedirect : successRedirect;
         getRedirectStrategy().sendRedirect(req, res, redirectUrl);
     }
 }
