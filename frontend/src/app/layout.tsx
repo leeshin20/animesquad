@@ -4,6 +4,7 @@ import Link from "next/link";
 import "./globals.css";
 import NavBar from "./components/NavBar";
 import { ScrollToTop } from "./components/ScrollToTop";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -28,6 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <GoogleAnalytics gaId="G-4BNLZYYHB8" />
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
         <NavBar />
         <main className="mx-auto max-w-5xl px-4 py-8 md:px-6 md:py-10">{children}</main>
