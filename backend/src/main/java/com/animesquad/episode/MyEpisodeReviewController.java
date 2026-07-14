@@ -42,11 +42,13 @@ public class MyEpisodeReviewController {
     @Transactional(readOnly = true)
     public List<MyEpisodeReview> recent(
         @AuthenticationPrincipal CurrentUser me,
-        @RequestParam(defaultValue = "10") int limit
+        @RequestParam(defaultValue = "10") int limit,
+        @RequestParam(defaultValue = "true") boolean commentOnly
     ) {
-        int bounded = Math.max(1, Math.min(limit, 50));
-        List<EpisodeRating> rows =
-            ratings.findAllByUserIdAndCommentIsNotNullOrderByUpdatedAtDesc(me.userId(), Limit.of(bounded));
+        int bounded = Math.max(1, Math.min(limit, 500));
+        List<EpisodeRating> rows = commentOnly
+            ? ratings.findAllByUserIdAndCommentIsNotNullOrderByUpdatedAtDesc(me.userId(), Limit.of(bounded))
+            : ratings.findAllByUserIdOrderByUpdatedAtDesc(me.userId(), Limit.of(bounded));
         if (rows.isEmpty()) return List.of();
 
         Map<Long, Anime> animeById = animes.findAllById(

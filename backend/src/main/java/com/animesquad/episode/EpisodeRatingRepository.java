@@ -22,6 +22,9 @@ public interface EpisodeRatingRepository extends JpaRepository<EpisodeRating, Lo
     List<EpisodeRating> findAllByUserIdAndCommentIsNotNullOrderByUpdatedAtDesc(
         Long userId, Limit limit);
 
+    List<EpisodeRating> findAllByUserIdOrderByUpdatedAtDesc(
+        Long userId, Limit limit);
+
     @Modifying
     @Query("DELETE FROM EpisodeRating r WHERE r.userId = :userId")
     void deleteAllByUserId(Long userId);
