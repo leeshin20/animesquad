@@ -17,11 +17,23 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   const [error, setError] = useState<LoadError | null>(null);
 
   useEffect(() => {
+    let ignore = false;
+    setProfile(null);
+    setError(null);
+
     apiGet<UserProfile>(`/api/users/${params.id}`)
-      .then(setProfile)
+      .then((nextProfile) => {
+        if (!ignore) setProfile(nextProfile);
+      })
       .catch((e) => {
-        setError(e instanceof Error && e.message === "API 401" ? "unauthorized" : "failed");
+        if (!ignore) {
+          setError(e instanceof Error && e.message === "API 401" ? "unauthorized" : "failed");
+        }
       });
+
+    return () => {
+      ignore = true;
+    };
   }, [params.id]);
 
   if (error) {
