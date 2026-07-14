@@ -18,6 +18,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
     private final UserService userService;
     private final JwtService jwtService;
+    private final InviteSignupTokenService inviteSignupTokenService;
     private final AuthCookieFactory authCookieFactory;
 
     @Value("${app.oauth.success-redirect}")
@@ -29,10 +30,12 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     public OAuth2LoginSuccessHandler(
         UserService userService,
         JwtService jwtService,
+        InviteSignupTokenService inviteSignupTokenService,
         AuthCookieFactory authCookieFactory
     ) {
         this.userService = userService;
         this.jwtService = jwtService;
+        this.inviteSignupTokenService = inviteSignupTokenService;
         this.authCookieFactory = authCookieFactory;
     }
 
@@ -44,17 +47,27 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String email = principal.getAttribute("email");
         String name = principal.getAttribute("name");
 
-        // Google 프로필 사진은 저장하지 않음 — 앱 기본 이미지 사용
-        User user = userService.upsertFromGoogle(sub, email, name, null);
+        User user = userService.findByGoogleSub(sub).orElse(null);
+        if (user == null) {
+            String inviteToken = inviteSignupTokenService.issue(sub, email, name);
+            res.addHeader("Set-Cookie", authCookieFactory.invite(inviteToken));
+            getRedirectStrategy().sendRedirect(req, res, normalizedRedirect() + "/invite");
+            return;
+        }
+
         String token = jwtService.issue(user.getId());
 
         res.addHeader("Set-Cookie", authCookieFactory.session(token, ttlMinutes * 60));
 
         // 온보딩 미완료 유저는 /onboarding으로 리다이렉트
-        String onboardingRedirect = (successRedirect.endsWith("/")
-            ? successRedirect.substring(0, successRedirect.length() - 1)
-            : successRedirect) + "/onboarding";
+        String onboardingRedirect = normalizedRedirect() + "/onboarding";
         String redirectUrl = user.getTermsAgreedAt() == null ? onboardingRedirect : successRedirect;
         getRedirectStrategy().sendRedirect(req, res, redirectUrl);
+    }
+
+    private String normalizedRedirect() {
+        return successRedirect.endsWith("/")
+            ? successRedirect.substring(0, successRedirect.length() - 1)
+            : successRedirect;
     }
 }

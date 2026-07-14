@@ -1,14 +1,18 @@
 package com.animesquad.user;
 
 import com.animesquad.activity.ActivityRepository;
+import com.animesquad.auth.InviteSignupTokenService.InviteProfile;
 import com.animesquad.episode.EpisodeRatingRepository;
 import com.animesquad.squad.MembershipRepository;
 import com.animesquad.squad.SquadRepository;
 import com.animesquad.watch.WatchEntryRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Optional;
 
 @Service
 public class UserService {
@@ -40,6 +44,23 @@ public class UserService {
     public User upsertFromGoogle(String googleSub, String email, String displayName, String avatarUrl) {
         return repository.findByGoogleSub(googleSub)
             .orElseGet(() -> repository.save(new User(googleSub, email, displayName, avatarUrl)));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<User> findByGoogleSub(String googleSub) {
+        return repository.findByGoogleSub(googleSub);
+    }
+
+    @Transactional
+    public User createFromGoogleIfAbsent(InviteProfile profile) {
+        return repository.findByGoogleSub(profile.googleSub()).orElseGet(() -> {
+            try {
+                return repository.saveAndFlush(new User(
+                    profile.googleSub(), profile.email(), profile.displayName(), null));
+            } catch (DataIntegrityViolationException conflict) {
+                return repository.findByGoogleSub(profile.googleSub()).orElseThrow(() -> conflict);
+            }
+        });
     }
 
     @Transactional(readOnly = true)
