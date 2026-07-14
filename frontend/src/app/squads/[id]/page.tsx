@@ -272,33 +272,36 @@ function groupByAnime(items: SquadWatchItem[]): AnimeWatchGroup[] {
 function SquadRecentCard({ group }: { group: AnimeWatchGroup }) {
   const { anime, watchers } = group;
   const title = displayTitle(anime);
-  const lead = watchers[0];
+  const watchersWithActor = watchers.filter((watcher) => watcher.actor);
   return (
     <div className="w-20 shrink-0 snap-start lg:w-auto lg:snap-align-none">
-      <Link href={`/anime/${anime.id}`} className="relative block transition hover:opacity-80">
-        {anime.coverImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={anime.coverImageUrl}
-            alt=""
-            className="aspect-[2/3] w-full rounded-lg object-cover"
-          />
-        ) : (
-          <div className="aspect-[2/3] w-full rounded-lg bg-neutral-100" />
-        )}
+      <div className="relative">
+        <Link href={`/anime/${anime.id}`} className="block transition hover:opacity-80">
+          {anime.coverImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={anime.coverImageUrl}
+              alt=""
+              className="aspect-[2/3] w-full rounded-lg object-cover"
+            />
+          ) : (
+            <div className="aspect-[2/3] w-full rounded-lg bg-neutral-100" />
+          )}
+        </Link>
         <WatcherStack watchers={watchers} />
-      </Link>
+      </div>
       <p className="mt-2 truncate text-sm font-medium text-neutral-800" title={title}>
         {title}
       </p>
       <p className="mt-0.5 truncate text-xs text-neutral-400">
-        {watchers.length > 1 ? (
-          `${watchers.length}명 감상 중`
-        ) : lead.actor ? (
-          <Link href={`/users/${lead.actor.id}`} className="hover:underline">
-            {lead.actor.displayName}
-          </Link>
-        ) : null}
+        {watchersWithActor.map((watcher, index) => (
+          <span key={watcher.id}>
+            {index > 0 && ", "}
+            <Link href={`/users/${watcher.actor!.id}`} className="hover:underline">
+              {watcher.actor!.displayName}
+            </Link>
+          </span>
+        ))}
       </p>
     </div>
   );
@@ -313,9 +316,14 @@ function WatcherStack({ watchers }: { watchers: SquadWatchItem[] }) {
   return (
     <div className="absolute bottom-1 right-1 flex -space-x-2">
       {shown.map((w) => (
-        <div key={w.id} className="rounded-full ring-2 ring-white">
+        <Link
+          key={w.id}
+          href={`/users/${w.actor!.id}`}
+          className="rounded-full ring-2 ring-white"
+          aria-label={`${w.actor!.displayName} 프로필`}
+        >
           <Avatar name={w.actor!.displayName} url={w.actor!.avatarUrl} size={7} />
-        </div>
+        </Link>
       ))}
       {extra > 0 && (
         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-700 text-xs font-medium text-white ring-2 ring-white">
