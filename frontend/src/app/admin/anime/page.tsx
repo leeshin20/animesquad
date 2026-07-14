@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiPatch, apiPost, apiDelete, type AnimeView } from "@/app/lib/api";
 import { aniFormat } from "@/app/lib/anilist-labels";
@@ -75,7 +76,15 @@ export default function AdminAnimePage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">관리자 · 한국어 제목</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight">관리자 · 한국어 제목</h1>
+          <Link
+            href="/admin/watch-import"
+            className="text-sm font-medium text-neutral-600 hover:text-neutral-900"
+          >
+            감상 기록 가져오기
+          </Link>
+        </div>
         <p className="mt-1 text-sm text-neutral-500">
           캐시된 작품의 한국어 제목을 직접 입력합니다.
         </p>
