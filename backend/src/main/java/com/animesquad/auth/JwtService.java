@@ -1,5 +1,7 @@
 package com.animesquad.auth;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +15,8 @@ import java.util.Date;
 
 @Service
 public class JwtService {
+
+    private static final String PURPOSE = "session";
 
     private final SecretKey key;
     private final long ttlMinutes;
@@ -29,6 +33,7 @@ public class JwtService {
         Instant now = Instant.now();
         return Jwts.builder()
             .subject(userId.toString())
+            .claim("purpose", PURPOSE)
             .issuedAt(Date.from(now))
             .expiration(Date.from(now.plus(ttlMinutes, ChronoUnit.MINUTES)))
             .signWith(key)
@@ -36,12 +41,15 @@ public class JwtService {
     }
 
     public Long parseUserId(String token) {
-        String sub = Jwts.parser()
+        Claims claims = Jwts.parser()
             .verifyWith(key)
             .build()
             .parseSignedClaims(token)
-            .getPayload()
-            .getSubject();
-        return Long.valueOf(sub);
+            .getPayload();
+        String purpose = claims.get("purpose", String.class);
+        if (purpose != null && !PURPOSE.equals(purpose)) {
+            throw new JwtException("wrong token purpose");
+        }
+        return Long.valueOf(claims.getSubject());
     }
 }
