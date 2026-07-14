@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface WatchEntryRepository extends JpaRepository<WatchEntry, Long> {
     List<WatchEntry> findAllByUserIdOrderByUpdatedAtDesc(Long userId);
     Optional<WatchEntry> findByUserIdAndAnimeId(Long userId, Long animeId);
+    List<WatchEntry> findAllByUserIdAndAnimeIdIn(Long userId, Collection<Long> animeIds);
     List<WatchEntry> findAllByUserIdInOrderByUpdatedAtDesc(Collection<Long> userIds, Limit limit);
     List<WatchEntry> findAllByUserIdInAndAnimeIdInOrderByUpdatedAtDesc(
         Collection<Long> userIds, Collection<Long> animeIds);

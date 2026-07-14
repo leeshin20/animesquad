@@ -8,6 +8,7 @@ import com.animesquad.watch.WatchEntry;
 import com.animesquad.watch.WatchEntryRepository;
 import com.animesquad.watch.WatchStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -111,19 +112,28 @@ public class AdminWatchImportService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "anime not found");
         }
 
+        Map<Long, WatchEntry> existingEntries = entries
+            .findAllByUserIdAndAnimeIdIn(targetUserId, animeIds).stream()
+            .collect(Collectors.toMap(WatchEntry::getAnimeId, Function.identity()));
         int created = 0;
         int updated = 0;
-        for (CommitItem item : items) {
-            WatchEntry entry = entries.findByUserIdAndAnimeId(targetUserId, item.animeId()).orElse(null);
-            if (entry == null) {
-                entry = new WatchEntry(targetUserId, item.animeId(), WatchStatus.WATCHING);
-                entry.apply(null, item.progress(), null, null);
-                entries.save(entry);
-                created++;
-            } else {
-                entry.apply(WatchStatus.WATCHING, item.progress(), null, null);
-                updated++;
+        try {
+            for (CommitItem item : items) {
+                WatchEntry entry = existingEntries.get(item.animeId());
+                if (entry == null) {
+                    entry = new WatchEntry(targetUserId, item.animeId(), WatchStatus.WATCHING);
+                    entry.apply(null, item.progress(), null, null);
+                    entries.save(entry);
+                    created++;
+                } else {
+                    entry.apply(WatchStatus.WATCHING, item.progress(), null, null);
+                    updated++;
+                }
             }
+            entries.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "watch entries changed during import", e);
         }
         return new CommitResponse(created, updated);
     }

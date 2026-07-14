@@ -6,6 +6,8 @@ import com.animesquad.anime.Anime;
 import com.animesquad.anime.AnimeService;
 import com.animesquad.auth.JwtAuthenticationFilter;
 import com.animesquad.auth.JwtService;
+import com.animesquad.episode.EpisodeRating;
+import com.animesquad.episode.EpisodeRatingRepository;
 import com.animesquad.squad.Membership;
 import com.animesquad.squad.MembershipRepository;
 import com.animesquad.squad.MembershipRole;
@@ -46,6 +48,7 @@ class AdminWatchImportControllerIT extends AbstractIntegrationTest {
     @Autowired SquadRepository squads;
     @Autowired MembershipRepository memberships;
     @Autowired ActivityRepository activities;
+    @Autowired EpisodeRatingRepository episodeRatings;
     @Autowired TestRestTemplate rest;
     @LocalServerPort int port;
 
@@ -112,6 +115,26 @@ class AdminWatchImportControllerIT extends AbstractIntegrationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    void commit_returns401_withoutAuthentication_beforeReadingMalformedBody() {
+        ResponseEntity<String> response = rest.exchange(
+            url("/api/admin/watch-import/commit"), HttpMethod.POST,
+            new HttpEntity<>("null", jsonHeaders()), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void commit_returns403_forNonAdmin_beforeValidatingEmptyBody() {
+        User viewer = user("g-viewer", "viewer@x.y");
+
+        ResponseEntity<String> response = rest.exchange(
+            url("/api/admin/watch-import/commit"), HttpMethod.POST,
+            new HttpEntity<>(Map.of(), cookieFor(viewer.getId())), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     void commit_createsAndOverwritesSilently_whilePreservingReview() {
@@ -121,6 +144,8 @@ class AdminWatchImportControllerIT extends AbstractIntegrationTest {
         WatchEntry existing = new WatchEntry(target.getId(), existingAnime.getId(), WatchStatus.COMPLETED);
         existing.apply(null, 8, 5, "keep me");
         entries.save(existing);
+        EpisodeRating episodeRating = episodeRatings.save(
+            new EpisodeRating(target.getId(), existingAnime.getId(), 8, 4, "episode stays"));
         Squad squad = squads.save(new Squad("Import observers", target.getId(), "IMPORTCODE"));
         memberships.save(new Membership(target.getId(), squad.getId(), MembershipRole.OWNER));
 
@@ -144,8 +169,10 @@ class AdminWatchImportControllerIT extends AbstractIntegrationTest {
         assertThat(updated.getComment()).isEqualTo("keep me");
         assertThat(created.getStatus()).isEqualTo(WatchStatus.WATCHING);
         assertThat(created.getProgress()).isEqualTo(3);
-        assertThat(activities.existsByAnimeId(existingAnime.getId())).isFalse();
-        assertThat(activities.existsByAnimeId(newAnime.getId())).isFalse();
+        EpisodeRating preservedEpisode = episodeRatings.findById(episodeRating.getId()).orElseThrow();
+        assertThat(preservedEpisode.getScore()).isEqualTo(4);
+        assertThat(preservedEpisode.getComment()).isEqualTo("episode stays");
+        assertThat(activities.findAll()).isEmpty();
     }
 
     @Test

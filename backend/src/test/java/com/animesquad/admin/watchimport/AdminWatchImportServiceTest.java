@@ -4,7 +4,11 @@ import com.animesquad.anime.Anime;
 import com.animesquad.anime.AnimeRepository;
 import com.animesquad.user.User;
 import com.animesquad.user.UserRepository;
+import com.animesquad.watch.WatchEntry;
+import com.animesquad.watch.WatchEntryRepository;
+import com.animesquad.watch.WatchStatus;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -14,12 +18,15 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static com.animesquad.admin.watchimport.AdminWatchImportDtos.CommitItem;
 import static com.animesquad.admin.watchimport.AdminWatchImportDtos.LineStatus;
 import static com.animesquad.admin.watchimport.AdminWatchImportDtos.PreviewLine;
 import static com.animesquad.admin.watchimport.AdminWatchImportDtos.PreviewResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,7 +35,8 @@ class AdminWatchImportServiceTest {
 
     private final UserRepository users = mock(UserRepository.class);
     private final AnimeRepository animes = mock(AnimeRepository.class);
-    private final AdminWatchImportService service = new AdminWatchImportService(users, animes);
+    private final WatchEntryRepository entries = mock(WatchEntryRepository.class);
+    private final AdminWatchImportService service = new AdminWatchImportService(users, animes, entries);
     private final User target = user(10L, "target@x.y", "Target");
     private final Anime worldIsDancing = anime(20L, "월드 이즈 댄싱");
 
@@ -203,6 +211,39 @@ class AdminWatchImportServiceTest {
         assertThat(result.lines()).extracting(line -> line.anime().id()).containsExactly(25L, 26L, 27L);
         assertThat(result.lines()).extracting(PreviewLine::message).containsOnlyNulls();
         verify(animes, times(1)).findAll();
+    }
+
+    @Test
+    void commit_readsExistingEntriesInOneBulkQuery() {
+        Anime secondAnime = anime(21L, "두 번째 작품");
+        WatchEntry existing = new WatchEntry(target.getId(), worldIsDancing.getId(), WatchStatus.COMPLETED);
+        when(users.existsById(target.getId())).thenReturn(true);
+        when(animes.findAllById(java.util.Set.of(20L, 21L)))
+            .thenReturn(List.of(worldIsDancing, secondAnime));
+        when(entries.findAllByUserIdAndAnimeIdIn(target.getId(), java.util.Set.of(20L, 21L)))
+            .thenReturn(List.of(existing));
+
+        service.commit(target.getId(), List.of(new CommitItem(20L, 2), new CommitItem(21L, 3)));
+
+        verify(entries, times(1))
+            .findAllByUserIdAndAnimeIdIn(target.getId(), java.util.Set.of(20L, 21L));
+        verify(entries, never()).findByUserIdAndAnimeId(org.mockito.ArgumentMatchers.anyLong(),
+            org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    void commit_mapsUniqueConflictAtFlushTo409() {
+        when(users.existsById(target.getId())).thenReturn(true);
+        when(animes.findAllById(java.util.Set.of(20L))).thenReturn(List.of(worldIsDancing));
+        when(entries.findAllByUserIdAndAnimeIdIn(target.getId(), java.util.Set.of(20L)))
+            .thenReturn(List.of());
+        doThrow(new DataIntegrityViolationException("watch_entry_user_id_anime_id_key"))
+            .when(entries).flush();
+
+        assertThatThrownBy(() -> service.commit(target.getId(), List.of(new CommitItem(20L, 1))))
+            .isInstanceOf(ResponseStatusException.class)
+            .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT));
     }
 
     private void stubTargetAndAnime(List<Anime> anime) {
