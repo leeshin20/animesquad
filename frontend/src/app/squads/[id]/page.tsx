@@ -400,13 +400,6 @@ function SquadHeader({
             <>
               <button
                 type="button"
-                onClick={() => setShowMembers(true)}
-                className="mt-0.5 block text-xs text-neutral-500 hover:text-neutral-800 hover:underline"
-              >
-                멤버 {squad.memberCount}명
-              </button>
-              <button
-                type="button"
                 onClick={() => copyInviteCode(squad.inviteCode)}
                 className="mt-0.5 block text-xs text-neutral-500 hover:text-neutral-800"
                 title="클릭해서 복사"
@@ -414,6 +407,13 @@ function SquadHeader({
                 스쿼드 코드{" "}
                 <code className="font-mono text-neutral-700">{squad.inviteCode}</code>
                 {copied && <span className="ml-1 text-neutral-400">복사됨</span>}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowMembers(true)}
+                className="mt-1 block text-xs text-neutral-600 hover:text-neutral-900 hover:underline"
+              >
+                멤버 <span className="font-medium text-neutral-800">{squad.memberCount}</span>명
               </button>
             </>
           )}
