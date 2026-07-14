@@ -39,6 +39,7 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(a -> a
                 .requestMatchers(HttpMethod.GET, "/api/anime/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/invite/complete").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll())
             .exceptionHandling(e -> e.defaultAuthenticationEntryPointFor(

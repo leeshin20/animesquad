@@ -19,6 +19,8 @@ server:
   port: 8080
 
 app:
+  invite:
+    code: ${INVITE_CODE:}
   jwt:
     secret: ${JWT_SECRET:dev-secret-change-me-please-at-least-32-bytes!!}
     ttl-minutes: 43200
