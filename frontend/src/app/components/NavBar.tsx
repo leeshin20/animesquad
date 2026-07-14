@@ -8,7 +8,7 @@ import { displayTitle } from "@/app/lib/anilist-labels";
 
 const baseLinks = [
   { href: "/browse", label: "탐색" },
-  { href: "/watchlist", label: "내 목록" },
+  { href: "/watchlist/anime", label: "내 목록" },
   { href: "/squads", label: "스쿼드" },
 ];
 

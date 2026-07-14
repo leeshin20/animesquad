@@ -49,7 +49,7 @@ export default function AnimeDetailPage({ params }: { params: { id: string } }) 
 
   return (
     <div className="space-y-6">
-      <Link href="/watchlist" className="text-sm text-neutral-500 hover:text-neutral-900">
+      <Link href="/watchlist/anime" className="text-sm text-neutral-500 hover:text-neutral-900">
         ← 뒤로
       </Link>
 
