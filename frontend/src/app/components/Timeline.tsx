@@ -56,7 +56,13 @@ function TimelineItem({
   const status = statusOf(item);
   return (
     <li className="flex gap-3 px-4 py-4 transition hover:bg-neutral-50">
-      <Avatar name={name} url={item.actor?.avatarUrl ?? null} />
+      {item.actor ? (
+        <Link href={`/users/${item.actor.id}`} className="flex-none" aria-label={`${name} 프로필`}>
+          <Avatar name={name} url={item.actor.avatarUrl} />
+        </Link>
+      ) : (
+        <Avatar name={name} url={null} />
+      )}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
           {showSquad && item.squad && (
@@ -67,7 +73,13 @@ function TimelineItem({
               {item.squad.name}
             </Link>
           )}
-          <span className="font-semibold text-neutral-900">{name}</span>
+          {item.actor ? (
+            <Link href={`/users/${item.actor.id}`} className="font-semibold text-neutral-900 hover:underline">
+              {name}
+            </Link>
+          ) : (
+            <span className="font-semibold text-neutral-900">{name}</span>
+          )}
           <span className="text-xs text-neutral-500">{relativeTime(item.createdAt)}</span>
         </div>
         <ItemBody item={item} />

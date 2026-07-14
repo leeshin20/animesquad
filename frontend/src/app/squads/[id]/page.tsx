@@ -292,9 +292,13 @@ function SquadRecentCard({ group }: { group: AnimeWatchGroup }) {
         {title}
       </p>
       <p className="mt-0.5 truncate text-xs text-neutral-400">
-        {watchers.length > 1
-          ? `${watchers.length}명 감상 중`
-          : lead.actor?.displayName}
+        {watchers.length > 1 ? (
+          `${watchers.length}명 감상 중`
+        ) : lead.actor ? (
+          <Link href={`/users/${lead.actor.id}`} className="hover:underline">
+            {lead.actor.displayName}
+          </Link>
+        ) : null}
       </p>
     </div>
   );

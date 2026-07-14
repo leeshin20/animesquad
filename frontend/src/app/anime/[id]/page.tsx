@@ -272,10 +272,26 @@ function ReviewList({
           const isMine = meId != null && r.actor?.id === meId && mine != null;
           return (
             <li key={i} className="flex items-start gap-3 rounded-lg border border-neutral-200 p-3">
-              <Avatar name={r.actor?.displayName ?? "?"} url={r.actor?.avatarUrl ?? null} size={8} />
+              {r.actor ? (
+                <Link
+                  href={`/users/${r.actor.id}`}
+                  className="flex-none"
+                  aria-label={`${r.actor.displayName} 프로필`}
+                >
+                  <Avatar name={r.actor.displayName} url={r.actor.avatarUrl} size={8} />
+                </Link>
+              ) : (
+                <Avatar name="?" url={null} size={8} />
+              )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="font-medium">{r.actor?.displayName ?? "알 수 없음"}</span>
+                  {r.actor ? (
+                    <Link href={`/users/${r.actor.id}`} className="font-medium hover:underline">
+                      {r.actor.displayName}
+                    </Link>
+                  ) : (
+                    <span className="font-medium">알 수 없음</span>
+                  )}
                   <span className="text-xs text-neutral-500">
                     {STATUS_LABEL[r.status]} · {r.progress}화
                   </span>
@@ -427,10 +443,26 @@ function EpisodeReviewCard({
 
   return (
     <li className="flex items-start gap-3 rounded-lg border border-neutral-200 p-3">
-      <Avatar name={review.actor?.displayName ?? "?"} url={review.actor?.avatarUrl ?? null} size={8} />
+      {review.actor ? (
+        <Link
+          href={`/users/${review.actor.id}`}
+          className="flex-none"
+          aria-label={`${review.actor.displayName} 프로필`}
+        >
+          <Avatar name={review.actor.displayName} url={review.actor.avatarUrl} size={8} />
+        </Link>
+      ) : (
+        <Avatar name="?" url={null} size={8} />
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 text-sm">
-          <span className="font-medium">{review.actor?.displayName ?? "알 수 없음"}</span>
+          {review.actor ? (
+            <Link href={`/users/${review.actor.id}`} className="font-medium hover:underline">
+              {review.actor.displayName}
+            </Link>
+          ) : (
+            <span className="font-medium">알 수 없음</span>
+          )}
           <span className="text-xs text-neutral-500">{review.episodeNumber}화</span>
           {!editing && <Stars value={review.score} size="sm" />}
           <span className="ml-auto text-xs text-neutral-400">{formatDateTime(review.updatedAt)}</span>
