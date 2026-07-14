@@ -81,6 +81,33 @@ class AdminWatchImportServiceTest {
     }
 
     @Test
+    void preview_allows200InputLinesWithTerminalNewline() {
+        when(users.findByEmailIgnoreCase("target@x.y")).thenReturn(Optional.of(target));
+        when(animes.findAll()).thenReturn(List.of());
+        String text = IntStream.range(0, 200)
+            .mapToObj(i -> "없는 작품" + i + "1화")
+            .collect(Collectors.joining("\n")) + "\n";
+
+        PreviewResponse result = service.preview("target@x.y", text);
+
+        assertThat(result.lines()).hasSize(200);
+        assertThat(result.lines().get(199).lineNumber()).isEqualTo(200);
+        assertThat(result.lines()).extracting(PreviewLine::status).containsOnly(LineStatus.UNMATCHED);
+    }
+
+    @Test
+    void preview_stillCountsInternalBlankPhysicalLineAtBoundary() {
+        String text = IntStream.range(0, 200)
+            .mapToObj(i -> "없는 작품" + i + "1화")
+            .collect(Collectors.joining("\n")) + "\n\n";
+
+        assertThatThrownBy(() -> service.preview("target@x.y", text))
+            .isInstanceOf(ResponseStatusException.class)
+            .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST));
+    }
+
+    @Test
     void preview_matchesPunctuationAndSpacingDifferences() {
         Anime anime = anime(21L, "아주르 레인 미속전진! 2!!");
         stubTargetAndAnime(List.of(anime));
@@ -142,6 +169,22 @@ class AdminWatchImportServiceTest {
         assertThat(line.status()).isEqualTo(LineStatus.MATCHED);
         assertThat(line.anime().id()).isEqualTo(24L);
         assertThat(line.message()).isNull();
+    }
+
+    @Test
+    void preview_marksPunctuationOnlyTitleInvalidWithoutMatchingBlankAlias() {
+        Anime anime = anime(28L, "!!!");
+        anime.setSearchKeywords(",별칭");
+        stubTargetAndAnime(List.of(anime));
+
+        PreviewLine line = service.preview("target@x.y", "!!!1화").lines().get(0);
+
+        assertThat(line.lineNumber()).isEqualTo(1);
+        assertThat(line.title()).isEqualTo("!!!");
+        assertThat(line.progress()).isEqualTo(1);
+        assertThat(line.status()).isEqualTo(LineStatus.INVALID);
+        assertThat(line.anime()).isNull();
+        assertThat(line.message()).isNotBlank();
     }
 
     @Test

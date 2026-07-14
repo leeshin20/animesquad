@@ -46,7 +46,11 @@ public class AdminWatchImportService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "email and text are required");
         }
         String[] physicalLines = text.split("\\R", -1);
-        if (physicalLines.length > MAX_LINES) {
+        int physicalLineCount = physicalLines.length;
+        if (physicalLines[physicalLines.length - 1].isEmpty()) {
+            physicalLineCount--;
+        }
+        if (physicalLineCount > MAX_LINES) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "maximum 200 lines");
         }
         User target = users.findByEmailIgnoreCase(email.trim())
@@ -100,6 +104,10 @@ public class AdminWatchImportService {
         }
 
         String expected = normalizeTitle(title);
+        if (expected.isEmpty()) {
+            return new PreviewLine(lineNumber, raw, title, progress, LineStatus.INVALID,
+                null, "제목에 문자나 숫자가 필요합니다");
+        }
         Map<Long, Anime> candidates = new LinkedHashMap<>();
         cachedAnime.stream()
             .filter(anime -> matchesExactNormalizedTitle(anime, expected))
@@ -125,6 +133,7 @@ public class AdminWatchImportService {
         return Stream.concat(titles, aliases)
             .filter(Objects::nonNull)
             .map(AdminWatchImportService::normalizeTitle)
+            .filter(candidate -> !candidate.isEmpty())
             .anyMatch(expected::equals);
     }
 
