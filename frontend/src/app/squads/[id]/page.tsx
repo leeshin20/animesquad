@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { apiGet, apiPatch, type FeedItem, type Me, type Squad } from "@/app/lib/api";
 import { SquadEditModal } from "@/app/components/SquadEditModal";
+import { SquadMembersModal } from "@/app/components/SquadMembersModal";
 import { HorizontalScroll } from "@/app/components/HorizontalScroll";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { nextFeedCursor } from "@/app/lib/feed-pagination";
@@ -337,6 +338,7 @@ function SquadHeader({
   onUpdated: (s: Squad) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
 
   return (
     <>
@@ -345,6 +347,12 @@ function SquadHeader({
         squad={squad}
         onUpdated={(s) => onUpdated(s)}
         onClose={() => setEditing(false)}
+      />
+    )}
+    {showMembers && squad && (
+      <SquadMembersModal
+        squadId={squad.id}
+        onClose={() => setShowMembers(false)}
       />
     )}
     <div className="relative overflow-hidden rounded-xl border border-neutral-200">
@@ -383,9 +391,13 @@ function SquadHeader({
           </h1>
           {squad && (
             <>
-              <p className="mt-0.5 text-xs text-neutral-500">
+              <button
+                type="button"
+                onClick={() => setShowMembers(true)}
+                className="mt-0.5 text-xs text-neutral-500 hover:text-neutral-800 hover:underline"
+              >
                 멤버 {squad.memberCount}명
-              </p>
+              </button>
               <p className="mt-0.5 text-xs text-neutral-500">
                 스쿼드 코드 <code className="font-mono text-neutral-700">{squad.inviteCode}</code>
               </p>
