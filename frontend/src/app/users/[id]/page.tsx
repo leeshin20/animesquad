@@ -123,7 +123,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
 
         <section className="min-w-0">
           <h2 className="mb-3 text-sm font-semibold text-neutral-700">소속 스쿼드</h2>
-          <MySquadList squads={profile.squads} />
+          <MySquadList squads={profile.squads} linkToSquads={false} />
         </section>
       </div>
     </div>

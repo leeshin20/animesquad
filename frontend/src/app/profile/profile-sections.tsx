@@ -117,7 +117,13 @@ type SquadCardData = {
   inviteCode?: string;
 };
 
-export function MySquadList({ squads }: { squads: SquadCardData[] | null }) {
+export function MySquadList({
+  squads,
+  linkToSquads = true,
+}: {
+  squads: SquadCardData[] | null;
+  linkToSquads?: boolean;
+}) {
   if (squads === null) {
     return (
       <div className="space-y-3">
@@ -136,33 +142,48 @@ export function MySquadList({ squads }: { squads: SquadCardData[] | null }) {
   }
   return (
     <div className="space-y-3">
-      {squads.slice(0, 3).map((s) => (
-        <Link
-          key={s.id}
-          href={`/squads/${s.id}`}
-          className="flex items-center gap-4 rounded-xl border border-neutral-200 p-4 transition hover:bg-neutral-50"
-        >
-          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-neutral-200 shadow-sm">
-            {s.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={s.avatarUrl} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-neutral-400">
-                {s.name.charAt(0).toUpperCase()}
-              </div>
-            )}
+      {squads.slice(0, 3).map((s) => {
+        const content = (
+          <>
+            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-neutral-200 shadow-sm">
+              {s.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={s.avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-neutral-400">
+                  {s.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-neutral-900">{s.name}</p>
+              <p className="mt-0.5 text-xs text-neutral-500">멤버 {s.memberCount}명</p>
+              {s.inviteCode && (
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  스쿼드 코드 <code className="font-mono text-neutral-700">{s.inviteCode}</code>
+                </p>
+              )}
+            </div>
+          </>
+        );
+
+        return linkToSquads ? (
+          <Link
+            key={s.id}
+            href={`/squads/${s.id}`}
+            className="flex items-center gap-4 rounded-xl border border-neutral-200 p-4 transition hover:bg-neutral-50"
+          >
+            {content}
+          </Link>
+        ) : (
+          <div
+            key={s.id}
+            className="flex items-center gap-4 rounded-xl border border-neutral-200 p-4"
+          >
+            {content}
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-neutral-900">{s.name}</p>
-            <p className="mt-0.5 text-xs text-neutral-500">멤버 {s.memberCount}명</p>
-            {s.inviteCode && (
-              <p className="mt-0.5 text-xs text-neutral-500">
-                스쿼드 코드 <code className="font-mono text-neutral-700">{s.inviteCode}</code>
-              </p>
-            )}
-          </div>
-        </Link>
-      ))}
+        );
+      })}
     </div>
   );
 }
