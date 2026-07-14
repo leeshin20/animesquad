@@ -29,6 +29,10 @@ public class User {
     @Column(name = "terms_agreed_at")
     private OffsetDateTime termsAgreedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "profile_visibility", nullable = false, length = 20)
+    private ProfileVisibility profileVisibility = ProfileVisibility.SQUAD_ONLY;
+
     protected User() {}
 
     public User(String googleSub, String email, String displayName, String avatarUrl) {
@@ -46,6 +50,10 @@ public class User {
         this.avatarUrl = avatarUrl;
     }
 
+    public void updateProfileVisibility(ProfileVisibility profileVisibility) {
+        this.profileVisibility = profileVisibility;
+    }
+
     public void agreeTerms() {
         if (this.termsAgreedAt == null) {
             this.termsAgreedAt = OffsetDateTime.now();
@@ -59,4 +67,5 @@ public class User {
     public String getAvatarUrl() { return avatarUrl; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getTermsAgreedAt() { return termsAgreedAt; }
+    public ProfileVisibility getProfileVisibility() { return profileVisibility; }
 }
