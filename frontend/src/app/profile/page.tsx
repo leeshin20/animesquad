@@ -198,6 +198,7 @@ function ProfileEditor({
   onCancel: () => void;
 }) {
   const [displayName, setDisplayName] = useState(me.displayName);
+  const [visibility, setVisibility] = useState<Me["profileVisibility"]>(me.profileVisibility);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -219,8 +220,11 @@ function ProfileEditor({
     setError(null);
     try {
       let updated: Me | null = null;
-      if (name !== me.displayName) {
-        updated = await apiPatch<Me>("/api/me", { displayName: name });
+      if (name !== me.displayName || visibility !== me.profileVisibility) {
+        updated = await apiPatch<Me>("/api/me", {
+          displayName: name,
+          profileVisibility: visibility,
+        });
       }
       if (file) {
         updated = await apiUpload<Me>("/api/me/avatar", file);
@@ -274,6 +278,29 @@ function ProfileEditor({
           className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
         />
       </label>
+
+      <fieldset>
+        <legend className="text-xs font-medium text-neutral-600">공개범위</legend>
+        <div className="mt-1.5 space-y-1.5">
+          {(
+            [
+              { value: "PUBLIC", label: "전체공개" },
+              { value: "SQUAD_ONLY", label: "스쿼드 멤버만 공개" },
+              { value: "PRIVATE", label: "비공개" },
+            ] as const
+          ).map((opt) => (
+            <label key={opt.value} className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="radio"
+                name="profileVisibility"
+                checked={visibility === opt.value}
+                onChange={() => setVisibility(opt.value)}
+              />
+              {opt.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
       {error && (
         <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
