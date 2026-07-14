@@ -39,6 +39,7 @@ export type Me = {
   avatarUrl: string | null;
   isAdmin: boolean;
   onboardingComplete: boolean;
+  profileVisibility: "PUBLIC" | "SQUAD_ONLY" | "PRIVATE";
 };
 
 export type Squad = {
@@ -194,4 +195,21 @@ export type MyEpisodeReview = {
 export type AnimeStats = {
   averageScore: number | null;
   watcherCount: number;
+};
+
+export type PublicSquadRef = {
+  id: number;
+  name: string;
+  avatarUrl: string | null;
+  memberCount: number;
+};
+
+export type UserProfile = {
+  id: number;
+  displayName: string;
+  avatarUrl: string | null;
+  accessible: boolean;
+  recentWatched: WatchEntry[] | null;
+  recentEpisodeReviews: MyEpisodeReview[] | null;
+  squads: PublicSquadRef[] | null;
 };
