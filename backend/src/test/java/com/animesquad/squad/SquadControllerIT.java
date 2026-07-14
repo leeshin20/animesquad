@@ -214,6 +214,49 @@ class SquadControllerIT extends AbstractIntegrationTest {
         assertThat(cleared.getBody().get("announcement")).isNull();
     }
 
+    @Test
+    void members_returnsOwnerFirst() {
+        User owner = userService.upsertFromGoogle("g-mem-o", "memo@x.y", "Owner", null);
+        User member = userService.upsertFromGoogle("g-mem-m", "memm@x.y", "Member", null);
+        Integer squadId = createSquad(owner.getId());
+        String code = inviteCodeOf(squadId, owner.getId());
+        rest.exchange(url("/api/squad/join"), HttpMethod.POST,
+            new HttpEntity<>(Map.of("inviteCode", code), cookieFor(member.getId())), Map.class);
+
+        ResponseEntity<Map[]> res = rest.exchange(
+            url("/api/squad/" + squadId + "/members"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(owner.getId())), Map[].class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody()).hasSize(2);
+        assertThat((String) res.getBody()[0].get("role")).isEqualTo("OWNER");
+        assertThat((String) res.getBody()[1].get("role")).isEqualTo("MEMBER");
+    }
+
+    @Test
+    void members_nonMember_returns400() {
+        User owner = userService.upsertFromGoogle("g-mem-o2", "memo2@x.y", "Owner2", null);
+        User stranger = userService.upsertFromGoogle("g-mem-s", "mems@x.y", "Stranger", null);
+        Integer squadId = createSquad(owner.getId());
+
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/squad/" + squadId + "/members"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(stranger.getId())), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void members_unauthenticated_returns401() {
+        Integer squadId = createSquad(userService.upsertFromGoogle("g-mem-o3", "memo3@x.y", "Owner3", null).getId());
+
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/squad/" + squadId + "/members"), HttpMethod.GET,
+            new HttpEntity<>(jsonHeaders()), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
     private Integer createSquad(Long ownerId) {
         ResponseEntity<Map> created = rest.exchange(
             url("/api/squad"), HttpMethod.POST,

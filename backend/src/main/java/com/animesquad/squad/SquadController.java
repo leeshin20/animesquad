@@ -3,6 +3,7 @@ package com.animesquad.squad;
 import com.animesquad.auth.CurrentUser;
 import com.animesquad.squad.dto.CreateSquadRequest;
 import com.animesquad.squad.dto.JoinSquadRequest;
+import com.animesquad.squad.dto.SquadMemberResponse;
 import com.animesquad.squad.dto.SquadResponse;
 import com.animesquad.squad.dto.UpdateAnnouncementRequest;
 import com.animesquad.squad.dto.UpdateNameRequest;
@@ -54,6 +55,14 @@ public class SquadController {
         @Valid @RequestBody JoinSquadRequest req
     ) {
         return squadService.toResponse(squadService.joinByInviteCode(me.userId(), req.inviteCode()));
+    }
+
+    @GetMapping("/{id}/members")
+    public List<SquadMemberResponse> members(
+        @AuthenticationPrincipal CurrentUser me,
+        @PathVariable Long id
+    ) {
+        return squadService.listMembers(me.userId(), id);
     }
 
     @PostMapping("/{id}/avatar")
