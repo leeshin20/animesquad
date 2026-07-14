@@ -4,7 +4,7 @@
 
 **Goal:** 관리자가 이메일로 지정한 사용자의 여러 애니와 회차를 텍스트에서 미리보기한 후, 기존 리뷰를 보존하고 피드를 생성하지 않으면서 `WATCHING` 기록으로 일괄 저장한다.
 
-**Architecture:** 파싱·제목 정규화·정확 매칭은 `AdminWatchImportService`의 미리보기 경로가 담당하고, 저장 경로는 선택된 `animeId/progress`만 다시 검증해 단일 트랜잭션으로 `WatchEntry`를 직접 생성·수정한다. 관리자 전용 컨트롤러가 인증을 강제하고, 프론트엔드 관리자 페이지는 미리보기 결과 중 `MATCHED` 항목만 선택해 저장한다.
+**Architecture:** 파싱·제목 정규화·정확 매칭은 `AdminWatchImportService`의 미리보기 경로가 캐시된 애니 전체를 한 번 조회해 담당하고, 저장 경로는 선택된 `animeId/progress`만 다시 검증해 단일 트랜잭션으로 `WatchEntry`를 직접 생성·수정한다. 관리자 전용 컨트롤러가 인증을 강제하고, 프론트엔드 관리자 페이지는 미리보기 결과 중 `MATCHED` 항목만 선택해 저장한다.
 
 **Tech Stack:** Java 21, Spring Boot, Spring Data JPA, PostgreSQL, JUnit 5/Testcontainers, Next.js 14, React, TypeScript, Tailwind CSS
 
@@ -33,7 +33,7 @@
 - Test: `backend/src/test/java/com/animesquad/admin/watchimport/AdminWatchImportServiceTest.java`
 
 **Interfaces:**
-- Consumes: `AnimeSearchService.search(String)`, `UserRepository.findByEmailIgnoreCase(String)`
+- Consumes: `AnimeRepository.findAll()`, `UserRepository.findByEmailIgnoreCase(String)`
 - Produces: `AdminWatchImportService.preview(String email, String text): PreviewResponse`, `LineStatus`, `PreviewLine`
 
 - [ ] **Step 1: 파싱과 매칭 실패 테스트를 작성한다**
@@ -44,7 +44,7 @@ Create `AdminWatchImportServiceTest` with Mockito-backed repositories/search ser
 @Test
 void preview_parsesTitleAndTrailingEpisode() {
     when(users.findByEmailIgnoreCase("target@x.y")).thenReturn(Optional.of(target));
-    when(search.search("월드 이즈 댄싱")).thenReturn(List.of(worldIsDancing));
+    when(animes.findAll()).thenReturn(List.of(worldIsDancing));
 
     PreviewResponse result = service.preview(
         " target@x.y ", "월드 이즈 댄싱3화\n");
@@ -61,7 +61,7 @@ void preview_parsesTitleAndTrailingEpisode() {
 @Test
 void preview_marksInvalidAndUnmatchedWithoutFailingWholePreview() {
     when(users.findByEmailIgnoreCase("target@x.y")).thenReturn(Optional.of(target));
-    when(search.search("없는 작품")).thenReturn(List.of());
+    when(animes.findAll()).thenReturn(List.of());
 
     PreviewResponse result = service.preview(
         "target@x.y", "형식 오류\n없는 작품2화\n0화");
@@ -148,11 +148,12 @@ public PreviewResponse preview(String email, String text) {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "maximum 200 lines");
     }
 
+    List<Anime> cachedAnime = animes.findAll();
     List<PreviewLine> lines = new ArrayList<>();
     for (int index = 0; index < physicalLines.length; index++) {
         String raw = physicalLines[index];
         if (raw.isBlank()) continue;
-        lines.add(previewLine(index + 1, raw));
+        lines.add(previewLine(index + 1, raw, cachedAnime));
     }
     markEarlierDuplicates(lines);
     return new PreviewResponse(
@@ -161,7 +162,7 @@ public PreviewResponse preview(String email, String text) {
 }
 ```
 
-`previewLine` must parse the pattern, reject progress below 1, call `search.search(title)`, filter candidates with `matchesExactNormalizedTitle`, deduplicate by anime ID, and return `MATCHED` only when exactly one candidate remains.
+`previewLine` must parse the pattern, reject progress below 1, filter the supplied `cachedAnime` with `matchesExactNormalizedTitle`, deduplicate by anime ID, and return `MATCHED` only when exactly one candidate remains. `preview` must call `animes.findAll()` exactly once and reuse that list for every line; it must not invoke `AnimeSearchService` or issue per-line database queries.
 
 Normalization must use NFKC, lowercase with `Locale.ROOT`, and retain only letters and digits:
 
@@ -212,6 +213,12 @@ void preview_keepsLastDuplicateAsMatched() { /* same anime at 2화 then 3화 */ 
 
 @Test
 void preview_matchesIndividualSearchKeywordAlias() { /* "뱅드림, 방드림" and input 방드림 */ }
+
+@Test
+void preview_readsAnimeCacheOnlyOnceForManyLines() {
+    service.preview("target@x.y", "작품A1화\n작품B2화\n작품C3화");
+    verify(animes, times(1)).findAll();
+}
 ```
 
 Assertions must verify status, line number, progress, selected anime ID, and message—not just list size.
