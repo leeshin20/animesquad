@@ -115,12 +115,12 @@ export default function MePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4 rounded-xl border border-neutral-200 p-6">
-        {me.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={me.avatarUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
-        ) : (
-          <div className="h-16 w-16 rounded-full bg-neutral-200" />
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={me.avatarUrl ?? "/default-avatar.png"}
+          alt=""
+          className="h-16 w-16 rounded-full object-cover"
+        />
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-semibold">{me.displayName}</h1>
           <p className="text-sm text-neutral-500">{me.email}</p>

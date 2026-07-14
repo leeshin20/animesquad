@@ -51,12 +51,12 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   if (!profile.accessible) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-xl border border-neutral-200 p-10 text-center">
-        {profile.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={profile.avatarUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
-        ) : (
-          <div className="h-16 w-16 rounded-full bg-neutral-200" />
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={profile.avatarUrl ?? "/default-avatar.png"}
+          alt=""
+          className="h-16 w-16 rounded-full object-cover"
+        />
         <h1 className="text-lg font-semibold">{profile.displayName}</h1>
         <p className="text-sm text-neutral-500">비공개 프로필이에요.</p>
       </div>
@@ -97,12 +97,12 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4 rounded-xl border border-neutral-200 p-6">
-        {profile.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={profile.avatarUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
-        ) : (
-          <div className="h-16 w-16 rounded-full bg-neutral-200" />
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={profile.avatarUrl ?? "/default-avatar.png"}
+          alt=""
+          className="h-16 w-16 rounded-full object-cover"
+        />
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-semibold">{profile.displayName}</h1>
         </div>
