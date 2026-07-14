@@ -110,8 +110,13 @@ public class UserProfileService {
     private List<PublicSquadRef> buildSquads(Long userId) {
         List<Long> squadIds = memberships.findAllByUserId(userId).stream()
             .map(Membership::getSquadId).toList();
+        if (squadIds.isEmpty()) return List.of();
+        Map<Long, Long> memberCounts = memberships.countBySquadIdIn(squadIds).stream()
+            .collect(Collectors.toMap(
+                MembershipRepository.SquadMemberCount::getSquadId,
+                MembershipRepository.SquadMemberCount::getMemberCount));
         return squads.findAllById(squadIds).stream()
-            .map(s -> new PublicSquadRef(s.getId(), s.getName(), s.getAvatarUrl(), memberships.countBySquadId(s.getId())))
+            .map(s -> new PublicSquadRef(s.getId(), s.getName(), s.getAvatarUrl(), memberCounts.getOrDefault(s.getId(), 0L)))
             .toList();
     }
 }
