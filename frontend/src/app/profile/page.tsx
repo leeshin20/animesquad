@@ -102,7 +102,7 @@ export default function MePage() {
               title: displayTitle(r.anime!),
               episodeNumber: r.episodeNumber as number | null,
               score: r.score as number | null,
-              comment: r.comment,
+              comment: r.comment!,
               updatedAt: r.updatedAt,
             })),
         ]

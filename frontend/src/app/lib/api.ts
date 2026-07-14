@@ -187,7 +187,7 @@ export type MyEpisodeReview = {
   anime: { id: number; titleRomaji: string; titleKorean: string | null; coverImageUrl: string | null } | null;
   episodeNumber: number;
   score: number;
-  comment: string;
+  comment: string | null;
   updatedAt: string;
 };
 
