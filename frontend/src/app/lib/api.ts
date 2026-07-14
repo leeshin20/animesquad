@@ -65,6 +65,13 @@ export type Squad = {
   memberCount: number;
 };
 
+export type SquadMember = {
+  userId: number;
+  displayName: string;
+  avatarUrl: string | null;
+  role: "OWNER" | "MEMBER";
+};
+
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: "PATCH",
