@@ -51,14 +51,21 @@ public class AuthController {
         @AuthenticationPrincipal CurrentUser current,
         @RequestBody UpdateProfileRequest body
     ) {
-        String name = body.displayName() == null ? "" : body.displayName().trim();
-        if (name.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "닉네임을 입력해주세요");
+        if (body.displayName() == null && body.profileVisibility() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "변경할 프로필 정보를 입력해주세요");
         }
-        if (name.length() > 50) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "닉네임은 50자 이하여야 해요");
+
+        User updated = userService.getById(current.userId());
+        if (body.displayName() != null) {
+            String name = body.displayName().trim();
+            if (name.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "닉네임을 입력해주세요");
+            }
+            if (name.length() > 50) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "닉네임은 50자 이하여야 해요");
+            }
+            updated = userService.updateDisplayName(current.userId(), name);
         }
-        User updated = userService.updateDisplayName(current.userId(), name);
         if (body.profileVisibility() != null) {
             updated = userService.updateProfileVisibility(current.userId(), body.profileVisibility());
         }

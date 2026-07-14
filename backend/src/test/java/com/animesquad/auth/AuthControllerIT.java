@@ -80,6 +80,37 @@ class AuthControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void updateProfile_changesVisibilityWithoutDisplayName() {
+        User u = userService.upsertFromGoogle("g-vis-only", "vis-only@test.com", "Unchanged", null);
+
+        HttpHeaders h = cookieFor(u.getId());
+        h.setContentType(MediaType.APPLICATION_JSON);
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/me"), HttpMethod.PATCH,
+            new HttpEntity<>(Map.of("profileVisibility", "PRIVATE"), h), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody()).contains("\"displayName\":\"Unchanged\"");
+        assertThat(res.getBody()).contains("\"profileVisibility\":\"PRIVATE\"");
+        User updated = userService.getById(u.getId());
+        assertThat(updated.getDisplayName()).isEqualTo("Unchanged");
+        assertThat(updated.getProfileVisibility()).isEqualTo(com.animesquad.user.ProfileVisibility.PRIVATE);
+    }
+
+    @Test
+    void updateProfile_rejectsRequestWithoutUpdatableFields() {
+        User u = userService.upsertFromGoogle("g-empty-update", "empty-update@test.com", "Old", null);
+
+        HttpHeaders h = cookieFor(u.getId());
+        h.setContentType(MediaType.APPLICATION_JSON);
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/me"), HttpMethod.PATCH,
+            new HttpEntity<>(Map.of(), h), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
     void updateProfile_rejectsBlankName() {
         User u = userService.upsertFromGoogle("g-3", "a@b.c", "Old", "url");
 
