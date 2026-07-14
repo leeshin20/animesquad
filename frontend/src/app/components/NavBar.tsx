@@ -6,8 +6,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet, type AnimeView, type Me } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 
-const baseLinks = [
+const publicLinks = [
   { href: "/browse", label: "탐색" },
+];
+
+const memberLinks = [
   { href: "/watchlist/anime", label: "내 목록" },
   { href: "/squads", label: "스쿼드" },
 ];
@@ -100,9 +103,11 @@ export default function NavBar() {
     if (e.key === "Escape") closeSearch();
   }
 
-  const links = me?.isAdmin
-    ? [...baseLinks, { href: "/admin/anime", label: "관리자" }]
-    : baseLinks;
+  const links = [
+    ...publicLinks,
+    ...(me ? memberLinks : []),
+    ...(me?.isAdmin ? [{ href: "/admin/anime", label: "관리자" }] : []),
+  ];
 
   const profileActive =
     pathname === "/profile" || pathname.startsWith("/profile/");
