@@ -53,6 +53,7 @@ function TimelineItem({
   const name = item.actor?.displayName ?? "누군가";
   const ep = episodeOf(item);
   const score = scoreOf(item);
+  const status = statusOf(item);
   return (
     <li className="flex gap-3 px-4 py-4 transition hover:bg-neutral-50">
       <Avatar name={name} url={item.actor?.avatarUrl ?? null} />
@@ -73,28 +74,41 @@ function TimelineItem({
         {item.anime && (
           <Link
             href={`/anime/${item.anime.id}`}
-            className="mt-1 flex max-w-sm items-center gap-3 rounded-lg border border-neutral-200 p-2 transition hover:border-neutral-300"
+            className="mt-1 flex max-w-sm flex-col gap-1.5 rounded-lg border border-neutral-200 p-2 transition hover:border-neutral-300"
           >
-            {item.anime.coverImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={item.anime.coverImageUrl}
-                alt=""
-                className="h-12 w-9 flex-none rounded-sm object-cover"
-              />
-            ) : (
-              <div className="h-12 w-9 flex-none rounded-sm bg-neutral-100" />
-            )}
-            <div className="flex min-w-0 flex-1 items-center gap-1.5">
-              <span className="min-w-0 truncate text-sm text-neutral-900">
-                {displayTitle(item.anime)}
-              </span>
-              {ep != null && (
-                <span className="flex-none whitespace-nowrap text-xs font-medium text-neutral-500">{ep}화</span>
+            <div className="flex items-start gap-3">
+              {item.anime.coverImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={item.anime.coverImageUrl}
+                  alt=""
+                  className="h-12 w-9 flex-none rounded-sm object-cover"
+                />
+              ) : (
+                <div className="h-12 w-9 flex-none rounded-sm bg-neutral-100" />
               )}
-              {score != null && (
-                <span className="flex-none"><Stars value={score} size="sm" /></span>
-              )}
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="min-w-0 truncate text-sm text-neutral-900">
+                    {displayTitle(item.anime)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {ep != null && (
+                    <span className="flex-none whitespace-nowrap rounded bg-blue-50 px-1.5 py-0.5 text-sm font-medium text-blue-700">{ep}화</span>
+                  )}
+                  {status != null && (
+                    <span className={`flex-none whitespace-nowrap rounded px-1.5 py-0.5 text-sm font-medium ${statusBadge(status)}`}>
+                      {statusLabel(status)}
+                    </span>
+                  )}
+                  {score != null ? (
+                    <Stars value={score} size="sm" />
+                  ) : (
+                    <span className="text-sm text-neutral-500">별점 없음</span>
+                  )}
+                </div>
+              </div>
             </div>
           </Link>
         )}
@@ -106,22 +120,7 @@ function TimelineItem({
 function ItemBody({ item }: { item: FeedItem }) {
   const p = item.payload as Record<string, unknown>;
 
-  if (item.type === "RATED") {
-    const comment = typeof p.comment === "string" ? p.comment : null;
-    if (!p.status && !comment) return null;
-    return (
-      <div className="flex flex-col gap-0.5">
-        {p.status != null && (
-          <span className={`self-start rounded px-1.5 py-0.5 text-xs font-medium ${statusBadge(p.status)}`}>
-            {statusLabel(p.status)}
-          </span>
-        )}
-        {comment && <CollapsibleComment text={comment} />}
-      </div>
-    );
-  }
-
-  if (item.type === "EPISODE_RATED") {
+  if (item.type === "RATED" || item.type === "EPISODE_RATED") {
     const comment = typeof p.comment === "string" ? p.comment : null;
     if (!comment) return null;
     return <CollapsibleComment text={comment} />;
@@ -163,6 +162,12 @@ function scoreOf(item: FeedItem): number | null {
   if ((item.type === "RATED" || item.type === "EPISODE_RATED") && p.score != null) {
     return Number(p.score);
   }
+  return null;
+}
+
+function statusOf(item: FeedItem): unknown | null {
+  const p = item.payload as Record<string, unknown>;
+  if (item.type === "RATED" && p.status != null) return p.status;
   return null;
 }
 
