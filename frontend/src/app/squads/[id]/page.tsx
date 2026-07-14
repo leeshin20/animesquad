@@ -339,6 +339,13 @@ function SquadHeader({
 }) {
   const [editing, setEditing] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function copyInviteCode(code: string) {
+    await navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
 
   return (
     <>
@@ -398,9 +405,16 @@ function SquadHeader({
               >
                 멤버 {squad.memberCount}명
               </button>
-              <p className="mt-0.5 text-xs text-neutral-500">
-                스쿼드 코드 <code className="font-mono text-neutral-700">{squad.inviteCode}</code>
-              </p>
+              <button
+                type="button"
+                onClick={() => copyInviteCode(squad.inviteCode)}
+                className="mt-0.5 text-xs text-neutral-500 hover:text-neutral-800"
+                title="클릭해서 복사"
+              >
+                스쿼드 코드{" "}
+                <code className="font-mono text-neutral-700">{squad.inviteCode}</code>
+                {copied && <span className="ml-1 text-neutral-400">복사됨</span>}
+              </button>
             </>
           )}
         </div>
