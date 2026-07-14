@@ -213,3 +213,32 @@ export type UserProfile = {
   recentEpisodeReviews: MyEpisodeReview[] | null;
   squads: PublicSquadRef[] | null;
 };
+
+export type WatchImportLineStatus = "MATCHED" | "UNMATCHED" | "INVALID" | "DUPLICATE";
+
+export type WatchImportAnimeRef = {
+  id: number;
+  titleKorean: string | null;
+  titleRomaji: string;
+  coverImageUrl: string | null;
+};
+
+export type WatchImportLine = {
+  lineNumber: number;
+  rawLine: string;
+  title: string | null;
+  progress: number | null;
+  status: WatchImportLineStatus;
+  anime: WatchImportAnimeRef | null;
+  message: string | null;
+};
+
+export type WatchImportPreview = {
+  targetUser: { id: number; email: string; displayName: string };
+  lines: WatchImportLine[];
+};
+
+export type WatchImportCommitResponse = {
+  created: number;
+  updated: number;
+};
