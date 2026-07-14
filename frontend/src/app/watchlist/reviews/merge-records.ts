@@ -21,6 +21,7 @@ export function mergeRecords(
   );
 
   const seriesRecords: ReviewRecord[] = entries
+    .filter((e) => e.status !== "PLAN_TO_WATCH" && e.status !== "WATCHING")
     .map((e) => ({
       key: `s${e.id}`,
       animeId: e.anime.id,
