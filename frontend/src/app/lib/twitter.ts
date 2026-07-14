@@ -12,8 +12,9 @@ export function buildEpisodeTweetText(
     return `${title} ${ep}화를 감상했습니다`;
   }
   const stars = score != null ? ` ${scoreToStars(score)}` : "";
-  const body = comment.trim() ? ` ${comment.trim()}` : "";
-  return `${title} ${ep}화${stars}${body}`;
+  const lines = [title, `${ep}화${stars}`];
+  if (comment.trim()) lines.push(comment.trim());
+  return lines.join("\n");
 }
 
 export function buildSeriesTweetText(
@@ -23,8 +24,9 @@ export function buildSeriesTweetText(
   comment: string,
 ): string {
   const stars = score != null ? ` ${scoreToStars(score)}` : "";
-  const body = comment.trim() ? ` ${comment.trim()}` : "";
-  return `[${statusLabel}] ${title}${stars}${body}`;
+  const lines = [title, `[${statusLabel}]${stars}`];
+  if (comment.trim()) lines.push(comment.trim());
+  return lines.join("\n");
 }
 
 export function openTwitterIntent(text: string): void {
