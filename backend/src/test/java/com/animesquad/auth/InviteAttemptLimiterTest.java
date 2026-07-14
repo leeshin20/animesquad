@@ -8,13 +8,32 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class InviteAttemptLimiterTest {
+
+    @Test
+    void laterFailureRemovesExpiredEntriesForOtherIps() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-07-15T00:00:00Z"));
+        InviteAttemptLimiter limiter = new InviteAttemptLimiter(clock);
+        limiter.recordFailure("expired-ip");
+
+        clock.advance(Duration.ofMinutes(10));
+        for (int activity = 0; activity < 64; activity++) {
+            limiter.recordFailure("active-ip");
+        }
+
+        ConcurrentHashMap<?, ?> attempts =
+            (ConcurrentHashMap<?, ?>) ReflectionTestUtils.getField(limiter, "attempts");
+        assertThat(attempts).hasSize(1);
+        assertThat(attempts.containsKey("active-ip")).isTrue();
+    }
 
     @Test
     void blocksSixthAttemptWithinTenMinutesAndResetsAfterWindow() {

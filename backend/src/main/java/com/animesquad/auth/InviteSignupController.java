@@ -58,23 +58,22 @@ public class InviteSignupController {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE);
         }
 
-        String clientIp = request.getRemoteAddr();
-        if (limiter.isBlocked(clientIp)) {
-            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS);
-        }
-
-        String suppliedCode = body == null ? null : body.code();
-        if (suppliedCode == null || suppliedCode.isBlank() || !matchesCode(suppliedCode)) {
-            boolean blocked = limiter.recordFailureAndIsBlocked(clientIp);
-            throw new ResponseStatusException(
-                blocked ? HttpStatus.TOO_MANY_REQUESTS : HttpStatus.FORBIDDEN);
-        }
-
         InviteSignupTokenService.InviteProfile profile;
         try {
             profile = inviteTokens.parse(inviteCookie(request));
         } catch (JwtException | IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+
+        String clientIp = request.getRemoteAddr();
+        if (limiter.isBlocked(clientIp)) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS);
+        }
+        String suppliedCode = body == null ? null : body.code();
+        if (suppliedCode == null || suppliedCode.isBlank() || !matchesCode(suppliedCode)) {
+            boolean blocked = limiter.recordFailureAndIsBlocked(clientIp);
+            throw new ResponseStatusException(
+                blocked ? HttpStatus.TOO_MANY_REQUESTS : HttpStatus.FORBIDDEN);
         }
 
         User user = users.createFromGoogleIfAbsent(profile);

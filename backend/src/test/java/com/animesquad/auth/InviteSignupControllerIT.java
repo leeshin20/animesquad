@@ -53,6 +53,18 @@ class InviteSignupControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void returns401ForWrongCodeWithoutInviteCookieWithoutConsumingLimiterFailures() {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            assertThat(complete("WRONG", null).getStatusCode())
+                .isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        assertThat(complete("WRONG", inviteToken("not-limited-google")).getStatusCode())
+            .isEqualTo(HttpStatus.FORBIDDEN);
+        assertNoUser();
+    }
+
+    @Test
     void returns401ForMalformedOrExpiredInviteCookie() {
         assertThat(complete("TEST-INVITE", "malformed").getStatusCode())
             .isEqualTo(HttpStatus.UNAUTHORIZED);
@@ -75,8 +87,11 @@ class InviteSignupControllerIT extends AbstractIntegrationTest {
     @Test
     void returns401ForTamperedInviteCookie() {
         String issued = inviteToken("tampered-google");
-        String tampered = issued.substring(0, issued.length() - 1)
-            + (issued.endsWith("a") ? "b" : "a");
+        int signatureStart = issued.lastIndexOf('.') + 1;
+        char firstSignatureCharacter = issued.charAt(signatureStart);
+        String tampered = issued.substring(0, signatureStart)
+            + (firstSignatureCharacter == 'a' ? 'b' : 'a')
+            + issued.substring(signatureStart + 1);
 
         assertThat(complete("TEST-INVITE", tampered).getStatusCode())
             .isEqualTo(HttpStatus.UNAUTHORIZED);

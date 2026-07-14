@@ -54,10 +54,13 @@ class OAuth2LoginSuccessHandlerTest {
         when(users.findByGoogleSub("known")).thenReturn(Optional.of(existing));
         when(jwt.issue(existing.getId())).thenReturn("session-token");
         when(cookies.session("session-token", 2592000)).thenReturn("session-cookie");
+        when(cookies.clearInvite()).thenReturn("clear-invite-cookie");
 
         handler.onAuthenticationSuccess(request, response, authentication);
 
         verify(response).addHeader("Set-Cookie", "session-cookie");
+        verify(response).addHeader("Set-Cookie", "clear-invite-cookie");
+        verify(response, times(2)).addHeader(eq("Set-Cookie"), anyString());
         verify(redirect).sendRedirect(request, response, "https://app.example/");
         verifyNoInteractions(inviteTokens);
     }
@@ -69,10 +72,13 @@ class OAuth2LoginSuccessHandlerTest {
         when(users.findByGoogleSub("known")).thenReturn(Optional.of(existing));
         when(jwt.issue(existing.getId())).thenReturn("session-token");
         when(cookies.session("session-token", 2592000)).thenReturn("session-cookie");
+        when(cookies.clearInvite()).thenReturn("clear-invite-cookie");
 
         handler.onAuthenticationSuccess(request, response, authentication);
 
         verify(response).addHeader("Set-Cookie", "session-cookie");
+        verify(response).addHeader("Set-Cookie", "clear-invite-cookie");
+        verify(response, times(2)).addHeader(eq("Set-Cookie"), anyString());
         verify(redirect).sendRedirect(request, response, "https://app.example/onboarding");
         verifyNoInteractions(inviteTokens);
     }

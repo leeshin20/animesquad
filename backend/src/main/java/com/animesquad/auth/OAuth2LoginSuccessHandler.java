@@ -58,6 +58,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String token = jwtService.issue(user.getId());
 
         res.addHeader("Set-Cookie", authCookieFactory.session(token, ttlMinutes * 60));
+        res.addHeader("Set-Cookie", authCookieFactory.clearInvite());
 
         // 온보딩 미완료 유저는 /onboarding으로 리다이렉트
         String onboardingRedirect = normalizedRedirect() + "/onboarding";
