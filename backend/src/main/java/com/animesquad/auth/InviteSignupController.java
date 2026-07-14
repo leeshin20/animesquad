@@ -65,8 +65,9 @@ public class InviteSignupController {
 
         String suppliedCode = body == null ? null : body.code();
         if (suppliedCode == null || suppliedCode.isBlank() || !matchesCode(suppliedCode)) {
-            limiter.recordFailure(clientIp);
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+            boolean blocked = limiter.recordFailureAndIsBlocked(clientIp);
+            throw new ResponseStatusException(
+                blocked ? HttpStatus.TOO_MANY_REQUESTS : HttpStatus.FORBIDDEN);
         }
 
         InviteSignupTokenService.InviteProfile profile;

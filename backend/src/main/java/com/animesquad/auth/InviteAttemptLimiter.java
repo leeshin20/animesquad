@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -31,13 +32,21 @@ public class InviteAttemptLimiter {
     }
 
     public void recordFailure(String clientIp) {
+        recordFailureAndIsBlocked(clientIp);
+    }
+
+    public boolean recordFailureAndIsBlocked(String clientIp) {
         Instant now = clock.instant();
+        AtomicBoolean blocked = new AtomicBoolean();
         attempts.compute(clientIp, (ip, current) -> {
             if (current == null || current.isExpiredAt(now)) {
                 return new AttemptWindow(now, 1);
             }
-            return new AttemptWindow(current.startedAt(), current.failures() + 1);
+            int failures = current.failures() + 1;
+            blocked.set(failures > FAILURE_LIMIT);
+            return new AttemptWindow(current.startedAt(), failures);
         });
+        return blocked.get();
     }
 
     public void clear(String clientIp) {

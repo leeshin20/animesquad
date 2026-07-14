@@ -11,6 +11,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 class InviteAttemptLimiterTest {
@@ -78,6 +79,49 @@ class InviteAttemptLimiterTest {
         }
 
         assertThat(limiter.isBlocked("same-ip")).isTrue();
+    }
+
+    @Test
+    void onlyFifthConcurrentFailureIsAllowedAndLaterFailuresAreBlocked() throws Exception {
+        InviteAttemptLimiter limiter = new InviteAttemptLimiter(Clock.systemUTC());
+        for (int i = 0; i < 4; i++) {
+            limiter.recordFailure("same-ip");
+        }
+        int workers = 8;
+        ExecutorService executor = Executors.newFixedThreadPool(workers);
+        CountDownLatch ready = new CountDownLatch(workers);
+        CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(workers);
+        AtomicInteger allowed = new AtomicInteger();
+        AtomicInteger blocked = new AtomicInteger();
+
+        try {
+            for (int i = 0; i < workers; i++) {
+                executor.execute(() -> {
+                    ready.countDown();
+                    try {
+                        start.await();
+                        if (limiter.recordFailureAndIsBlocked("same-ip")) {
+                            blocked.incrementAndGet();
+                        } else {
+                            allowed.incrementAndGet();
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } finally {
+                        done.countDown();
+                    }
+                });
+            }
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            assertThat(done.await(5, TimeUnit.SECONDS)).isTrue();
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(allowed).hasValue(1);
+        assertThat(blocked).hasValue(workers - 1);
     }
 
     private static final class MutableClock extends Clock {

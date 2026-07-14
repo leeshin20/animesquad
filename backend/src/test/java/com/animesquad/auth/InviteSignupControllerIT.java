@@ -73,6 +73,17 @@ class InviteSignupControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void returns401ForTamperedInviteCookie() {
+        String issued = inviteToken("tampered-google");
+        String tampered = issued.substring(0, issued.length() - 1)
+            + (issued.endsWith("a") ? "b" : "a");
+
+        assertThat(complete("TEST-INVITE", tampered).getStatusCode())
+            .isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertNoUser();
+    }
+
+    @Test
     void returns403ForBlankOrWrongCode() {
         String token = inviteToken("wrong-code-google");
 
@@ -147,8 +158,8 @@ class InviteSignupControllerIT extends AbstractIntegrationTest {
 
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = "app.invite.code=")
-class InviteSignupMissingCodeIT extends AbstractIntegrationTest {
+    properties = "app.invite.code=   ")
+class InviteSignupBlankCodeIT extends AbstractIntegrationTest {
 
     @Autowired InviteSignupTokenService inviteTokens;
     @Autowired UserRepository userRepository;
@@ -156,7 +167,7 @@ class InviteSignupMissingCodeIT extends AbstractIntegrationTest {
     @LocalServerPort int port;
 
     @Test
-    void returns503WhenInviteCodeIsNotConfigured() {
+    void returns503WhenInviteCodeIsBlank() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add(HttpHeaders.COOKIE, "invite_signup="
