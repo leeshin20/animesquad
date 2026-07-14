@@ -135,12 +135,12 @@ export default function MePage() {
         {/* 좌측 — 최근 감상 + 최근 소감 */}
         <div className="flex min-w-0 flex-col gap-8">
           <section className="min-w-0">
-            <h2 className="mb-3 text-sm font-semibold text-neutral-700">최근 감상</h2>
+            <SectionHeader title="최근 감상" linkHref="/watchlist/anime" linkLabel="전체 보기" />
             <RecentWatchedGrid entries={entries === null ? null : recentWatched} />
           </section>
 
           <section className="min-w-0">
-            <h2 className="mb-3 text-sm font-semibold text-neutral-700">최근 소감</h2>
+            <SectionHeader title="최근 기록" linkHref="/watchlist/reviews" linkLabel="전체 보기" />
             <RecentCommentList items={recentComments} />
           </section>
         </div>
@@ -170,6 +170,19 @@ export default function MePage() {
       {deleteError && (
         <p className="text-sm text-rose-600">{deleteError}</p>
       )}
+    </div>
+  );
+}
+
+function SectionHeader({
+  title, linkHref, linkLabel,
+}: { title: string; linkHref: string; linkLabel: string }) {
+  return (
+    <div className="mb-3 flex items-baseline justify-between">
+      <h2 className="text-sm font-semibold text-neutral-700">{title}</h2>
+      <Link href={linkHref} className="text-xs text-neutral-500 hover:text-neutral-900">
+        {linkLabel} →
+      </Link>
     </div>
   );
 }
