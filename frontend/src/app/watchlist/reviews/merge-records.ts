@@ -21,7 +21,6 @@ export function mergeRecords(
   );
 
   const seriesRecords: ReviewRecord[] = entries
-    .filter((e) => e.score != null || e.comment != null)
     .map((e) => ({
       key: `s${e.id}`,
       animeId: e.anime.id,

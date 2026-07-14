@@ -5,7 +5,7 @@ import Link from "next/link";
 import { apiGet, type WatchEntry, type MyEpisodeReview, type WatchStatus } from "@/app/lib/api";
 import { Stars, StarIcon } from "@/app/components/Stars";
 import { relativeTime } from "@/app/components/Timeline";
-import { STATUS_LABEL } from "@/app/lib/watch-status";
+import { STATUS_LABEL, statusLabel, statusBadge } from "@/app/lib/watch-status";
 import { mergeRecords, type ReviewRecord } from "./merge-records";
 
 type StatusFilter = WatchStatus | "ALL";
@@ -98,7 +98,7 @@ export default function ReviewsPage() {
   if (records.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-neutral-300 px-6 py-10 text-center text-sm text-neutral-500">
-        아직 작성한 감상평이 없어요.
+        아직 감상 기록이 없어요.
       </div>
     );
   }
@@ -237,17 +237,19 @@ function RecordRow({ record }: { record: ReviewRecord }) {
         className="block rounded-xl border border-neutral-200 p-4 transition hover:bg-neutral-50"
       >
         <div className="flex items-center justify-between gap-3">
-          <p className="min-w-0 truncate text-sm font-medium text-neutral-800">
-            {record.title}
-            {record.episodeNumber != null && (
-              <span className="ml-1.5 text-xs font-normal text-neutral-500">
-                {record.episodeNumber}화
-              </span>
-            )}
-          </p>
+          <p className="min-w-0 truncate text-sm font-medium text-neutral-800">{record.title}</p>
           <span className="shrink-0 text-xs text-neutral-400">{relativeTime(record.updatedAt)}</span>
         </div>
-        <div className="mt-1.5">
+        <div className="mt-1.5 flex items-center gap-1.5">
+          {record.episodeNumber != null ? (
+            <span className="flex-none whitespace-nowrap rounded bg-blue-50 px-1.5 py-0.5 text-sm font-medium text-blue-700">
+              {record.episodeNumber}화
+            </span>
+          ) : record.status != null ? (
+            <span className={`flex-none whitespace-nowrap rounded px-1.5 py-0.5 text-sm font-medium ${statusBadge(record.status)}`}>
+              {statusLabel(record.status)}
+            </span>
+          ) : null}
           {record.score != null ? (
             <Stars value={record.score} size="sm" />
           ) : (
