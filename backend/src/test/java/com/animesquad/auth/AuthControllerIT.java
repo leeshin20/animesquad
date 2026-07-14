@@ -217,4 +217,28 @@ class AuthControllerIT extends AbstractIntegrationTest {
             url("/api/me"), HttpMethod.GET, new HttpEntity<>(cookieFor(u.getId())), String.class);
         assertThat(after.getBody()).contains("\"onboardingComplete\":true");
     }
+
+    @Test
+    void me_defaultsToSquadOnlyVisibility() {
+        User u = userService.upsertFromGoogle("g-vis-1", "vis1@test.com", "V1", null);
+
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/me"), HttpMethod.GET, new HttpEntity<>(cookieFor(u.getId())), String.class);
+
+        assertThat(res.getBody()).contains("\"profileVisibility\":\"SQUAD_ONLY\"");
+    }
+
+    @Test
+    void updateProfile_changesVisibility() {
+        User u = userService.upsertFromGoogle("g-vis-2", "vis2@test.com", "V2", null);
+
+        HttpHeaders h = cookieFor(u.getId());
+        h.setContentType(MediaType.APPLICATION_JSON);
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/me"), HttpMethod.PATCH,
+            new HttpEntity<>(Map.of("displayName", "V2", "profileVisibility", "PUBLIC"), h), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody()).contains("\"profileVisibility\":\"PUBLIC\"");
+    }
 }

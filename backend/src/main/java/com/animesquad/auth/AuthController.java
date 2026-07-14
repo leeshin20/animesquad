@@ -2,6 +2,7 @@ package com.animesquad.auth;
 
 import com.animesquad.admin.AdminProperties;
 import com.animesquad.user.AvatarStorage;
+import com.animesquad.user.ProfileVisibility;
 import com.animesquad.user.User;
 import com.animesquad.user.UserService;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,9 +37,9 @@ public class AuthController {
         this.adminProperties = adminProperties;
     }
 
-    public record MeResponse(Long id, String email, String displayName, String avatarUrl, boolean isAdmin, boolean onboardingComplete) {}
+    public record MeResponse(Long id, String email, String displayName, String avatarUrl, boolean isAdmin, boolean onboardingComplete, ProfileVisibility profileVisibility) {}
 
-    public record UpdateProfileRequest(String displayName) {}
+    public record UpdateProfileRequest(String displayName, ProfileVisibility profileVisibility) {}
 
     @GetMapping("/me")
     public ResponseEntity<MeResponse> me(@AuthenticationPrincipal CurrentUser current) {
@@ -57,7 +58,11 @@ public class AuthController {
         if (name.length() > 50) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "닉네임은 50자 이하여야 해요");
         }
-        return ResponseEntity.ok(toResponse(userService.updateDisplayName(current.userId(), name)));
+        User updated = userService.updateDisplayName(current.userId(), name);
+        if (body.profileVisibility() != null) {
+            updated = userService.updateProfileVisibility(current.userId(), body.profileVisibility());
+        }
+        return ResponseEntity.ok(toResponse(updated));
     }
 
     @PostMapping("/me/avatar")
@@ -107,6 +112,6 @@ public class AuthController {
     private MeResponse toResponse(User u) {
         boolean isAdmin = adminProperties.isAdminEmail(u.getEmail());
         boolean onboardingComplete = u.getTermsAgreedAt() != null;
-        return new MeResponse(u.getId(), u.getEmail(), u.getDisplayName(), u.getAvatarUrl(), isAdmin, onboardingComplete);
+        return new MeResponse(u.getId(), u.getEmail(), u.getDisplayName(), u.getAvatarUrl(), isAdmin, onboardingComplete, u.getProfileVisibility());
     }
 }

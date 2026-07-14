@@ -63,6 +63,13 @@ public class UserService {
     }
 
     @Transactional
+    public User updateProfileVisibility(Long id, ProfileVisibility visibility) {
+        User user = getById(id);
+        user.updateProfileVisibility(visibility);
+        return user;
+    }
+
+    @Transactional
     public void agreeTerms(Long userId) {
         User user = getById(userId);
         user.agreeTerms();
