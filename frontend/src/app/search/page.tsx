@@ -31,7 +31,7 @@ function AnimeSearch() {
   async function loadEntries() {
     try {
       const mine = await apiGet<WatchEntry[]>("/api/watch");
-      setEntries(Object.fromEntries(mine.map((e) => [e.anime.anilistId, e])));
+      setEntries(Object.fromEntries(mine.map((e) => [e.anime.id, e])));
     } catch { /* 검색은 목록 없이도 동작 */ }
   }
 
@@ -52,11 +52,11 @@ function AnimeSearch() {
     return () => clearTimeout(t);
   }, [q]);
 
-  async function add(anilistId: number, status: WatchStatus) {
+  async function add(animeId: number, status: WatchStatus) {
     setStatus(null);
     try {
-      const entry = await apiPost<WatchEntry>("/api/watch", { anilistId, status });
-      setEntries((m) => ({ ...m, [anilistId]: entry }));
+      const entry = await apiPost<WatchEntry>("/api/watch", { animeId, status });
+      setEntries((m) => ({ ...m, [animeId]: entry }));
     } catch (e) { setStatus(String(e)); }
   }
 
@@ -88,7 +88,7 @@ function AnimeSearch() {
       <ul className="space-y-3">
         {results.map((m) => (
           <li
-            key={m.anilistId}
+            key={m.id}
             className="flex gap-4 rounded-xl border border-neutral-200 p-4 hover:border-neutral-300"
           >
             {m.coverImageUrl ? (
@@ -113,21 +113,21 @@ function AnimeSearch() {
                 {aniFormat(m.format)} · {m.seasonYear ?? "-"} · {m.episodes ?? "?"}화 · {aniStatus(m.status)}
               </div>
               <div className="mt-auto pt-3">
-                {entries[m.anilistId] ? (
+                {entries[m.id] ? (
                   <button
                     type="button"
-                    onClick={() => setModalEntry(entries[m.anilistId])}
+                    onClick={() => setModalEntry(entries[m.id])}
                     title="시청 상태 · 시리즈 평가"
-                    className={`rounded-md border px-3 py-1.5 text-sm font-medium transition ${STATUS_STYLE[entries[m.anilistId].status]}`}
+                    className={`rounded-md border px-3 py-1.5 text-sm font-medium transition ${STATUS_STYLE[entries[m.id].status]}`}
                   >
-                    {STATUS_LABEL[entries[m.anilistId].status]}
+                    {STATUS_LABEL[entries[m.id].status]}
                   </button>
                 ) : (
                   <select
                     defaultValue=""
                     onChange={(e) => {
                       const s = e.target.value as WatchStatus;
-                      if (s) add(m.anilistId, s);
+                      if (s) add(m.id, s);
                     }}
                     className="rounded-md border border-neutral-300 px-2 py-1 text-sm focus:border-neutral-900 focus:outline-none"
                   >
