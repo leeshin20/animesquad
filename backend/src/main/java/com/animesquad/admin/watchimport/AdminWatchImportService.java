@@ -4,8 +4,13 @@ import com.animesquad.anime.Anime;
 import com.animesquad.anime.AnimeRepository;
 import com.animesquad.user.User;
 import com.animesquad.user.UserRepository;
+import com.animesquad.watch.WatchEntry;
+import com.animesquad.watch.WatchEntryRepository;
+import com.animesquad.watch.WatchStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.text.Normalizer;
@@ -18,11 +23,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.animesquad.admin.watchimport.AdminWatchImportDtos.AnimeRef;
+import static com.animesquad.admin.watchimport.AdminWatchImportDtos.CommitItem;
+import static com.animesquad.admin.watchimport.AdminWatchImportDtos.CommitResponse;
 import static com.animesquad.admin.watchimport.AdminWatchImportDtos.LineStatus;
 import static com.animesquad.admin.watchimport.AdminWatchImportDtos.PreviewLine;
 import static com.animesquad.admin.watchimport.AdminWatchImportDtos.PreviewResponse;
@@ -35,10 +44,18 @@ public class AdminWatchImportService {
 
     private final UserRepository users;
     private final AnimeRepository animes;
+    private final WatchEntryRepository entries;
 
     public AdminWatchImportService(UserRepository users, AnimeRepository animes) {
+        this(users, animes, null);
+    }
+
+    @Autowired
+    public AdminWatchImportService(UserRepository users, AnimeRepository animes,
+                                   WatchEntryRepository entries) {
         this.users = users;
         this.animes = animes;
+        this.entries = entries;
     }
 
     public PreviewResponse preview(String email, String text) {
@@ -69,6 +86,46 @@ public class AdminWatchImportService {
         return new PreviewResponse(
             new TargetUser(target.getId(), target.getEmail(), target.getDisplayName()),
             List.copyOf(lines));
+    }
+
+    @Transactional
+    public CommitResponse commit(Long targetUserId, List<CommitItem> items) {
+        if (targetUserId == null || items == null || items.isEmpty() || items.size() > MAX_LINES) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "target user and 1-200 items are required");
+        }
+        if (!users.existsById(targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "user not found");
+        }
+        if (items.stream().anyMatch(item -> item == null || item.animeId() == null
+            || item.progress() == null || item.progress() < 1)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid import item");
+        }
+        Set<Long> animeIds = items.stream().map(CommitItem::animeId).collect(Collectors.toSet());
+        if (animeIds.size() != items.size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "duplicate anime id");
+        }
+        Map<Long, Anime> animeMap = animes.findAllById(animeIds).stream()
+            .collect(Collectors.toMap(Anime::getId, Function.identity()));
+        if (animeMap.size() != animeIds.size()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "anime not found");
+        }
+
+        int created = 0;
+        int updated = 0;
+        for (CommitItem item : items) {
+            WatchEntry entry = entries.findByUserIdAndAnimeId(targetUserId, item.animeId()).orElse(null);
+            if (entry == null) {
+                entry = new WatchEntry(targetUserId, item.animeId(), WatchStatus.WATCHING);
+                entry.apply(null, item.progress(), null, null);
+                entries.save(entry);
+                created++;
+            } else {
+                entry.apply(WatchStatus.WATCHING, item.progress(), null, null);
+                updated++;
+            }
+        }
+        return new CommitResponse(created, updated);
     }
 
     static String normalizeTitle(String value) {
