@@ -401,14 +401,14 @@ function SquadHeader({
               <button
                 type="button"
                 onClick={() => setShowMembers(true)}
-                className="mt-0.5 text-xs text-neutral-500 hover:text-neutral-800 hover:underline"
+                className="mt-0.5 block text-xs text-neutral-500 hover:text-neutral-800 hover:underline"
               >
                 멤버 {squad.memberCount}명
               </button>
               <button
                 type="button"
                 onClick={() => copyInviteCode(squad.inviteCode)}
-                className="mt-0.5 text-xs text-neutral-500 hover:text-neutral-800"
+                className="mt-0.5 block text-xs text-neutral-500 hover:text-neutral-800"
                 title="클릭해서 복사"
               >
                 스쿼드 코드{" "}
