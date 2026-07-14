@@ -18,25 +18,22 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
     private final UserService userService;
     private final JwtService jwtService;
+    private final AuthCookieFactory authCookieFactory;
 
     @Value("${app.oauth.success-redirect}")
     private String successRedirect;
 
-    @Value("${app.cookie.secure}")
-    private boolean cookieSecure;
-
-    @Value("${app.cookie.same-site}")
-    private String cookieSameSite;
-
-    @Value("${app.cookie.domain:}")
-    private String cookieDomain;
-
     @Value("${app.jwt.ttl-minutes}")
     private long ttlMinutes;
 
-    public OAuth2LoginSuccessHandler(UserService userService, JwtService jwtService) {
+    public OAuth2LoginSuccessHandler(
+        UserService userService,
+        JwtService jwtService,
+        AuthCookieFactory authCookieFactory
+    ) {
         this.userService = userService;
         this.jwtService = jwtService;
+        this.authCookieFactory = authCookieFactory;
     }
 
     @Override
@@ -51,17 +48,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         User user = userService.upsertFromGoogle(sub, email, name, null);
         String token = jwtService.issue(user.getId());
 
-        StringBuilder sb = new StringBuilder();
-        sb.append(JwtAuthenticationFilter.COOKIE_NAME).append("=").append(token);
-        sb.append("; Path=/");
-        sb.append("; Max-Age=").append(ttlMinutes * 60);
-        sb.append("; HttpOnly");
-        if (cookieSecure) sb.append("; Secure");
-        sb.append("; SameSite=").append(cookieSameSite);
-        if (cookieDomain != null && !cookieDomain.isBlank()) {
-            sb.append("; Domain=").append(cookieDomain);
-        }
-        res.addHeader("Set-Cookie", sb.toString());
+        res.addHeader("Set-Cookie", authCookieFactory.session(token, ttlMinutes * 60));
 
         // 온보딩 미완료 유저는 /onboarding으로 리다이렉트
         String onboardingRedirect = (successRedirect.endsWith("/")

@@ -5,7 +5,6 @@ import com.animesquad.user.AvatarStorage;
 import com.animesquad.user.ProfileVisibility;
 import com.animesquad.user.User;
 import com.animesquad.user.UserService;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,20 +20,18 @@ public class AuthController {
     private final UserService userService;
     private final AvatarStorage avatarStorage;
     private final AdminProperties adminProperties;
+    private final AuthCookieFactory authCookieFactory;
 
-    @Value("${app.cookie.secure}")
-    private boolean cookieSecure;
-
-    @Value("${app.cookie.same-site}")
-    private String cookieSameSite;
-
-    @Value("${app.cookie.domain:}")
-    private String cookieDomain;
-
-    public AuthController(UserService userService, AvatarStorage avatarStorage, AdminProperties adminProperties) {
+    public AuthController(
+        UserService userService,
+        AvatarStorage avatarStorage,
+        AdminProperties adminProperties,
+        AuthCookieFactory authCookieFactory
+    ) {
         this.userService = userService;
         this.avatarStorage = avatarStorage;
         this.adminProperties = adminProperties;
+        this.authCookieFactory = authCookieFactory;
     }
 
     public record MeResponse(Long id, String email, String displayName, String avatarUrl, boolean isAdmin, boolean onboardingComplete, ProfileVisibility profileVisibility) {}
@@ -84,7 +81,7 @@ public class AuthController {
     @PostMapping("/me/logout")
     public ResponseEntity<Void> logout() {
         return ResponseEntity.noContent()
-            .header(HttpHeaders.SET_COOKIE, buildClearCookie())
+            .header(HttpHeaders.SET_COOKIE, authCookieFactory.clearSession())
             .build();
     }
 
@@ -98,22 +95,8 @@ public class AuthController {
     public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal CurrentUser current) {
         userService.deleteAccount(current.userId());
         return ResponseEntity.noContent()
-            .header(HttpHeaders.SET_COOKIE, buildClearCookie())
+            .header(HttpHeaders.SET_COOKIE, authCookieFactory.clearSession())
             .build();
-    }
-
-    private String buildClearCookie() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(JwtAuthenticationFilter.COOKIE_NAME).append("=");
-        sb.append("; Path=/");
-        sb.append("; Max-Age=0");
-        sb.append("; HttpOnly");
-        if (cookieSecure) sb.append("; Secure");
-        sb.append("; SameSite=").append(cookieSameSite);
-        if (cookieDomain != null && !cookieDomain.isBlank()) {
-            sb.append("; Domain=").append(cookieDomain);
-        }
-        return sb.toString();
     }
 
     private MeResponse toResponse(User u) {
