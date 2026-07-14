@@ -1,8 +1,11 @@
 package com.animesquad.squad;
 
+import com.animesquad.squad.dto.SquadMemberResponse;
 import com.animesquad.squad.dto.SquadResponse;
 import com.animesquad.squad.events.SquadJoinedEvent;
 import com.animesquad.user.AvatarStorage;
+import com.animesquad.user.User;
+import com.animesquad.user.UserRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -10,22 +13,27 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class SquadService {
 
     private final SquadRepository squads;
     private final MembershipRepository memberships;
+    private final UserRepository users;
     private final InviteCodeGenerator codes;
     private final ApplicationEventPublisher events;
     private final AvatarStorage storage;
 
     public SquadService(SquadRepository squads, MembershipRepository memberships,
-                        InviteCodeGenerator codes, ApplicationEventPublisher events,
-                        AvatarStorage storage) {
+                        UserRepository users, InviteCodeGenerator codes,
+                        ApplicationEventPublisher events, AvatarStorage storage) {
         this.squads = squads;
         this.memberships = memberships;
+        this.users = users;
         this.codes = codes;
         this.events = events;
         this.storage = storage;
@@ -95,6 +103,22 @@ public class SquadService {
 
     public SquadResponse toResponse(Squad squad) {
         return SquadResponse.from(squad, memberships.countBySquadId(squad.getId()));
+    }
+
+    @Transactional(readOnly = true)
+    public List<SquadMemberResponse> listMembers(Long userId, Long squadId) {
+        if (!memberships.existsByUserIdAndSquadId(userId, squadId)) {
+            throw new IllegalArgumentException("squad not found");
+        }
+        List<Membership> squadMemberships = memberships.findAllBySquadId(squadId);
+        Map<Long, User> userById = users.findAllById(
+                squadMemberships.stream().map(Membership::getUserId).distinct().toList()).stream()
+            .collect(Collectors.toMap(User::getId, u -> u));
+
+        return squadMemberships.stream()
+            .map(m -> SquadMemberResponse.from(userById.get(m.getUserId()), m.getRole()))
+            .sorted(Comparator.comparing(r -> r.role() == MembershipRole.OWNER ? 0 : 1))
+            .toList();
     }
 
     private Squad getOwnerSquad(Long userId, Long squadId) {

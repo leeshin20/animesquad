@@ -111,4 +111,31 @@ class SquadServiceIT extends AbstractIntegrationTest {
         assertThat(activityRepo.findAll().get(0).getType())
             .isEqualTo(com.animesquad.activity.ActivityType.JOINED_SQUAD);
     }
+
+    @Test
+    void listMembers_returnsOwnerFirst_thenOtherMembers() {
+        User owner = userService.upsertFromGoogle("g-lm-o", "lmo@x.y", "Owner", null);
+        User member = userService.upsertFromGoogle("g-lm-m", "lmm@x.y", "Member", null);
+        Squad s = squadService.createSquad(owner.getId(), "S");
+        squadService.joinByInviteCode(member.getId(), s.getInviteCode());
+
+        List<com.animesquad.squad.dto.SquadMemberResponse> result =
+            squadService.listMembers(owner.getId(), s.getId());
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).userId()).isEqualTo(owner.getId());
+        assertThat(result.get(0).role()).isEqualTo(MembershipRole.OWNER);
+        assertThat(result.get(1).userId()).isEqualTo(member.getId());
+        assertThat(result.get(1).role()).isEqualTo(MembershipRole.MEMBER);
+    }
+
+    @Test
+    void listMembers_throws_whenCallerNotMember() {
+        User owner = userService.upsertFromGoogle("g-lm-o2", "lmo2@x.y", "Owner2", null);
+        User stranger = userService.upsertFromGoogle("g-lm-s", "lms@x.y", "Stranger", null);
+        Squad s = squadService.createSquad(owner.getId(), "S");
+
+        assertThatThrownBy(() -> squadService.listMembers(stranger.getId(), s.getId()))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
 }
