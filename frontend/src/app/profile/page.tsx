@@ -147,7 +147,7 @@ export default function MePage() {
 
         {/* 우측 — 내 스쿼드 */}
         <section className="min-w-0">
-          <h2 className="mb-3 text-sm font-semibold text-neutral-700">내 스쿼드</h2>
+          <h2 className="mb-3 text-sm font-semibold text-neutral-700">소속 스쿼드</h2>
           <MySquadList squads={squads} />
         </section>
       </div>
