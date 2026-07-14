@@ -14,8 +14,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -85,9 +88,11 @@ class OAuth2LoginSuccessHandlerTest {
 
         handler.onAuthenticationSuccess(request, response, authentication);
 
+        verify(response, times(1)).addHeader(eq("Set-Cookie"), anyString());
         verify(response).addHeader("Set-Cookie", "invite-cookie");
         verify(redirect).sendRedirect(request, response, "https://app.example/invite");
         verify(users, never()).upsertFromGoogle(any(), any(), any(), any());
+        verify(users, never()).createFromGoogleIfAbsent(any());
         verifyNoInteractions(jwt);
     }
 }

@@ -20,8 +20,10 @@ import static org.mockito.Mockito.when;
 class UserServiceTest {
 
     private final UserRepository repository = mock(UserRepository.class);
+    private final GoogleUserCreator googleUserCreator = mock(GoogleUserCreator.class);
     private final UserService service = new UserService(
         repository,
+        googleUserCreator,
         mock(SquadRepository.class),
         mock(MembershipRepository.class),
         mock(WatchEntryRepository.class),
@@ -37,7 +39,7 @@ class UserServiceTest {
         User result = service.createFromGoogleIfAbsent(profile);
 
         assertThat(result).isSameAs(existing);
-        verify(repository, never()).saveAndFlush(org.mockito.ArgumentMatchers.any());
+        verify(googleUserCreator, never()).create(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -47,12 +49,12 @@ class UserServiceTest {
         when(repository.findByGoogleSub("racing"))
             .thenReturn(Optional.empty())
             .thenReturn(Optional.of(winner));
-        when(repository.saveAndFlush(org.mockito.ArgumentMatchers.any(User.class)))
+        when(googleUserCreator.create(profile))
             .thenThrow(new DataIntegrityViolationException("duplicate"));
 
         User result = service.createFromGoogleIfAbsent(profile);
 
         assertThat(result).isSameAs(winner);
-        verify(repository).saveAndFlush(org.mockito.ArgumentMatchers.any(User.class));
+        verify(googleUserCreator).create(profile);
     }
 }

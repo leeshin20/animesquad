@@ -18,6 +18,7 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository repository;
+    private final GoogleUserCreator googleUserCreator;
     private final SquadRepository squadRepository;
     private final MembershipRepository membershipRepository;
     private final WatchEntryRepository watchEntryRepository;
@@ -26,6 +27,7 @@ public class UserService {
 
     public UserService(
         UserRepository repository,
+        GoogleUserCreator googleUserCreator,
         SquadRepository squadRepository,
         MembershipRepository membershipRepository,
         WatchEntryRepository watchEntryRepository,
@@ -33,6 +35,7 @@ public class UserService {
         ActivityRepository activityRepository
     ) {
         this.repository = repository;
+        this.googleUserCreator = googleUserCreator;
         this.squadRepository = squadRepository;
         this.membershipRepository = membershipRepository;
         this.watchEntryRepository = watchEntryRepository;
@@ -55,8 +58,7 @@ public class UserService {
     public User createFromGoogleIfAbsent(InviteProfile profile) {
         return repository.findByGoogleSub(profile.googleSub()).orElseGet(() -> {
             try {
-                return repository.saveAndFlush(new User(
-                    profile.googleSub(), profile.email(), profile.displayName(), null));
+                return googleUserCreator.create(profile);
             } catch (DataIntegrityViolationException conflict) {
                 return repository.findByGoogleSub(profile.googleSub()).orElseThrow(() -> conflict);
             }
