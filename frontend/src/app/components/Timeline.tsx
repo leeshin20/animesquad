@@ -188,16 +188,8 @@ export function Avatar({ name, url, size = 10 }: { name: string; url: string | n
     size === 7 ? "h-7 w-7 text-xs" :
     size === 8 ? "h-8 w-8 text-sm" :
     "h-10 w-10 text-sm";
-  if (url) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={url} alt="" className={`${dim} flex-none rounded-full object-cover`} />;
-  }
-  const initial = name.trim().charAt(0).toUpperCase() || "?";
-  return (
-    <div className={`${dim} flex flex-none items-center justify-center rounded-full bg-neutral-200 font-medium text-neutral-600`}>
-      {initial}
-    </div>
-  );
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url ?? "/default-avatar.png"} alt={name} className={`${dim} flex-none rounded-full object-cover`} />;
 }
 
 function actionText(it: FeedItem): string {
