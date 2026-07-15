@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { apiGet, type WatchEntry, type MyEpisodeReview, type WatchStatus } from "@/app/lib/api";
+import {
+  apiDelete,
+  apiGet,
+  type MyEpisodeReview,
+  type MyProgressActivity,
+  type WatchEntry,
+  type WatchStatus,
+} from "@/app/lib/api";
+import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { Stars, StarIcon } from "@/app/components/Stars";
 import { relativeTime } from "@/app/components/Timeline";
 import { STATUS_LABEL, statusLabel, statusBadge } from "@/app/lib/watch-status";
@@ -35,21 +43,66 @@ function sortRecords(records: ReviewRecord[], key: SortKey, dir: SortDir): Revie
 export default function ReviewsPage() {
   const [entries, setEntries] = useState<WatchEntry[] | null>(null);
   const [episodeReviews, setEpisodeReviews] = useState<MyEpisodeReview[] | null>(null);
+  const [progressActivities, setProgressActivities] = useState<MyProgressActivity[] | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ReviewRecord | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>("ALL");
   const [sort, setSort] = useState<SortKey>("UPDATED");
   const [sortDir, setSortDir] = useState<SortDir>("DESC");
 
-  useEffect(() => {
-    apiGet<WatchEntry[]>("/api/watch").then(setEntries).catch((e) => setError(String(e)));
-    apiGet<MyEpisodeReview[]>("/api/me/episode-reviews?limit=500&commentOnly=false")
-      .then(setEpisodeReviews)
-      .catch((e) => setError(String(e)));
-  }, []);
+  async function loadRecords() {
+    setError(null);
+    try {
+      const [watchRows, episodeRows, progressRows] = await Promise.all([
+        apiGet<WatchEntry[]>("/api/watch"),
+        apiGet<MyEpisodeReview[]>("/api/me/episode-reviews?limit=500&commentOnly=false"),
+        apiGet<MyProgressActivity[]>("/api/me/progress-activities?limit=500"),
+      ]);
+      setEntries(watchRows);
+      setEpisodeReviews(episodeRows);
+      setProgressActivities(progressRows);
+    } catch (error) {
+      setError(String(error));
+    }
+  }
 
-  const loading = entries === null || episodeReviews === null;
-  const records = loading ? [] : mergeRecords(entries, episodeReviews);
+  useEffect(() => { loadRecords(); }, []);
+
+  const loading = entries === null || episodeReviews === null || progressActivities === null;
+  const records = loading ? [] : mergeRecords(entries, episodeReviews, progressActivities);
+
+  function deleteMessage(record: ReviewRecord): string {
+    if (record.kind === "series") {
+      return "이 시리즈 감상평을 삭제할까요? 상태와 진도는 유지됩니다.";
+    }
+    if (record.kind === "episode") {
+      return `${record.episodeNumber}화 감상평을 삭제할까요? 현재 진도는 유지됩니다.`;
+    }
+    const restored = Math.max(0, (record.episodeNumber ?? 0) - 1);
+    return `${record.episodeNumber}화 기록을 삭제할까요? 현재 진도가 ${restored}화로 복구됩니다.`;
+  }
+
+  async function deleteRecord(record: ReviewRecord) {
+    setDeleting(true);
+    setError(null);
+    try {
+      if (record.kind === "series") {
+        await apiDelete(`/api/watch/${record.animeId}/review`);
+      } else if (record.kind === "episode") {
+        await apiDelete(`/api/watch/${record.animeId}/episodes/${record.episodeNumber}`);
+      } else {
+        await apiDelete(`/api/me/progress-activities/${record.sourceId}`);
+      }
+      setPendingDelete(null);
+      await loadRecords();
+    } catch (error) {
+      setError(String(error));
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const statusCounts: Record<StatusFilter, number> = {
     ALL: records.length,
@@ -144,9 +197,18 @@ export default function ReviewsPage() {
       ) : (
         <ul className="space-y-3">
           {filtered.map((r) => (
-            <RecordRow key={r.key} record={r} />
+            <RecordRow key={r.key} record={r} onDelete={setPendingDelete} />
           ))}
         </ul>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          message={deleteMessage(pendingDelete)}
+          confirmLabel={deleting ? "삭제 중…" : "삭제"}
+          onCancel={() => { if (!deleting) setPendingDelete(null); }}
+          onConfirm={() => { if (!deleting) deleteRecord(pendingDelete); }}
+        />
       )}
     </>
   );
@@ -229,13 +291,16 @@ function Pills<T extends string | number>({
   );
 }
 
-function RecordRow({ record }: { record: ReviewRecord }) {
+function RecordRow({
+  record,
+  onDelete,
+}: {
+  record: ReviewRecord;
+  onDelete: (record: ReviewRecord) => void;
+}) {
   return (
-    <li>
-      <Link
-        href={`/anime/${record.animeId}`}
-        className="block rounded-xl border border-neutral-200 p-4 transition hover:bg-neutral-50"
-      >
+    <li className="flex items-start gap-3 rounded-xl border border-neutral-200 p-4 transition hover:bg-neutral-50">
+      <Link href={`/anime/${record.animeId}`} className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-3">
           <p className="min-w-0 truncate text-sm font-medium text-neutral-800">{record.title}</p>
           <span className="shrink-0 text-xs text-neutral-400">{relativeTime(record.updatedAt)}</span>
@@ -262,6 +327,13 @@ function RecordRow({ record }: { record: ReviewRecord }) {
           </p>
         )}
       </Link>
+      <button
+        type="button"
+        onClick={() => onDelete(record)}
+        className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-rose-500 hover:bg-rose-50 hover:text-rose-700"
+      >
+        삭제
+      </button>
     </li>
   );
 }
