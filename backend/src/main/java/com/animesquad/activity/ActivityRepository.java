@@ -13,6 +13,9 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
     List<Activity> findBySquadIdOrderByIdDesc(Long squadId, Limit limit);
 
+    List<Activity> findByActorIdAndTypeOrderByCreatedAtDesc(
+        Long actorId, ActivityType type, Limit limit);
+
     List<Activity> findAllByActorIdAndAnimeIdAndType(Long actorId, Long animeId, ActivityType type);
 
     @Modifying
