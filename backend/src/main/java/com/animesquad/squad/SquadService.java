@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 @Service
 public class SquadService {
 
+    private static final int MAX_SQUADS_PER_USER = 3;
+
     private final SquadRepository squads;
     private final MembershipRepository memberships;
     private final UserRepository users;
@@ -41,6 +43,7 @@ public class SquadService {
 
     @Transactional
     public Squad createSquad(Long ownerId, String name) {
+        assertUnderSquadLimit(ownerId);
         Squad squad = squads.save(new Squad(name, ownerId, generateUniqueCode()));
         memberships.save(new Membership(ownerId, squad.getId(), MembershipRole.OWNER));
         return squad;
@@ -51,6 +54,7 @@ public class SquadService {
         Squad squad = squads.findByInviteCode(inviteCode)
             .orElseThrow(() -> new IllegalArgumentException("invite code not found"));
         if (!memberships.existsByUserIdAndSquadId(userId, squad.getId())) {
+            assertUnderSquadLimit(userId);
             memberships.save(new Membership(userId, squad.getId(), MembershipRole.MEMBER));
             events.publishEvent(new SquadJoinedEvent(userId, squad.getId()));
         }
@@ -127,6 +131,12 @@ public class SquadService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "스쿼드 관리자만 수정할 수 있어요");
         }
         return squad;
+    }
+
+    private void assertUnderSquadLimit(Long userId) {
+        if (memberships.findAllByUserId(userId).size() >= MAX_SQUADS_PER_USER) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "스쿼드는 최대 3개까지만 참여할 수 있어요");
+        }
     }
 
     private String generateUniqueCode() {
