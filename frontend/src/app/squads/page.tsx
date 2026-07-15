@@ -5,11 +5,11 @@ import Link from "next/link";
 import { apiGet, apiPost, type Squad } from "@/app/lib/api";
 
 const ERROR_MESSAGES: Record<string, string> = {
-  "Error: API 409": "스쿼드는 최대 3개까지만 참여할 수 있어요.",
+  "API 409": "스쿼드는 최대 3개까지만 참여할 수 있어요.",
 };
 
 function friendlyError(e: unknown): string {
-  const raw = String(e);
+  const raw = e instanceof Error ? e.message : String(e);
   return ERROR_MESSAGES[raw] ?? raw;
 }
 
