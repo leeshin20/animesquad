@@ -257,6 +257,40 @@ class SquadControllerIT extends AbstractIntegrationTest {
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
+    @Test
+    void create_returns409_whenUserAlreadyHas3Squads() {
+        User owner = userService.upsertFromGoogle("g-ctrl-limit", "ctrllimit@x.y", "CtrlLimit", null);
+        createSquad(owner.getId());
+        createSquad(owner.getId());
+        createSquad(owner.getId());
+
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/squad"), HttpMethod.POST,
+            new HttpEntity<>(Map.of("name", "S4"), cookieFor(owner.getId())),
+            String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void join_returns409_whenUserAlreadyHas3Squads() {
+        User joiner = userService.upsertFromGoogle("g-ctrl-limit-j", "ctrllimitj@x.y", "CtrlLimitJ", null);
+        createSquad(joiner.getId());
+        createSquad(joiner.getId());
+        createSquad(joiner.getId());
+
+        User owner4 = userService.upsertFromGoogle("g-ctrl-limit-o", "ctrllimito@x.y", "CtrlLimitO", null);
+        Integer fourthId = createSquad(owner4.getId());
+        String code = inviteCodeOf(fourthId, owner4.getId());
+
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/squad/join"), HttpMethod.POST,
+            new HttpEntity<>(Map.of("inviteCode", code), cookieFor(joiner.getId())),
+            String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
+
     private Integer createSquad(Long ownerId) {
         ResponseEntity<Map> created = rest.exchange(
             url("/api/squad"), HttpMethod.POST,
