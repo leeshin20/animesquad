@@ -67,7 +67,8 @@ Expected: 첫 번째 테스트가 `/default-avatar.png`를 찾지 못해 실패�
 `Timeline.tsx`의 `Avatar`를 다음과 같이 변경한다.
 
 ```tsx
-export function Avatar({ name, url, size = 10 }: { name: string; url: string | null; size?: 7 | 8 | 10 }) {
+export function Avatar(props: { name: string; url: string | null; size?: 7 | 8 | 10 }) {
+  const { url, size = 10 } = props;
   const dim =
     size === 7 ? "h-7 w-7 text-xs" :
     size === 8 ? "h-8 w-8 text-sm" :
@@ -76,7 +77,7 @@ export function Avatar({ name, url, size = 10 }: { name: string; url: string | n
   return (
     <img
       src={url ?? "/default-avatar.png"}
-      alt={name}
+      alt=""
       className={`${dim} flex-none rounded-full object-cover`}
     />
   );

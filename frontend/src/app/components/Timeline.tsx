@@ -183,13 +183,14 @@ function statusOf(item: FeedItem): unknown | null {
   return null;
 }
 
-export function Avatar({ name, url, size = 10 }: { name: string; url: string | null; size?: 7 | 8 | 10 }) {
+export function Avatar(props: { name: string; url: string | null; size?: 7 | 8 | 10 }) {
+  const { url, size = 10 } = props;
   const dim =
     size === 7 ? "h-7 w-7 text-xs" :
     size === 8 ? "h-8 w-8 text-sm" :
     "h-10 w-10 text-sm";
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url ?? "/default-avatar.png"} alt={name} className={`${dim} flex-none rounded-full object-cover`} />;
+  return <img src={url ?? "/default-avatar.png"} alt="" className={`${dim} flex-none rounded-full object-cover`} />;
 }
 
 function actionText(it: FeedItem): string {

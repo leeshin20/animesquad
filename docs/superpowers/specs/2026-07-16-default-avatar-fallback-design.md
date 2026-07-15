@@ -25,4 +25,3 @@
 - 사용자 지정 URL이 그대로 선택되는 테스트
 - URL이 없을 때 `/default-avatar.png`가 선택되는 테스트
 - 기존 프론트 테스트, TypeScript 검사, 프로덕션 빌드
-

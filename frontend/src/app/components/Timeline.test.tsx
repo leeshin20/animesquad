@@ -10,6 +10,7 @@ test("uses the default avatar when the user has no profile image", () => {
   const html = renderToStaticMarkup(<Avatar name="Alice" url={null} />);
 
   assert.match(html, /src="\/default-avatar\.png"/);
+  assert.match(html, /alt=""/);
 });
 
 test("keeps a user-provided profile image", () => {
@@ -19,4 +20,5 @@ test("keeps a user-provided profile image", () => {
 
   assert.match(html, /src="https:\/\/images\.example\/alice\.png"/);
   assert.doesNotMatch(html, /default-avatar\.png/);
+  assert.match(html, /alt=""/);
 });
