@@ -26,7 +26,7 @@ public class AnimeReviewsController {
     ) {}
 
     public record EpisodeReviewItem(
-        ActorRef actor, int episodeNumber, int score, String comment, OffsetDateTime updatedAt
+        ActorRef actor, int episodeNumber, Integer score, String comment, OffsetDateTime updatedAt
     ) {}
 
     public record AnimeStats(Double averageScore, int watcherCount) {}

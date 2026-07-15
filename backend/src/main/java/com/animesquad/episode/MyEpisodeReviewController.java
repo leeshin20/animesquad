@@ -25,7 +25,7 @@ public class MyEpisodeReviewController {
         Long id,
         AnimeRef anime,
         int episodeNumber,
-        int score,
+        Integer score,
         String comment,
         OffsetDateTime updatedAt
     ) {}

@@ -78,6 +78,57 @@ class EpisodeRatingControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void put_savesCommentWithoutScore_forRegularUser() {
+        Setup s = seed("ec-comment", 2006);
+
+        ResponseEntity<Map> put = rest.exchange(
+            url("/api/watch/" + s.animeId() + "/episodes/2"), HttpMethod.PUT,
+            new HttpEntity<>(Map.of("comment", "별점 없이도 남길 감상평"), cookieFor(s.userId())),
+            Map.class);
+
+        assertThat(put.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(put.getBody().get("score")).isNull();
+        assertThat(put.getBody().get("comment")).isEqualTo("별점 없이도 남길 감상평");
+
+        ResponseEntity<Map[]> list = rest.exchange(
+            url("/api/watch/" + s.animeId() + "/episodes"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(s.userId())), Map[].class);
+        assertThat(list.getBody()).singleElement().satisfies(saved -> {
+            assertThat(saved.get("score")).isNull();
+            assertThat(saved.get("comment")).isEqualTo("별점 없이도 남길 감상평");
+        });
+    }
+
+    @Test
+    void put_returns400_whenScoreAndCommentAreBothMissing() {
+        Setup s = seed("ec-empty", 2007);
+
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/watch/" + s.animeId() + "/episodes/2"), HttpMethod.PUT,
+            new HttpEntity<>(Map.of(), cookieFor(s.userId())), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void put_commentOnlyEdit_preservesExistingScore() {
+        Setup s = seed("ec-preserve", 2008);
+        rest.exchange(
+            url("/api/watch/" + s.animeId() + "/episodes/2"), HttpMethod.PUT,
+            new HttpEntity<>(Map.of("score", 4, "comment", "기존 감상평"), cookieFor(s.userId())),
+            Map.class);
+
+        ResponseEntity<Map> edited = rest.exchange(
+            url("/api/watch/" + s.animeId() + "/episodes/2"), HttpMethod.PUT,
+            new HttpEntity<>(Map.of("comment", "수정한 감상평"), cookieFor(s.userId())),
+            Map.class);
+
+        assertThat(edited.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(edited.getBody().get("score")).isEqualTo(4);
+        assertThat(edited.getBody().get("comment")).isEqualTo("수정한 감상평");
+    }
+
+    @Test
     void put_returns400_whenScoreOutOfRange() {
         Setup s = seed("ec2", 2002);
 
