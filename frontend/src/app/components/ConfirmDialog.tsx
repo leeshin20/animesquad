@@ -4,11 +4,13 @@
 export function ConfirmDialog({
   message,
   confirmLabel = "삭제",
+  busy = false,
   onConfirm,
   onCancel,
 }: {
   message: string;
   confirmLabel?: string;
+  busy?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -20,14 +22,16 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100"
+            disabled={busy}
+            className="rounded-md px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             취소
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="rounded-md bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700"
+            disabled={busy}
+            className="rounded-md bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {confirmLabel}
           </button>

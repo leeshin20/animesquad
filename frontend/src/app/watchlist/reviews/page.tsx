@@ -130,7 +130,7 @@ export default function ReviewsPage() {
 
   const filtered = sortRecords(afterScore, sort, sortDir);
 
-  if (error) {
+  if (error && loading) {
     return (
       <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
         {error}
@@ -158,6 +158,15 @@ export default function ReviewsPage() {
 
   return (
     <>
+      {error && (
+        <div
+          role="alert"
+          className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+        >
+          {error}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <StatusFilterBar current={statusFilter} counts={statusCounts} onChange={setStatusFilter} />
         <label className="flex items-center gap-2 text-sm text-neutral-500">
@@ -206,6 +215,7 @@ export default function ReviewsPage() {
         <ConfirmDialog
           message={deleteMessage(pendingDelete)}
           confirmLabel={deleting ? "삭제 중…" : "삭제"}
+          busy={deleting}
           onCancel={() => { if (!deleting) setPendingDelete(null); }}
           onConfirm={() => { if (!deleting) deleteRecord(pendingDelete); }}
         />
