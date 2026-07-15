@@ -196,7 +196,7 @@ export type AnimeReview = {
 export type EpisodeReview = {
   actor: { id: number; displayName: string; avatarUrl: string | null } | null;
   episodeNumber: number;
-  score: number;
+  score: number | null;
   comment: string;
   updatedAt: string;
 };
@@ -205,7 +205,7 @@ export type MyEpisodeReview = {
   id: number;
   anime: { id: number; titleRomaji: string; titleKorean: string | null; coverImageUrl: string | null } | null;
   episodeNumber: number;
-  score: number;
+  score: number | null;
   comment: string | null;
   updatedAt: string;
 };

@@ -20,8 +20,8 @@ public class EpisodeRating {
     @Column(name = "episode_number", nullable = false)
     private int episodeNumber;
 
-    @Column(nullable = false)
-    private int score;
+    @Column
+    private Integer score;
 
     @Column(columnDefinition = "TEXT")
     private String comment;
@@ -34,7 +34,7 @@ public class EpisodeRating {
 
     protected EpisodeRating() {}
 
-    public EpisodeRating(Long userId, Long animeId, int episodeNumber, int score, String comment) {
+    public EpisodeRating(Long userId, Long animeId, int episodeNumber, Integer score, String comment) {
         this.userId = userId;
         this.animeId = animeId;
         this.episodeNumber = episodeNumber;
@@ -42,7 +42,7 @@ public class EpisodeRating {
         this.comment = comment;
     }
 
-    public void replace(int score, String comment) {
+    public void replace(Integer score, String comment) {
         this.score = score;
         this.comment = comment;
         this.updatedAt = OffsetDateTime.now();
@@ -52,7 +52,7 @@ public class EpisodeRating {
     public Long getUserId() { return userId; }
     public Long getAnimeId() { return animeId; }
     public int getEpisodeNumber() { return episodeNumber; }
-    public int getScore() { return score; }
+    public Integer getScore() { return score; }
     public String getComment() { return comment; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }

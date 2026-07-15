@@ -425,7 +425,7 @@ function EpisodeReviewCard({
   }
 
   async function save() {
-    if (score == null) return;
+    if (score == null && comment.trim() === "") return;
     setSaving(true);
     try {
       await apiPut(`/api/watch/${animeId}/episodes/${review.episodeNumber}`, {
@@ -482,7 +482,7 @@ function EpisodeReviewCard({
               <button type="button" onClick={() => setEditing(false)} className="rounded-md px-2.5 py-1 text-xs text-neutral-600 hover:bg-neutral-100">
                 취소
               </button>
-              <button type="button" onClick={save} disabled={saving || score == null} className="rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-neutral-700 disabled:opacity-50">
+              <button type="button" onClick={save} disabled={saving || (score == null && comment.trim() === "")} className="rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-neutral-700 disabled:opacity-50">
                 {saving ? "저장 중…" : "저장"}
               </button>
             </div>

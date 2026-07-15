@@ -29,14 +29,17 @@ public class EpisodeRatingService {
 
     @Transactional
     public EpisodeRating upsertRating(Long userId, Long animeId,
-                                      int episodeNumber, int score, String comment) {
+                                      int episodeNumber, Integer score, String comment) {
         WatchEntry entry = watches.findByUserIdAndAnimeId(userId, animeId)
             .orElseThrow(() -> new IllegalArgumentException(
                 "watch entry not found — add the anime to your list first"));
 
         EpisodeRating rating = ratings.findByUserIdAndAnimeIdAndEpisodeNumber(
                 userId, animeId, episodeNumber)
-            .map(existing -> { existing.replace(score, comment); return existing; })
+            .map(existing -> {
+                existing.replace(score != null ? score : existing.getScore(), comment);
+                return existing;
+            })
             .orElseGet(() -> ratings.save(
                 new EpisodeRating(userId, animeId, episodeNumber, score, comment)));
 

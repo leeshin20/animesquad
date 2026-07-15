@@ -8,7 +8,7 @@ public record EpisodeRatingResponse(
     Long id,
     Long animeId,
     int episodeNumber,
-    int score,
+    Integer score,
     String comment,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt

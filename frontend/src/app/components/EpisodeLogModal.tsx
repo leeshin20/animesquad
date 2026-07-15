@@ -7,6 +7,7 @@ import { StarsInput } from "@/app/components/Stars";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { DiscardConfirm } from "@/app/components/DiscardConfirm";
 import { buildEpisodeTweetText, openTwitterIntent } from "@/app/lib/twitter";
+import { scoreForEpisodeReview } from "@/app/lib/episode-log";
 
 export function EpisodeLogModal({
   entry,
@@ -26,13 +27,13 @@ export function EpisodeLogModal({
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [overwriting, setOverwriting] = useState(false);
-  const [ratedEps, setRatedEps] = useState<Set<number>>(new Set());
+  const [ratedEps, setRatedEps] = useState<Map<number, number | null>>(new Map());
   const [shareOnSave, setShareOnSave] = useState(false);
 
   // 이미 평가한 회차를 알아두면 저장 전 덮어쓰기 경고를 띄울 수 있다.
   useEffect(() => {
-    apiGet<{ episodeNumber: number }[]>(`/api/watch/${entry.anime.id}/episodes`)
-      .then((list) => setRatedEps(new Set(list.map((r) => r.episodeNumber))))
+    apiGet<{ episodeNumber: number; score: number | null }[]>(`/api/watch/${entry.anime.id}/episodes`)
+      .then((list) => setRatedEps(new Map(list.map((r) => [r.episodeNumber, r.score]))))
       .catch(() => { /* 조회 실패 시 경고 없이 진행 */ });
   }, [entry.anime.id]);
 
@@ -49,8 +50,7 @@ export function EpisodeLogModal({
       setError(`최종화는 ${max}화예요`);
       return;
     }
-    // 별점을 새로 매기면서 이미 평가한 회차를 덮어쓰는 경우에만 경고
-    if (score != null && ratedEps.has(epNum)) {
+    if ((score != null || comment.trim() !== "") && ratedEps.has(epNum)) {
       setError(null);
       setOverwriting(true);
       return;
@@ -63,9 +63,9 @@ export function EpisodeLogModal({
     setSaving(true);
     setError(null);
     try {
-      if (score != null) {
+      if (score != null || comment.trim() !== "") {
         await apiPut(`/api/watch/${entry.anime.id}/episodes/${epNum}`, {
-          score,
+          score: scoreForEpisodeReview(score, ratedEps.get(epNum) ?? null),
           comment: comment.trim() || null,
         });
       } else {
