@@ -210,6 +210,18 @@ export type MyEpisodeReview = {
   updatedAt: string;
 };
 
+export type MyProgressActivity = {
+  id: number;
+  anime: {
+    id: number;
+    titleRomaji: string;
+    titleKorean: string | null;
+    coverImageUrl: string | null;
+  };
+  progress: number;
+  createdAt: string;
+};
+
 export type AnimeStats = {
   averageScore: number | null;
   watcherCount: number;
