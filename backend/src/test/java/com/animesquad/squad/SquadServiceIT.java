@@ -138,4 +138,46 @@ class SquadServiceIT extends AbstractIntegrationTest {
         assertThatThrownBy(() -> squadService.listMembers(stranger.getId(), s.getId()))
             .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void createSquad_throws_whenUserAlreadyHas3Squads() {
+        User owner = userService.upsertFromGoogle("g-limit-1", "limit1@x.y", "Limit1", null);
+        squadService.createSquad(owner.getId(), "S1");
+        squadService.createSquad(owner.getId(), "S2");
+        squadService.createSquad(owner.getId(), "S3");
+
+        assertThatThrownBy(() -> squadService.createSquad(owner.getId(), "S4"))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+            .hasFieldOrPropertyWithValue("statusCode", org.springframework.http.HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void joinByInviteCode_throws_whenUserAlreadyHas3Squads() {
+        User joiner = userService.upsertFromGoogle("g-limit-2", "limit2@x.y", "Limit2", null);
+        squadService.createSquad(joiner.getId(), "S1");
+        squadService.createSquad(joiner.getId(), "S2");
+        squadService.createSquad(joiner.getId(), "S3");
+
+        User owner4 = userService.upsertFromGoogle("g-limit-2-o", "limit2o@x.y", "Limit2Owner", null);
+        Squad fourth = squadService.createSquad(owner4.getId(), "S4");
+
+        assertThatThrownBy(() -> squadService.joinByInviteCode(joiner.getId(), fourth.getInviteCode()))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+            .hasFieldOrPropertyWithValue("statusCode", org.springframework.http.HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void joinByInviteCode_allowsRejoiningExistingSquad_evenAt3Squads() {
+        User owner = userService.upsertFromGoogle("g-limit-3-o", "limit3o@x.y", "Limit3Owner", null);
+        Squad first = squadService.createSquad(owner.getId(), "S1");
+
+        User member = userService.upsertFromGoogle("g-limit-3-m", "limit3m@x.y", "Limit3Member", null);
+        squadService.joinByInviteCode(member.getId(), first.getInviteCode());
+        squadService.createSquad(member.getId(), "S2");
+        squadService.createSquad(member.getId(), "S3");
+
+        Squad rejoined = squadService.joinByInviteCode(member.getId(), first.getInviteCode());
+
+        assertThat(rejoined.getId()).isEqualTo(first.getId());
+    }
 }
