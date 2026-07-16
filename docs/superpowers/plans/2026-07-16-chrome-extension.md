@@ -4,7 +4,7 @@
 
 **Goal:** 넷플릭스, 라프텔, 크런치롤에서 애니 시청 후 페이지를 벗어날 때 animesquad에 회차 기록을 남길 수 있도록 안내하는 Chrome 확장프로그램을 구현한다.
 
-**Architecture:** Chrome Extension (Manifest V3) — Content Script(제목 파싱/시청 감지), Service Worker(감지 이벤트 수신 → 애니 검색 → pending 저장 + 배지), Popup(기록 폼). 인증은 **웹 세션 쿠키 재사용**: 프로덕션 쿠키가 `ASQ_SESSION; Domain=.animesquad.me`라서 익스텐션이 `host_permissions`에 `https://api.animesquad.me/*`를 갖고 `credentials: 'include'`로 요청하면 웹 로그인 세션을 그대로 쓴다(JWT TTL 30일). **백엔드 변경 없음.**
+**Architecture:** Chrome Extension (Manifest V3) — Content Script(제목 파싱/시청 감지), Service Worker(감지 이벤트 수신 → 애니 검색, 검색 실패 시 빈 결과로 복구 → pending 저장 + 배지), Popup(기록 폼 + 자동 매칭 교정 검색). 인증은 **웹 세션 쿠키 재사용**: 프로덕션 쿠키가 `ASQ_SESSION; Domain=.animesquad.me`라서 익스텐션이 `host_permissions`에 `https://api.animesquad.me/*`를 갖고 `credentials: 'include'`로 요청하면 웹 로그인 세션을 그대로 쓴다(JWT TTL 30일). **백엔드 변경 없음.**
 
 **Tech Stack:** Vanilla JS (Chrome Extension MV3), chrome.storage.local, node:test (파서 단위 테스트)
 
@@ -353,7 +353,7 @@ async function searchAnime(query) {
 
 - [ ] **Step 2: background/service-worker.js 작성**
 
-Service Worker의 역할은 하나: `WATCHED` 메시지를 받아 애니를 검색하고 `pending`으로 저장한 뒤 사용자를 부른다. `chrome.action.openPopup()`은 user gesture 없이는 대부분 실패하므로 배지 fallback이 사실상의 기본 경로다.
+Service Worker의 역할은 하나: `WATCHED` 메시지를 받아 애니를 검색하고 `pending`으로 저장한 뒤 사용자를 부른다. 검색 요청이 일시적으로 실패해도 시청 이벤트를 버리지 않고 `results: []`로 저장해 팝업의 수동 검색으로 복구한다. `chrome.action.openPopup()`은 user gesture 없이는 대부분 실패하므로 배지 fallback이 사실상의 기본 경로다.
 
 ```js
 // chrome-extension/background/service-worker.js
@@ -363,7 +363,12 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type !== 'WATCHED') return;
   (async () => {
     const { animeName, ep } = msg.payload;
-    const results = await searchAnime(animeName);
+    let results = [];
+    try {
+      results = await searchAnime(animeName);
+    } catch {
+      // pending을 보존해 팝업 수동 검색으로 복구한다.
+    }
     await chrome.storage.local.set({ pending: { animeName, ep, results } });
     try {
       await chrome.action.openPopup();
@@ -422,9 +427,10 @@ git commit -m "feat(extension): shared API helper and service worker (detect →
     <div id="view-record" class="view hidden">
       <h1>AnimeSquad</h1>
       <p id="anime-label"></p>
+      <button id="btn-change-anime" class="secondary hidden">다른 작품 선택</button>
       <p id="watchlist-warning" class="warning hidden">⚠ 워치리스트에 없어요. 함께 추가돼요.</p>
 
-      <!-- 매칭 실패 시에만 표시 -->
+      <!-- 매칭 실패 또는 사용자가 다른 작품을 선택할 때 표시 -->
       <div id="search-section" class="hidden">
         <input id="search-input" type="text" placeholder="애니 검색..." />
         <ul id="search-results"></ul>
@@ -550,6 +556,8 @@ git commit -m "feat(extension): popup HTML and CSS"
 1. 워치리스트 미등록이면 `POST /api/watch` `{animeId, status: 'WATCHING'}`
 2. 평점 또는 한줄평이 있으면 `PUT /api/watch/{animeId}/episodes/{ep}` `{score, comment}` (progress는 서버가 올림)
 3. 둘 다 없으면 `PATCH /api/watch/{animeId}` `{progress: ep}`
+
+자동 검색 결과가 있으면 `다른 작품 선택`을 함께 표시한다. 버튼을 누르면 최초 감지 제목을 검색창에 채우고 검색 UI를 열며, 사용자가 실제 검색 결과를 클릭했을 때만 수동 매칭으로 취급한다.
 
 - [ ] **Step 1: popup.js 작성**
 

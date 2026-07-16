@@ -9,7 +9,9 @@ test('팝업은 네 가지 화면과 기록 입력 요소를 제공한다', () =
   for (const id of ['view-login', 'view-empty', 'view-record', 'view-done']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
-  for (const id of ['search-input', 'ep-input', 'comment-input', 'btn-record', 'btn-dismiss']) {
+  for (const id of [
+    'search-input', 'ep-input', 'comment-input', 'btn-change-anime', 'btn-record', 'btn-dismiss',
+  ]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   assert.match(html, /src="\.\.\/shared\/api\.js"/);

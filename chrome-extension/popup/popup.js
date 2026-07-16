@@ -3,6 +3,7 @@ let selectedRating = null;  // 1–5 | null
 let inList = false;
 let detectedAnimeName = null;
 let manualMatch = false;
+let selectionGeneration = 0;
 
 const $ = (id) => document.getElementById(id);
 
@@ -46,6 +47,7 @@ async function loadRecord({ animeName, ep, results }) {
 
   if (results && results.length > 0) {
     await selectAnime(results[0]);
+    $('btn-change-anime').classList.remove('hidden');
   } else {
     $('anime-label').textContent = `"${animeName}" 을(를) 찾지 못했어요. 직접 검색해주세요.`;
     $('search-section').classList.remove('hidden');
@@ -54,11 +56,13 @@ async function loadRecord({ animeName, ep, results }) {
 }
 
 async function selectAnime(anime) {
+  const generation = ++selectionGeneration;
   selectedAnime = anime;
   const ep = parseInt($('ep-input').value) || null;
   $('anime-label').textContent = `${displayTitle(anime)} ${ep ? ep + '화' : ''} 기록할까요?`;
 
   const check = await apiFetch(`/api/watch/${anime.id}`);
+  if (generation !== selectionGeneration) return;
   inList = check.ok;
   $('watchlist-warning').classList.toggle('hidden', inList);
 }
@@ -80,11 +84,11 @@ function renderResults(results) {
   results.slice(0, 8).forEach((a) => {
     const li = document.createElement('li');
     li.textContent = displayTitle(a);
-    li.addEventListener('click', () => {
+    li.addEventListener('click', async () => {
       [...ul.children].forEach((el) => el.classList.remove('selected'));
       li.classList.add('selected');
       manualMatch = true;
-      selectAnime(a);
+      await selectAnime(a);
     });
     ul.appendChild(li);
   });
@@ -119,6 +123,13 @@ $('btn-login').addEventListener('click', () => {
   window.close();
 });
 
+$('btn-change-anime').addEventListener('click', async () => {
+  $('search-section').classList.remove('hidden');
+  $('search-input').value = detectedAnimeName || '';
+  const query = $('search-input').value.trim();
+  if (query) renderResults(await searchAnime(query));
+});
+
 $('btn-dismiss').addEventListener('click', async () => {
   await chrome.storage.local.remove('pending');
   chrome.action.setBadgeText({ text: '' });
@@ -140,6 +151,7 @@ $('btn-record').addEventListener('click', async () => {
         body: { animeId: selectedAnime.id, status: 'WATCHING' },
       });
       if (!res.ok) throw new Error(`API ${res.status}`);
+      inList = true;
     }
 
     if (selectedRating != null || comment) {

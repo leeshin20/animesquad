@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 수동으로 매칭한 스트리밍 작품명을 감상 기록 성공 후 기존 `anime.search_keywords`에 학습시켜 다음 감상부터 자동 검색되게 한다.
+**Goal:** 자동 검색 실패 또는 잘못된 자동 매칭을 사용자가 수동으로 바로잡은 스트리밍 작품명을 감상 기록 성공 후 기존 `anime.search_keywords`에 학습시켜 다음 감상부터 자동 검색되게 한다.
 
-**Architecture:** 백엔드의 인증된 `POST /api/anime/{animeId}/aliases`가 단일 별칭을 받아 잠금 조회 후 기존 검색 키워드 문자열에 멱등적으로 추가한다. Chrome Extension 팝업은 최초 감지 제목과 수동 선택 여부를 보관하고, 회차/진도 기록이 성공한 뒤에만 별칭 API를 호출하며 별칭 실패를 기록 실패와 분리한다.
+**Architecture:** 백엔드의 인증된 `POST /api/anime/{animeId}/aliases`가 단일 별칭을 받아 잠금 조회 후 기존 검색 키워드 문자열에 멱등적으로 추가한다. Chrome Extension 팝업은 최초 감지 제목과 수동 선택 여부를 보관하고, 자동 결과에도 `다른 작품 선택` 경로를 제공한다. 회차/진도 기록이 성공한 뒤에만 별칭 API를 호출하며 별칭 실패를 기록 실패와 분리한다.
 
 **Tech Stack:** Java 21, Spring Boot 3.3, Spring Data JPA, PostgreSQL, JUnit 5, Testcontainers, Chrome Extension Manifest V3, Vanilla JavaScript, node:test
 
@@ -14,12 +14,14 @@
 - 별도 별칭 테이블이나 DB 마이그레이션을 추가하지 않는다.
 - 별칭은 스트리밍 사이트별로 구분하지 않고 모든 사이트에서 공통으로 사용한다.
 - 별칭 추가 API는 로그인 사용자에게만 허용한다.
+- 초기 버전은 인증된 모든 사용자의 전역 별칭 추가를 허용하며, 오염 가능성을 수용한다. 승인·신고·속도 제한·출처 관리나 별도 테이블은 구현하지 않는다.
 - 별칭은 앞뒤 공백 제거 후 1자 이상 200자 이하여야 한다.
 - 클라이언트는 전체 `search_keywords`를 덮어쓰지 않고 단일 별칭만 전송한다.
 - 감상 기록이 성공하고 사용자가 검색 결과에서 작품을 직접 선택했을 때만 별칭을 학습한다.
 - 자동 매칭, 감상 기록 실패, `무시` 선택에는 별칭을 학습하지 않는다.
 - 화수는 자동 입력하되 사용자가 `기록하기`를 눌러야 저장한다.
 - 별칭 저장 실패는 이미 성공한 감상 기록을 실패로 바꾸지 않는다.
+- 자동 매칭 결과가 있어도 `다른 작품 선택`으로 감지 원문이 채워진 검색 UI를 열 수 있다. 검색 UI를 여는 것만으로는 수동 매칭이 아니며, 결과 클릭만 `manualMatch = true`로 만든다.
 
 ---
 
@@ -479,6 +481,8 @@ git commit -m "feat(extension): expose authenticated anime alias API"
 ---
 
 ### Task 3: 수동 매칭 성공 후 별칭 학습
+
+최종 검토 반영: 검색 결과가 비어 있을 때뿐 아니라 자동 매칭이 틀렸을 때도 `다른 작품 선택`으로 검색 UI를 열 수 있어야 한다. 최초 감지 제목을 미리 채우고, 실제 결과 클릭 전에는 별칭을 학습하지 않는다.
 
 **Files:**
 - Modify: `chrome-extension/popup/popup.js:1-151`

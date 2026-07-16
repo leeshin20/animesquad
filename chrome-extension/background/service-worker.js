@@ -4,7 +4,12 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type !== 'WATCHED') return;
   (async () => {
     const { animeName, ep } = msg.payload;
-    const results = await searchAnime(animeName);
+    let results = [];
+    try {
+      results = await searchAnime(animeName);
+    } catch {
+      // Keep the watched event so the popup can fall back to manual search.
+    }
     await chrome.storage.local.set({ pending: { animeName, ep, results } });
     try {
       await chrome.action.openPopup();
