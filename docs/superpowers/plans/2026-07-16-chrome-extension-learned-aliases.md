@@ -118,6 +118,16 @@ class AnimeAliasServiceTest {
     }
 
     @Test
+    void addAlias_appliesLengthLimitAfterTrimming() {
+        Anime anime = anime();
+        when(animes.findByIdForUpdate(1L)).thenReturn(Optional.of(anime));
+
+        service.addAlias(1L, "  " + "x".repeat(200) + "  ");
+
+        assertThat(anime.getSearchKeywords()).isEqualTo("x".repeat(200));
+    }
+
+    @Test
     void addAlias_returns404WhenAnimeDoesNotExist() {
         when(animes.findByIdForUpdate(99L)).thenReturn(Optional.empty());
 
@@ -227,7 +237,7 @@ cd /Users/yubeen/animesquad/.worktrees/chrome-extension-v2/backend
 ./gradlew test --tests com.animesquad.anime.AnimeAliasServiceTest
 ```
 
-Expected: `5 tests completed, 0 failed`.
+Expected: `6 tests completed, 0 failed`.
 
 - [ ] **Step 6: Task 1 커밋**
 
@@ -400,7 +410,6 @@ package com.animesquad.anime;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -415,7 +424,6 @@ public class AnimeAliasController {
 
     public record AddAliasRequest(
         @NotBlank(message = "alias is required")
-        @Size(max = 200, message = "alias must be 200 characters or fewer")
         String alias
     ) {}
 
