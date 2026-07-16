@@ -1,0 +1,17 @@
+// popup(<script>)과 service worker(importScripts) 양쪽에서 로드되는 plain script
+const API_BASE = 'https://api.animesquad.me';
+const WEB_BASE = 'https://animesquad.me';
+
+async function apiFetch(path, { method = 'GET', body } = {}) {
+  return fetch(`${API_BASE}${path}`, {
+    method,
+    credentials: 'include',
+    headers: body != null ? { 'Content-Type': 'application/json' } : undefined,
+    body: body != null ? JSON.stringify(body) : undefined,
+  });
+}
+
+async function searchAnime(query) {
+  const res = await apiFetch(`/api/anime/search?q=${encodeURIComponent(query)}`);
+  return res.ok ? res.json() : [];
+}
