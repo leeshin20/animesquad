@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "AnimeSquad",
+  "version": "1.0.0",
+  "description": "넷플릭스, 라프텔, 크런치롤에서 애니 시청 기록을 animesquad에 남기세요.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://api.animesquad.me/*"],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.netflix.com/*",
+        "https://laftel.net/*",
+        "https://www.crunchyroll.com/*"
+      ],
+      "js": ["content/parsers.js", "content/index.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_icon": { "128": "icons/icon128.png" }
+  },
+  "icons": { "128": "icons/icon128.png" }
+}
