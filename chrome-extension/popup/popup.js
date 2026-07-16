@@ -1,6 +1,8 @@
 let selectedAnime = null;   // AnimeResponse: { id, titleKorean, titleRomaji, ... }
 let selectedRating = null;  // 1–5 | null
 let inList = false;
+let detectedAnimeName = null;
+let manualMatch = false;
 
 const $ = (id) => document.getElementById(id);
 
@@ -39,6 +41,7 @@ async function init() {
 }
 
 async function loadRecord({ animeName, ep, results }) {
+  detectedAnimeName = animeName;
   if (ep) $('ep-input').value = ep;
 
   if (results && results.length > 0) {
@@ -80,6 +83,7 @@ function renderResults(results) {
     li.addEventListener('click', () => {
       [...ul.children].forEach((el) => el.classList.remove('selected'));
       li.classList.add('selected');
+      manualMatch = true;
       selectAnime(a);
     });
     ul.appendChild(li);
@@ -95,6 +99,19 @@ document.querySelectorAll('.star').forEach((star) => {
     });
   });
 });
+
+async function learnAliasIfNeeded() {
+  if (!manualMatch || !detectedAnimeName) return true;
+  try {
+    const response = await apiFetch(`/api/anime/${selectedAnime.id}/aliases`, {
+      method: 'POST',
+      body: { alias: detectedAnimeName },
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
 
 // ── 버튼 ──────────────────────────────────────────────────
 $('btn-login').addEventListener('click', () => {
@@ -139,8 +156,12 @@ $('btn-record').addEventListener('click', async () => {
       if (!res.ok) throw new Error(`API ${res.status}`);
     }
 
+    const aliasLearned = await learnAliasIfNeeded();
     await chrome.storage.local.remove('pending');
     chrome.action.setBadgeText({ text: '' });
+    if (!aliasLearned) {
+      alert('기록은 완료됐지만 별칭 저장에 실패했어요.');
+    }
     showView('view-done');
     setTimeout(() => window.close(), 1200);
   } catch (e) {
