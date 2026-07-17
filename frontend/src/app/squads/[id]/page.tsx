@@ -105,7 +105,7 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
 
         <section className="min-w-0">
           <h2 className="mb-3 text-sm font-semibold text-neutral-700">스쿼드 활동</h2>
-          <Timeline items={items} />
+          <Timeline items={items} currentUserId={me?.id} />
           {!done && (
             <div className="mt-3 text-center">
               <button

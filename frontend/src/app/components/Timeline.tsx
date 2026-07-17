@@ -12,9 +12,11 @@ export type FeedItemWithSquad = FeedItem & { squad?: { id: number; name: string 
 export function Timeline({
   items,
   showSquad = false,
+  currentUserId,
 }: {
   items: FeedItemWithSquad[] | null;
   showSquad?: boolean;
+  currentUserId?: number;
 }) {
   if (items === null) {
     return (
@@ -41,23 +43,31 @@ export function Timeline({
   return (
     <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200">
       {items.map((it) => (
-        <TimelineItem key={it.id} item={it} showSquad={showSquad} />
+        <TimelineItem
+          key={it.id}
+          item={it}
+          showSquad={showSquad}
+          currentUserId={currentUserId}
+        />
       ))}
     </ul>
   );
 }
 
 function TimelineItem({
-  item, showSquad,
-}: { item: FeedItemWithSquad; showSquad: boolean }) {
+  item, showSquad, currentUserId,
+}: { item: FeedItemWithSquad; showSquad: boolean; currentUserId?: number }) {
   const name = item.actor?.displayName ?? "누군가";
+  const profileHref = item.actor?.id === currentUserId
+    ? "/profile"
+    : `/users/${item.actor?.id}`;
   const ep = episodeOf(item);
   const score = scoreOf(item);
   const status = statusOf(item);
   return (
     <li className="flex gap-3 px-4 py-4 transition hover:bg-neutral-50">
       {item.actor ? (
-        <Link href={`/users/${item.actor.id}`} className="flex-none" aria-label={`${name} 프로필`}>
+        <Link href={profileHref} className="flex-none" aria-label={`${name} 프로필`}>
           <Avatar name={name} url={item.actor.avatarUrl} />
         </Link>
       ) : (
@@ -74,7 +84,7 @@ function TimelineItem({
             </Link>
           )}
           {item.actor ? (
-            <Link href={`/users/${item.actor.id}`} className="font-semibold text-neutral-900 hover:underline">
+            <Link href={profileHref} className="font-semibold text-neutral-900 hover:underline">
               {name}
             </Link>
           ) : (

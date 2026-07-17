@@ -31,7 +31,7 @@ export default function HomePage() {
   if (!checked) {
     return <p className="py-16 text-center text-sm text-neutral-400">불러오는 중…</p>;
   }
-  return me ? <Dashboard /> : <Landing />;
+  return me ? <Dashboard currentUserId={me.id} /> : <Landing />;
 }
 
 function Landing() {
@@ -54,7 +54,7 @@ function Landing() {
 
 const HOME_PAGE_SIZE = 20;
 
-function Dashboard() {
+function Dashboard({ currentUserId }: { currentUserId: number }) {
   const [feed, setFeed] = useState<FeedItemWithSquad[] | null>(null);
   const [displayCount, setDisplayCount] = useState(HOME_PAGE_SIZE);
   const [entries, setEntries] = useState<WatchEntry[] | null>(null);
@@ -107,7 +107,7 @@ function Dashboard() {
 
         <section className="min-w-0">
           <SectionHeader title="스쿼드 활동" linkHref="/squads" linkLabel="스쿼드 전체" />
-          <Timeline items={visibleFeed} showSquad />
+          <Timeline items={visibleFeed} showSquad currentUserId={currentUserId} />
           {hasMore && (
             <div className="mt-3 text-center">
               <button
