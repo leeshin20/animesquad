@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import Link from "next/link";
 import "./globals.css";
@@ -20,6 +20,15 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "AnimeSquad",
   description: "스쿼드와 함께 보는 애니메이션 추적",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/brand/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#22C55E",
 };
 
 export default function RootLayout({
