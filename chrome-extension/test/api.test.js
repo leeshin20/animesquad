@@ -35,7 +35,7 @@ test('apiFetch는 세션 쿠키와 JSON 본문을 API로 보낸다', async () =>
   });
 });
 
-test('넷플릭스 서비스 전용 제목만 유효하지 않은 제목으로 판별한다', () => {
+test('넷플릭스 서비스 전용 제목과 빈 제목을 유효하지 않은 제목으로 판별한다', () => {
   const source = fs.readFileSync(path.join(__dirname, '../shared/api.js'), 'utf8');
   const context = {};
   vm.runInNewContext(
@@ -45,5 +45,7 @@ test('넷플릭스 서비스 전용 제목만 유효하지 않은 제목으로 �
 
   assert.strictEqual(context.testIsInvalidNetflixTitle('홈 - 넷플릭스'), true);
   assert.strictEqual(context.testIsInvalidNetflixTitle('Netflix'), true);
+  assert.strictEqual(context.testIsInvalidNetflixTitle('   '), true);
+  assert.strictEqual(context.testIsInvalidNetflixTitle(undefined), true);
   assert.strictEqual(context.testIsInvalidNetflixTitle('담배 고양이'), false);
 });
