@@ -13,6 +13,8 @@
 - Preserve the existing white and neutral-gray UI; do not recolor every neutral control.
 - Use `#22C55E` for Brand Bright, `#15803D` for Brand Strong, `#DCFCE7` for Brand Soft, and `#4ADE80` for Brand Light.
 - Use `#15803D` rather than `#22C55E` behind white button text.
+- Use Brand Soft `#DCFCE7` for both secondary faces in the app-icon variant.
+- Use Brand Strong `#15803D` for visible focus indicators on white.
 - Keep the navbar wordmark as live Geist SemiBold text with the exact copy `AnimeSquad`.
 - Render the navbar mark at 28px with a 9px gap before the wordmark.
 - Keep danger, warning, and error states on their existing rose/amber colors.
@@ -95,6 +97,21 @@ test("brand SVG uses the approved flat palette and viewBox", async () => {
   assert.match(svg, /#15803D/);
   assert.match(svg, /#4ADE80/);
   assert.doesNotMatch(svg, /linearGradient|filter|shadow/);
+});
+
+test("brand generator excludes the unapproved app icon end-face color", async () => {
+  const generator = (await read("scripts/generate_brand_assets.py")).toString("utf8");
+
+  assert.doesNotMatch(generator, /#BBF7D0/i);
+});
+
+test("app icon end face uses the approved Brand Soft role", async () => {
+  const generator = (await read("scripts/generate_brand_assets.py")).toString("utf8");
+
+  assert.match(
+    generator,
+    /draw\.polygon\(transformed\(END_FACE, supersampled, scale\), fill=SOFT\)/,
+  );
 });
 
 for (const [path, size] of [
@@ -208,7 +225,7 @@ def app_icon(size: int, scale: float) -> Image.Image:
     draw = ImageDraw.Draw(image)
     draw.polygon(transformed(OUTER, supersampled, scale), fill=WHITE)
     draw.polygon(transformed(CROSSBAR, supersampled, scale), fill=SOFT)
-    draw.polygon(transformed(END_FACE, supersampled, scale), fill="#BBF7D0")
+    draw.polygon(transformed(END_FACE, supersampled, scale), fill=SOFT)
     return image.resize((size, size), Image.Resampling.LANCZOS)
 
 
@@ -570,20 +587,34 @@ test("Tailwind exposes the four approved brand roles", async () => {
   assert.match(config, /light:\s*"#4ADE80"/);
 });
 
-test("navbar uses soft selection and bright focus without changing neutral defaults", async () => {
+test("navbar uses soft selection and strong focus without changing neutral defaults", async () => {
   const navbar = await source("./components/NavBar.tsx");
+  const searchClasses = [...navbar.matchAll(/"([^"]*focus:border-brand-bright[^"]*)"/g)].map(
+    ([, classes]) => classes,
+  );
 
   assert.match(navbar, /bg-brand-soft text-brand-strong/);
-  assert.match(navbar, /focus:border-brand-bright/);
-  assert.match(navbar, /focus:ring-brand-light/);
+  assert.equal(searchClasses.length, 2);
+  for (const classes of searchClasses) {
+    assert.match(classes, /focus:ring-brand-strong/);
+    assert.doesNotMatch(classes, /focus:ring-brand-light/);
+  }
   assert.match(navbar, /text-neutral-600 hover:bg-neutral-100/);
 });
 
-test("entry-flow CTAs use the accessible strong green", async () => {
+test("entry-flow CTAs use accessible strong backgrounds and focus rings", async () => {
   for (const path of ["./page.tsx", "./onboarding/page.tsx", "./invite/page.tsx", "./squads/page.tsx"]) {
     const page = await source(path);
-    assert.match(page, /bg-brand-strong/, path);
-    assert.match(page, /hover:bg-green-800/, path);
+    const ctaClasses = [...page.matchAll(/className="([^"]*bg-brand-strong[^"]*)"/g)].map(
+      ([, classes]) => classes,
+    );
+
+    assert.ok(ctaClasses.length > 0, path);
+    for (const classes of ctaClasses) {
+      assert.match(classes, /hover:bg-green-800/, path);
+      assert.match(classes, /focus-visible:ring-brand-strong/, path);
+      assert.doesNotMatch(classes, /focus-visible:ring-brand-light/, path);
+    }
     assert.doesNotMatch(page, /bg-brand-bright[^\n]*text-white/, path);
   }
 });
@@ -620,7 +651,7 @@ Keep the existing `fontFamily` block unchanged.
 
 In `frontend/src/app/components/NavBar.tsx`:
 
-- Replace each search input's `focus:border-neutral-900 focus:outline-none` with `focus:border-brand-bright focus:outline-none focus:ring-2 focus:ring-brand-light`.
+- Replace each search input's `focus:border-neutral-900 focus:outline-none` with `focus:border-brand-bright focus:outline-none focus:ring-2 focus:ring-brand-strong`.
 - Replace desktop active link `bg-neutral-900 text-white` with `bg-brand-soft text-brand-strong`.
 - Replace active desktop profile `bg-neutral-900 text-white` with `bg-brand-soft text-brand-strong`.
 - Replace active mobile link `bg-neutral-100 text-neutral-900` with `bg-brand-soft text-brand-strong`.
@@ -629,8 +660,8 @@ In `frontend/src/app/components/NavBar.tsx`:
 The resulting changed class fragments must be exactly:
 
 ```tsx
-"w-full rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-brand-bright focus:outline-none focus:ring-2 focus:ring-brand-light"
-"w-44 rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-brand-bright focus:outline-none focus:ring-2 focus:ring-brand-light"
+"w-full rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-brand-bright focus:outline-none focus:ring-2 focus:ring-brand-strong"
+"w-44 rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-brand-bright focus:outline-none focus:ring-2 focus:ring-brand-strong"
 
 active ? "bg-brand-soft text-brand-strong" : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
 profileActive ? "bg-brand-soft text-brand-strong" : "text-neutral-700 hover:bg-neutral-100"
@@ -648,7 +679,7 @@ className="mt-8 inline-flex items-center justify-center rounded-lg bg-neutral-90
 to:
 
 ```tsx
-className="mt-8 inline-flex items-center justify-center rounded-lg bg-brand-strong px-5 py-2.5 text-sm font-medium text-white transition hover:bg-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2"
+className="mt-8 inline-flex items-center justify-center rounded-lg bg-brand-strong px-5 py-2.5 text-sm font-medium text-white transition hover:bg-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-strong focus-visible:ring-offset-2"
 ```
 
 Apply the same color and focus treatment to the existing primary submit buttons in:
@@ -662,7 +693,7 @@ frontend/src/app/squads/page.tsx
 For each existing primary button, replace only `bg-neutral-900` with `bg-brand-strong`, replace only `hover:bg-neutral-700` with `hover:bg-green-800`, and append:
 
 ```text
-focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2
+focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-strong focus-visible:ring-offset-2
 ```
 
 Do not change secondary, destructive, admin, modal, or inline edit controls.
@@ -753,7 +784,7 @@ Inspect the site at desktop width and a 390px mobile viewport. Verify:
 - The sticky navbar shows the 28px ribbon-A mark and live `AnimeSquad` text without overflow.
 - The mobile drawer header uses the same lockup and closes after navigating home.
 - Active navbar states use Brand Soft with Brand Strong text; inactive states remain neutral.
-- Entry-flow CTAs on the landing, onboarding, invite, and squad pages use Brand Strong, remain readable on hover, and show a Brand Light keyboard focus ring.
+- Entry-flow CTAs on the landing, onboarding, invite, and squad pages use Brand Strong, remain readable on hover, and show a Brand Strong keyboard focus ring.
 - `/manifest.webmanifest`, `/brand/pwa-512.png`, `/brand/pwa-maskable-512.png`, `/brand/apple-touch-icon.png`, and `/favicon.ico` all return successfully.
 - Circular and rounded-square previews of the maskable icon do not crop the A silhouette.
 

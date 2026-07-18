@@ -167,7 +167,7 @@ export default function NavBar() {
           <div className="ml-auto md:hidden w-36">
             {searchInput(
               mobileSearchRef as React.RefObject<HTMLDivElement>,
-              "w-full rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-brand-bright focus:outline-none focus:ring-2 focus:ring-brand-light",
+              "w-full rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-brand-bright focus:outline-none focus:ring-2 focus:ring-brand-strong",
               "absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg"
             )}
           </div>
@@ -176,7 +176,7 @@ export default function NavBar() {
           <nav className="ml-auto hidden items-center gap-1 md:flex">
             {searchInput(
               desktopSearchRef as React.RefObject<HTMLDivElement>,
-              "w-44 rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-brand-bright focus:outline-none focus:ring-2 focus:ring-brand-light",
+              "w-44 rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-brand-bright focus:outline-none focus:ring-2 focus:ring-brand-strong",
               "absolute right-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg"
             )}
 

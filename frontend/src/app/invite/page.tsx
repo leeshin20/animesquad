@@ -59,7 +59,7 @@ export default function InvitePage() {
         <button
           type="submit"
           disabled={submitting || !code.trim()}
-          className="w-full rounded-md bg-brand-strong px-4 py-2.5 text-sm font-medium text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2"
+          className="w-full rounded-md bg-brand-strong px-4 py-2.5 text-sm font-medium text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-strong focus-visible:ring-offset-2"
         >
           {submitting ? "가입 처리 중…" : "가입하기"}
         </button>

@@ -61,7 +61,7 @@ def app_icon(size: int, scale: float) -> Image.Image:
     draw = ImageDraw.Draw(image)
     draw.polygon(transformed(OUTER, supersampled, scale), fill=WHITE)
     draw.polygon(transformed(CROSSBAR, supersampled, scale), fill=SOFT)
-    draw.polygon(transformed(END_FACE, supersampled, scale), fill="#BBF7D0")
+    draw.polygon(transformed(END_FACE, supersampled, scale), fill=SOFT)
     return image.resize((size, size), Image.Resampling.LANCZOS)
 
 

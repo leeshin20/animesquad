@@ -169,7 +169,7 @@ export default function OnboardingPage() {
         type="button"
         onClick={submit}
         disabled={saving || !termsChecked || !privacyChecked}
-        className="w-full rounded-md bg-brand-strong px-4 py-2.5 text-sm font-medium text-white hover:bg-green-800 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2"
+        className="w-full rounded-md bg-brand-strong px-4 py-2.5 text-sm font-medium text-white hover:bg-green-800 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-strong focus-visible:ring-offset-2"
       >
         {saving ? "저장 중…" : "시작하기"}
       </button>

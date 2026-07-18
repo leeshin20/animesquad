@@ -26,6 +26,21 @@ test("brand SVG uses the approved flat palette and viewBox", async () => {
   assert.doesNotMatch(svg, /linearGradient|filter|shadow/);
 });
 
+test("brand generator excludes the unapproved app icon end-face color", async () => {
+  const generator = (await read("scripts/generate_brand_assets.py")).toString("utf8");
+
+  assert.doesNotMatch(generator, /#BBF7D0/i);
+});
+
+test("app icon end face uses the approved Brand Soft role", async () => {
+  const generator = (await read("scripts/generate_brand_assets.py")).toString("utf8");
+
+  assert.match(
+    generator,
+    /draw\.polygon\(transformed\(END_FACE, supersampled, scale\), fill=SOFT\)/,
+  );
+});
+
 for (const [path, size] of [
   ["public/brand/pwa-192.png", 192],
   ["public/brand/pwa-512.png", 512],
