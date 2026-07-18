@@ -5,7 +5,8 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 class FakeElement {
-  constructor() {
+  constructor(tagName = 'div') {
+    this.tagName = tagName.toUpperCase();
     this.value = '';
     this.textContent = '';
     this.dataset = {};
@@ -85,7 +86,7 @@ function popupContext(apiFetch, {
       document: {
         getElementById: (id) => elements[id],
         querySelectorAll: (selector) => selector === '.star' ? stars : [],
-        createElement: () => new FakeElement(),
+        createElement: (tagName) => new FakeElement(tagName),
       },
       chrome: {
         storage: {
@@ -143,8 +144,12 @@ async function selectManualSearchResult(harness) {
   harness.elements['search-input'].value = '도굴왕';
   harness.elements['search-input'].dispatch('input');
   await new Promise((resolve) => setImmediate(resolve));
-  await harness.elements['search-results'].children[0].dispatch('click');
+  await resultButton(harness).dispatch('click');
   await new Promise((resolve) => setImmediate(resolve));
+}
+
+function resultButton(harness, index = 0) {
+  return harness.elements['search-results'].children[index].children[0];
 }
 
 test('미등록 애니는 워치리스트에 추가하고 평점이 없으면 진도만 기록한다', async () => {
@@ -248,7 +253,7 @@ test('자동 매칭 후 다른 작품을 직접 선택하면 감지 원문을 �
   await new Promise((resolve) => setImmediate(resolve));
   await harness.elements['btn-change-anime'].dispatch('click');
   await new Promise((resolve) => setImmediate(resolve));
-  await harness.elements['search-results'].children[0].dispatch('click');
+  await resultButton(harness).dispatch('click');
   await new Promise((resolve) => setImmediate(resolve));
   await harness.elements['btn-record'].dispatch('click');
 
@@ -308,8 +313,8 @@ test('늦게 끝난 이전 작품 확인이 새 선택의 워치리스트 상태
   await new Promise((resolve) => setImmediate(resolve));
   harness.elements['search-input'].dispatch('input');
   await new Promise((resolve) => setImmediate(resolve));
-  harness.elements['search-results'].children[0].dispatch('click');
-  harness.elements['search-results'].children[1].dispatch('click');
+  resultButton(harness, 0).dispatch('click');
+  resultButton(harness, 1).dispatch('click');
 
   newCheck.resolve({ ok: true });
   await new Promise((resolve) => setImmediate(resolve));
@@ -519,7 +524,7 @@ test('별점 방향키는 첫 값과 끝 값 사이를 순환한다', async () =
   }
 });
 
-test('검색 결과는 포커스 가능한 option이고 클릭 선택 상태를 노출한다', async () => {
+test('검색 결과는 기본 키보드 동작을 갖는 독립 button으로 렌더링한다', async () => {
   const source = fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8');
   const harness = popupContext(async (requestPath) => {
     if (requestPath === '/api/me') return { ok: true };
@@ -536,41 +541,43 @@ test('검색 결과는 포커스 가능한 option이고 클릭 선택 상태를 
   await new Promise((resolve) => setImmediate(resolve));
   harness.elements['search-input'].dispatch('input');
   await new Promise((resolve) => setImmediate(resolve));
-  const [first, second] = harness.elements['search-results'].children;
+  const first = resultButton(harness, 0);
+  const second = resultButton(harness, 1);
 
-  assert.deepStrictEqual([first.attributes.role, second.attributes.role], ['option', 'option']);
-  assert.deepStrictEqual([first.tabIndex, second.tabIndex], [0, 0]);
-  assert.deepStrictEqual([first.attributes['aria-selected'], second.attributes['aria-selected']], ['false', 'false']);
-
-  await first.dispatch('click');
-  assert.deepStrictEqual([first.attributes['aria-selected'], second.attributes['aria-selected']], ['true', 'false']);
+  assert.deepStrictEqual([first.tagName, second.tagName], ['BUTTON', 'BUTTON']);
+  assert.deepStrictEqual([first.attributes.type, second.attributes.type], ['button', 'button']);
+  assert.deepStrictEqual([first.attributes['aria-pressed'], second.attributes['aria-pressed']], ['false', 'false']);
+  assert.deepStrictEqual([first.textContent, second.textContent], ['도굴왕', '다른 도굴왕']);
+  assert.strictEqual(first.listeners.keydown, undefined);
+  assert.strictEqual(second.listeners.keydown, undefined);
 });
 
-test('검색 결과는 Enter와 Space로 선택하고 기본 동작을 막는다', async () => {
+test('검색 결과 button 클릭은 하나의 선택 상태만 노출하고 작품을 선택한다', async () => {
   const source = fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8');
+  const harness = popupContext(async (requestPath) => {
+    if (requestPath === '/api/me') return { ok: true };
+    return { ok: true };
+  }, {
+    pending: { animeName: '도굴왕', ep: 11, results: [] },
+    searchResults: [
+      { id: 3, titleKorean: '첫 작품' },
+      { id: 4, titleKorean: '둘째 작품' },
+    ],
+  });
 
-  for (const key of ['Enter', ' ']) {
-    const harness = popupContext(async (requestPath) => {
-      if (requestPath === '/api/me') return { ok: true };
-      return { ok: true };
-    }, {
-      pending: { animeName: '도굴왕', ep: 11, results: [] },
-      searchResults: [{ id: 3, titleKorean: '도굴왕' }],
-    });
-    let prevented = false;
+  vm.runInNewContext(source, harness.context);
+  await new Promise((resolve) => setImmediate(resolve));
+  harness.elements['search-input'].dispatch('input');
+  await new Promise((resolve) => setImmediate(resolve));
+  const first = resultButton(harness, 0);
+  const second = resultButton(harness, 1);
 
-    vm.runInNewContext(source, harness.context);
-    await new Promise((resolve) => setImmediate(resolve));
-    harness.elements['search-input'].dispatch('input');
-    await new Promise((resolve) => setImmediate(resolve));
-    const option = harness.elements['search-results'].children[0];
-    await option.dispatch('keydown', {
-      key,
-      preventDefault: () => { prevented = true; },
-    });
+  await first.dispatch('click');
+  assert.deepStrictEqual([first.attributes['aria-pressed'], second.attributes['aria-pressed']], ['true', 'false']);
+  assert.deepStrictEqual(harness.elements['search-results'].children.map((li) => li.classNames.has('selected')), [true, false]);
 
-    assert.strictEqual(prevented, true, key);
-    assert.strictEqual(option.attributes['aria-selected'], 'true', key);
-    assert.match(harness.elements['anime-label'].textContent, /도굴왕/, key);
-  }
+  await second.dispatch('click');
+  assert.deepStrictEqual([first.attributes['aria-pressed'], second.attributes['aria-pressed']], ['false', 'true']);
+  assert.deepStrictEqual(harness.elements['search-results'].children.map((li) => li.classNames.has('selected')), [false, true]);
+  assert.match(harness.elements['anime-label'].textContent, /둘째 작품/);
 });

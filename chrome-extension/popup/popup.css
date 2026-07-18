@@ -64,16 +64,17 @@ button:active { background: #14532D; }
 button.secondary { border: 1px solid var(--neutral-300); background: #FFFFFF; color: var(--neutral-600); }
 button.secondary:hover { background: var(--neutral-100); }
 button:disabled { cursor: wait; opacity: .65; }
-button:focus-visible, input:focus-visible, textarea:focus-visible, li:focus-visible { outline: 2px solid var(--brand-strong); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--brand-strong); outline-offset: 2px; }
 
 .btn-row { display: grid; grid-template-columns: 1fr 76px; gap: 8px; }
 .record-status { padding: 9px 10px; border-radius: 8px; background: #FEF2F2; color: #B91C1C; font-size: 12px; line-height: 1.4; }
 
 ul { max-height: 120px; overflow-y: auto; list-style: none; border: 1px solid var(--neutral-200); border-radius: 9px; }
 ul:empty { display: none; }
-ul li { padding: 8px 10px; color: var(--neutral-600); cursor: pointer; font-size: 13px; }
-ul li:hover { background: var(--neutral-100); }
-ul li.selected { background: var(--brand-soft); color: var(--brand-strong); font-weight: 700; }
+.result-button { min-height: 0; padding: 8px 10px; border-radius: 0; background: transparent; color: var(--neutral-600); font-size: 13px; font-weight: 400; text-align: left; }
+.result-button:hover, .result-button:active { background: var(--neutral-100); }
+.result-button:focus-visible { outline: 2px solid var(--brand-strong); outline-offset: -2px; }
+ul li.selected .result-button { background: var(--brand-soft); color: var(--brand-strong); font-weight: 700; }
 
 .done-view { position: relative; min-height: 150px; align-items: center; justify-content: center; gap: 8px; text-align: center; }
 .done-icon { position: relative; width: 40px; height: 40px; }

@@ -81,28 +81,27 @@ $('search-input').addEventListener('input', () => {
 function renderResults(results) {
   const ul = $('search-results');
   ul.innerHTML = '';
+  const resultButtons = [];
   results.slice(0, 8).forEach((a) => {
     const li = document.createElement('li');
-    li.textContent = displayTitle(a);
-    li.setAttribute('role', 'option');
-    li.setAttribute('aria-selected', 'false');
-    li.tabIndex = 0;
+    const button = document.createElement('button');
+    button.classList.add('result-button');
+    button.setAttribute('type', 'button');
+    button.setAttribute('aria-pressed', 'false');
+    button.textContent = displayTitle(a);
     const selectResult = async () => {
       [...ul.children].forEach((el) => {
         el.classList.remove('selected');
-        el.setAttribute('aria-selected', 'false');
       });
+      resultButtons.forEach((resultButton) => resultButton.setAttribute('aria-pressed', 'false'));
       li.classList.add('selected');
-      li.setAttribute('aria-selected', 'true');
+      button.setAttribute('aria-pressed', 'true');
       manualMatch = true;
       await selectAnime(a);
     };
-    li.addEventListener('click', selectResult);
-    li.addEventListener('keydown', async (event) => {
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      event.preventDefault();
-      await selectResult();
-    });
+    button.addEventListener('click', selectResult);
+    resultButtons.push(button);
+    li.appendChild(button);
     ul.appendChild(li);
   });
 }

@@ -34,7 +34,7 @@ test('팝업은 브랜드 락업과 접근 가능한 기록 입력을 제공한�
   assert.match(html, /<textarea[^>]*id="comment-input"[^>]*maxlength="280"/);
   assert.match(html, /<label[^>]*for="ep-input"/);
   assert.match(html, /role="radiogroup"[^>]*aria-label="평점"/);
-  assert.match(html, /<ul[^>]*id="search-results"[^>]*role="listbox"/);
+  assert.doesNotMatch(html, /<ul[^>]*id="search-results"[^>]*role="listbox"/);
   assert.strictEqual((html.match(/<button[^>]*class="star"/g) || []).length, 5);
   assert.match(html, /role="status"/);
 });
@@ -51,4 +51,6 @@ test('팝업 스타일은 승인된 크기와 브랜드 역할을 사용한다',
   assert.match(css, /resize:\s*none/);
   assert.match(css, /focus-visible[\s\S]*--brand-strong/);
   assert.match(css, /\.star\s*{[^}]*min-height:\s*0[^}]*height:\s*\d+px/s);
+  assert.match(css, /\.result-button\s*{[^}]*background:\s*transparent[^}]*color:\s*var\(--neutral-600\)/s);
+  assert.match(css, /\.result-button:focus-visible\s*{[^}]*--brand-strong/s);
 });
