@@ -54,7 +54,7 @@ input::placeholder, textarea::placeholder { color: #A3A3A3; }
 #comment-input { height: 72px; resize: none; }
 
 #stars { display: flex; align-items: center; gap: 2px; height: 38px; }
-.star { width: auto; padding: 1px; border-radius: 4px; background: transparent; color: var(--neutral-300); font-size: 21px; line-height: 1; }
+.star { width: auto; min-height: 0; height: 30px; padding: 1px; border-radius: 4px; background: transparent; color: var(--neutral-300); font-size: 21px; line-height: 1; }
 .star.active { color: #F59E0B; }
 .star:hover, .star:active { background: transparent; }
 

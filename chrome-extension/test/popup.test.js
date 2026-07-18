@@ -464,22 +464,113 @@ test('별점 클릭은 활성 별과 접근 가능한 현재 값을 함께 갱�
   assert.deepStrictEqual(harness.stars.map((star) => star.tabIndex), [-1, -1, 0, -1, -1]);
 });
 
-test('별점 방향키는 값을 이동하고 선택한 별에 포커스한다', async () => {
+test('별점 방향키는 좌·상으로 이전, 우·하로 다음 값을 선택한다', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8');
+  const cases = [
+    ['ArrowLeft', 2, 1],
+    ['ArrowUp', 2, 1],
+    ['ArrowRight', 2, 3],
+    ['ArrowDown', 2, 3],
+  ];
+
+  for (const [key, start, expected] of cases) {
+    const harness = popupContext(async (requestPath) => {
+      if (requestPath === '/api/me') return { ok: true };
+      return { ok: true };
+    });
+    let prevented = false;
+
+    vm.runInNewContext(source, harness.context);
+    await new Promise((resolve) => setImmediate(resolve));
+    harness.stars[start - 1].dispatch('click');
+    harness.stars[start - 1].dispatch('keydown', {
+      key,
+      preventDefault: () => { prevented = true; },
+    });
+
+    assert.strictEqual(prevented, true, key);
+    assert.strictEqual(harness.stars[expected - 1].attributes['aria-checked'], 'true', key);
+    assert.strictEqual(harness.stars[expected - 1].focused, true, key);
+  }
+});
+
+test('별점 방향키는 첫 값과 끝 값 사이를 순환한다', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8');
+  const cases = [
+    ['ArrowLeft', 1, 5],
+    ['ArrowUp', 1, 5],
+    ['ArrowRight', 5, 1],
+    ['ArrowDown', 5, 1],
+  ];
+
+  for (const [key, start, expected] of cases) {
+    const harness = popupContext(async (requestPath) => {
+      if (requestPath === '/api/me') return { ok: true };
+      return { ok: true };
+    });
+
+    vm.runInNewContext(source, harness.context);
+    await new Promise((resolve) => setImmediate(resolve));
+    harness.stars[start - 1].dispatch('click');
+    harness.stars[start - 1].dispatch('keydown', { key, preventDefault: () => {} });
+
+    assert.strictEqual(harness.stars[expected - 1].attributes['aria-checked'], 'true', key);
+    assert.strictEqual(harness.stars[expected - 1].focused, true, key);
+  }
+});
+
+test('검색 결과는 포커스 가능한 option이고 클릭 선택 상태를 노출한다', async () => {
   const source = fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8');
   const harness = popupContext(async (requestPath) => {
     if (requestPath === '/api/me') return { ok: true };
     return { ok: true };
+  }, {
+    pending: { animeName: '도굴왕', ep: 11, results: [] },
+    searchResults: [
+      { id: 3, titleKorean: '도굴왕' },
+      { id: 4, titleKorean: '다른 도굴왕' },
+    ],
   });
-  let prevented = false;
 
   vm.runInNewContext(source, harness.context);
   await new Promise((resolve) => setImmediate(resolve));
-  harness.stars[0].dispatch('keydown', {
-    key: 'ArrowRight',
-    preventDefault: () => { prevented = true; },
-  });
+  harness.elements['search-input'].dispatch('input');
+  await new Promise((resolve) => setImmediate(resolve));
+  const [first, second] = harness.elements['search-results'].children;
 
-  assert.strictEqual(prevented, true);
-  assert.strictEqual(harness.stars[1].attributes['aria-checked'], 'true');
-  assert.strictEqual(harness.stars[1].focused, true);
+  assert.deepStrictEqual([first.attributes.role, second.attributes.role], ['option', 'option']);
+  assert.deepStrictEqual([first.tabIndex, second.tabIndex], [0, 0]);
+  assert.deepStrictEqual([first.attributes['aria-selected'], second.attributes['aria-selected']], ['false', 'false']);
+
+  await first.dispatch('click');
+  assert.deepStrictEqual([first.attributes['aria-selected'], second.attributes['aria-selected']], ['true', 'false']);
+});
+
+test('검색 결과는 Enter와 Space로 선택하고 기본 동작을 막는다', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8');
+
+  for (const key of ['Enter', ' ']) {
+    const harness = popupContext(async (requestPath) => {
+      if (requestPath === '/api/me') return { ok: true };
+      return { ok: true };
+    }, {
+      pending: { animeName: '도굴왕', ep: 11, results: [] },
+      searchResults: [{ id: 3, titleKorean: '도굴왕' }],
+    });
+    let prevented = false;
+
+    vm.runInNewContext(source, harness.context);
+    await new Promise((resolve) => setImmediate(resolve));
+    harness.elements['search-input'].dispatch('input');
+    await new Promise((resolve) => setImmediate(resolve));
+    const option = harness.elements['search-results'].children[0];
+    await option.dispatch('keydown', {
+      key,
+      preventDefault: () => { prevented = true; },
+    });
+
+    assert.strictEqual(prevented, true, key);
+    assert.strictEqual(option.attributes['aria-selected'], 'true', key);
+    assert.match(harness.elements['anime-label'].textContent, /도굴왕/, key);
+  }
 });

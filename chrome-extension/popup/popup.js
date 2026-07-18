@@ -84,11 +84,24 @@ function renderResults(results) {
   results.slice(0, 8).forEach((a) => {
     const li = document.createElement('li');
     li.textContent = displayTitle(a);
-    li.addEventListener('click', async () => {
-      [...ul.children].forEach((el) => el.classList.remove('selected'));
+    li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', 'false');
+    li.tabIndex = 0;
+    const selectResult = async () => {
+      [...ul.children].forEach((el) => {
+        el.classList.remove('selected');
+        el.setAttribute('aria-selected', 'false');
+      });
       li.classList.add('selected');
+      li.setAttribute('aria-selected', 'true');
       manualMatch = true;
       await selectAnime(a);
+    };
+    li.addEventListener('click', selectResult);
+    li.addEventListener('keydown', async (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      await selectResult();
     });
     ul.appendChild(li);
   });
@@ -117,15 +130,16 @@ ratingStars.forEach((star, index) => {
   star.addEventListener('keydown', (event) => {
     const movement = {
       ArrowLeft: -1,
-      ArrowDown: -1,
+      ArrowUp: -1,
       ArrowRight: 1,
-      ArrowUp: 1,
+      ArrowDown: 1,
     }[event.key];
     if (!movement) return;
 
     event.preventDefault();
     const current = selectedRating || index + 1;
-    setRating(current + movement, { focus: true });
+    const next = ((current - 1 + movement + ratingStars.length) % ratingStars.length) + 1;
+    setRating(next, { focus: true });
   });
 });
 
