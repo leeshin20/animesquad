@@ -96,13 +96,16 @@ test('자동 팝업은 감지된 탭의 windowId를 대상으로 연다', async 
     },
   };
   vm.runInNewContext(
-    fs.readFileSync(path.join(__dirname, '../background/service-worker.js'), 'utf8'),
+    `${fs.readFileSync(path.join(__dirname, '../shared/api.js'), 'utf8')}\n${fs.readFileSync(
+      path.join(__dirname, '../background/service-worker.js'),
+      'utf8'
+    )}`,
     context
   );
 
   listener(
     { type: 'WATCHED', payload: { animeName: '깨끗하게 해주시겠어요?', ep: 2 } },
-    { tab: { windowId: 42 } }
+    { tab: { url: 'https://www.netflix.com/watch/81713945', windowId: 42 } }
   );
   await new Promise((resolve) => setImmediate(resolve));
 
@@ -145,4 +148,78 @@ test('자동 팝업 실패 원인을 로그로 남기고 배지 fallback을 실�
     { text: '●' },
     { color: '#e53e3e' },
   ]);
+});
+
+test('넷플릭스 탐색 페이지의 WATCHED 메시지는 무시한다', async () => {
+  let listener;
+  let searchAttempts = 0;
+  let storageAttempts = 0;
+  let popupAttempts = 0;
+  const context = {
+    importScripts: () => {},
+    searchAnime: async () => { searchAttempts += 1; return []; },
+    chrome: {
+      runtime: { onMessage: { addListener: (value) => { listener = value; } } },
+      storage: { local: { set: async () => { storageAttempts += 1; } } },
+      action: {
+        openPopup: async () => { popupAttempts += 1; },
+        setBadgeText: () => {},
+        setBadgeBackgroundColor: () => {},
+      },
+    },
+  };
+  vm.runInNewContext(
+    `${fs.readFileSync(path.join(__dirname, '../shared/api.js'), 'utf8')}\n${fs.readFileSync(
+      path.join(__dirname, '../background/service-worker.js'),
+      'utf8'
+    )}`,
+    context
+  );
+
+  listener(
+    { type: 'WATCHED', payload: { animeName: '홈 - 넷플릭스', ep: null } },
+    { tab: { url: 'https://www.netflix.com/browse', windowId: 42 } }
+  );
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.strictEqual(searchAttempts, 0);
+  assert.strictEqual(storageAttempts, 0);
+  assert.strictEqual(popupAttempts, 0);
+});
+
+test('넷플릭스 서비스 전용 제목의 WATCHED 메시지는 무시한다', async () => {
+  let listener;
+  let searchAttempts = 0;
+  let storageAttempts = 0;
+  let popupAttempts = 0;
+  const context = {
+    importScripts: () => {},
+    searchAnime: async () => { searchAttempts += 1; return []; },
+    chrome: {
+      runtime: { onMessage: { addListener: (value) => { listener = value; } } },
+      storage: { local: { set: async () => { storageAttempts += 1; } } },
+      action: {
+        openPopup: async () => { popupAttempts += 1; },
+        setBadgeText: () => {},
+        setBadgeBackgroundColor: () => {},
+      },
+    },
+  };
+  vm.runInNewContext(
+    `${fs.readFileSync(path.join(__dirname, '../shared/api.js'), 'utf8')}\n${fs.readFileSync(
+      path.join(__dirname, '../background/service-worker.js'),
+      'utf8'
+    )}`,
+    context
+  );
+
+  listener(
+    { type: 'WATCHED', payload: { animeName: 'Netflix', ep: null } },
+    { tab: { url: 'https://www.netflix.com/watch/81713945', windowId: 42 } }
+  );
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.strictEqual(searchAttempts, 0);
+  assert.strictEqual(storageAttempts, 0);
+  assert.strictEqual(popupAttempts, 0);
 });

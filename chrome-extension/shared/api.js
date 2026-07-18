@@ -2,6 +2,11 @@
 const API_BASE = 'https://api.animesquad.me';
 const WEB_BASE = 'https://animesquad.me';
 
+function asqIsInvalidNetflixTitle(animeName) {
+  const normalized = animeName?.trim() ?? '';
+  return /^(?:홈\s*[-–]\s*)?(?:넷플릭스|Netflix)$/i.test(normalized);
+}
+
 async function apiFetch(path, { method = 'GET', body } = {}) {
   return fetch(`${API_BASE}${path}`, {
     method,

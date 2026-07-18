@@ -1,7 +1,17 @@
 importScripts('../shared/api.js');
 
+function asqShouldIgnoreWatchedMessage(msg, sender) {
+  const tabUrl = sender?.tab?.url ?? '';
+  const isNetflix = /^https:\/\/(?:[^/]+\.)?netflix\.com(?:\/|$)/i.test(tabUrl);
+  if (!isNetflix) return false;
+
+  const path = tabUrl.match(/^https?:\/\/[^/]+([^?#]*)/i)?.[1] ?? '';
+  return !path.startsWith('/watch/')
+    || asqIsInvalidNetflixTitle(msg.payload?.animeName);
+}
+
 chrome.runtime.onMessage.addListener((msg, sender) => {
-  if (msg.type !== 'WATCHED') return;
+  if (msg.type !== 'WATCHED' || asqShouldIgnoreWatchedMessage(msg, sender)) return;
   (async () => {
     const { animeName, ep } = msg.payload;
     let results = [];
