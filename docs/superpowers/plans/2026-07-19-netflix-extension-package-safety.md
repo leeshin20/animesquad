@@ -21,16 +21,26 @@
 ### Task 1: Validate WATCHED Messages at the Service Worker Boundary
 
 **Files:**
+- Modify: `chrome-extension/shared/api.js`
 - Modify: `chrome-extension/background/service-worker.js:1-25`
+- Test: `chrome-extension/test/api.test.js`
 - Test: `chrome-extension/test/background.test.js`
 
 **Interfaces:**
 - Consumes: Chrome `runtime.onMessage` messages shaped as `{ type: 'WATCHED', payload: { animeName, ep } }` and `sender.tab.url`.
-- Produces: `asqShouldIgnoreWatchedMessage(msg, sender): boolean`, used before search, storage, and popup operations.
+- Produces: shared `asqIsInvalidNetflixTitle(animeName): boolean` and Service Worker `asqShouldIgnoreWatchedMessage(msg, sender): boolean`, used before search, storage, and popup operations.
 
 - [ ] **Step 1: Write failing tests for Netflix home and generic-title events**
 
-Append tests that execute the Service Worker, send these two inputs, and assert that search, `storage.local.set`, and `action.openPopup` are never called:
+Add API helper assertions for both invalid and normal titles:
+
+```js
+assert.strictEqual(asqIsInvalidNetflixTitle('홈 - 넷플릭스'), true);
+assert.strictEqual(asqIsInvalidNetflixTitle('Netflix'), true);
+assert.strictEqual(asqIsInvalidNetflixTitle('담배 고양이'), false);
+```
+
+Append background tests that execute the Service Worker, send these two inputs, and assert that search, `storage.local.set`, and `action.openPopup` are never called:
 
 ```js
 listener(
@@ -52,7 +62,16 @@ Expected: the new assertions fail because both messages currently reach search a
 
 - [ ] **Step 3: Add the minimal Service Worker guard**
 
-Add a pure predicate before the listener and call it immediately after checking `msg.type`:
+Add the title predicate to `shared/api.js`, which is already loaded by both the Service Worker and Popup:
+
+```js
+function asqIsInvalidNetflixTitle(animeName) {
+  const normalized = animeName?.trim() ?? '';
+  return /^(?:홈\s*[-–]\s*)?(?:넷플릭스|Netflix)$/i.test(normalized);
+}
+```
+
+Add a Service Worker predicate before the listener and call it immediately after checking `msg.type`:
 
 ```js
 function asqShouldIgnoreWatchedMessage(msg, sender) {
@@ -61,9 +80,8 @@ function asqShouldIgnoreWatchedMessage(msg, sender) {
   if (!isNetflix) return false;
 
   const path = tabUrl.match(/^https?:\/\/[^/]+([^?#]*)/i)?.[1] ?? '';
-  const animeName = msg.payload?.animeName?.trim() ?? '';
-  const genericTitle = /^(?:홈\s*[-–]\s*)?(?:넷플릭스|Netflix)$/i.test(animeName);
-  return !path.startsWith('/watch/') || genericTitle;
+  return !path.startsWith('/watch/')
+    || asqIsInvalidNetflixTitle(msg.payload?.animeName);
 }
 ```
 
@@ -82,7 +100,7 @@ Expected: all background tests pass, including a normal Netflix `/watch/` messag
 - [ ] **Step 5: Commit Task 1**
 
 ```bash
-git add chrome-extension/background/service-worker.js chrome-extension/test/background.test.js
+git add chrome-extension/shared/api.js chrome-extension/background/service-worker.js chrome-extension/test/api.test.js chrome-extension/test/background.test.js
 git commit -m "fix(extension): reject invalid Netflix watch events"
 ```
 
@@ -96,7 +114,8 @@ git commit -m "fix(extension): reject invalid Netflix watch events"
 
 **Interfaces:**
 - Consumes: stored `pending` shaped as `{ animeName, ep, results }`.
-- Produces: `asqIsInvalidPending(pending): boolean`; invalid service-only Netflix titles are removed and route to `view-empty`.
+- Consumes: shared `asqIsInvalidNetflixTitle(animeName): boolean` from `shared/api.js`.
+- Produces: invalid service-only Netflix titles are removed and route to `view-empty`.
 
 - [ ] **Step 1: Write a failing Popup initialization test**
 
@@ -123,17 +142,10 @@ Expected: the new test fails because initialization currently calls `loadRecord(
 
 - [ ] **Step 3: Add the minimal stale-pending check**
 
-Add the predicate and branch in `init()`:
+Add this branch in `init()`:
 
 ```js
-function asqIsInvalidPending(pending) {
-  const animeName = pending?.animeName?.trim() ?? '';
-  return /^(?:홈\s*[-–]\s*)?(?:넷플릭스|Netflix)$/i.test(animeName);
-}
-```
-
-```js
-if (asqIsInvalidPending(pending)) {
+if (asqIsInvalidNetflixTitle(pending?.animeName)) {
   await chrome.storage.local.remove('pending');
   showView('view-empty');
   return;
