@@ -36,6 +36,11 @@ async function init() {
     showView('view-empty');
     return;
   }
+  if (asqIsInvalidNetflixTitle(pending?.animeName)) {
+    await chrome.storage.local.remove('pending');
+    showView('view-empty');
+    return;
+  }
 
   showView('view-record');
   loadRecord(pending);

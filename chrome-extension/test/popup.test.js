@@ -4,6 +4,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
+const sharedApiContext = {};
+vm.runInNewContext(
+  fs.readFileSync(path.join(__dirname, '../shared/api.js'), 'utf8'),
+  sharedApiContext,
+);
+
 class FakeElement {
   constructor(tagName = 'div') {
     this.tagName = tagName.toUpperCase();
@@ -81,6 +87,7 @@ function popupContext(apiFetch, {
     get removedKey() { return removedKey; },
     context: {
       apiFetch,
+      asqIsInvalidNetflixTitle: sharedApiContext.asqIsInvalidNetflixTitle,
       searchAnime: async () => searchResults,
       WEB_BASE: 'https://animesquad.me',
       document: {
@@ -105,6 +112,20 @@ function popupContext(apiFetch, {
     },
   };
 }
+
+test('잘못 저장된 넷플릭스 서비스 제목은 삭제하고 빈 화면을 표시한다', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8');
+  const harness = popupContext(async () => ({ ok: true }), {
+    pending: { animeName: '홈 - 넷플릭스', ep: null, results: [] },
+  });
+
+  vm.runInNewContext(source, harness.context);
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.strictEqual(harness.removedKey, 'pending');
+  assert.strictEqual(harness.elements['view-empty'].classNames.has('hidden'), false);
+  assert.strictEqual(harness.elements['view-record'].classNames.has('hidden'), true);
+});
 
 test('기록 요청 중에는 진행 상태를 보이고 실패하면 화면 안에서 재시도 안내를 한다', async () => {
   const source = fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8');
