@@ -4,6 +4,9 @@ from PIL import Image, ImageDraw
 
 
 FRONTEND = Path(__file__).resolve().parents[1]
+REPOSITORY = FRONTEND.parent
+EXTENSION_ASSET_DIR = REPOSITORY / "chrome-extension" / "assets"
+EXTENSION_ICON_DIR = REPOSITORY / "chrome-extension" / "icons"
 BRAND_DIR = FRONTEND / "public" / "brand"
 APP_DIR = FRONTEND / "src" / "app"
 
@@ -66,6 +69,13 @@ def app_icon(size: int, scale: float) -> Image.Image:
 
 
 def main() -> None:
+    EXTENSION_ASSET_DIR.mkdir(parents=True, exist_ok=True)
+    EXTENSION_ICON_DIR.mkdir(parents=True, exist_ok=True)
+    write_svg(
+        EXTENSION_ASSET_DIR / "logo-mark.svg",
+        (BRIGHT, STRONG, LIGHT),
+    )
+
     BRAND_DIR.mkdir(parents=True, exist_ok=True)
     write_svg(BRAND_DIR / "logo-mark.svg", (BRIGHT, STRONG, LIGHT))
     write_svg(BRAND_DIR / "logo-mark-monochrome.svg", ("#000000", "#000000", "#000000"))
@@ -78,6 +88,9 @@ def main() -> None:
 
     favicon = app_icon(256, 0.72).convert("RGBA")
     favicon.save(APP_DIR / "favicon.ico", sizes=[(16, 16), (32, 32)])
+
+    for size in (16, 32, 48, 128):
+        app_icon(size, 0.72).save(EXTENSION_ICON_DIR / f"icon{size}.png")
 
 
 if __name__ == "__main__":
