@@ -26,7 +26,9 @@ function asqIsVisible(element, getStyle) {
 }
 
 function asqFindEndingControl(hostname, root, getStyle = getComputedStyle) {
-  const rule = ASQ_ENDING_LABELS.find((candidate) => hostname.includes(candidate.host));
+  const rule = ASQ_ENDING_LABELS.find((candidate) => (
+    hostname === candidate.host || hostname.endsWith(`.${candidate.host}`)
+  ));
   if (!rule) return null;
 
   const controls = root.querySelectorAll('button, [role="button"], [aria-label]');

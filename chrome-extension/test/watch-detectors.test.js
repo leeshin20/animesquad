@@ -44,6 +44,20 @@ test('Netflix와 라프텔의 엔딩 또는 다음 화 버튼을 감지한다', 
   );
 });
 
+test('지원 사이트와 이름이 비슷한 다른 호스트는 감지하지 않는다', () => {
+  const netflix = element({ ariaLabel: 'Skip Credits' });
+  const crunchyroll = element({ text: '크레딧 건너뛰기' });
+
+  assert.strictEqual(
+    asqFindEndingControl('notnetflix.com', { querySelectorAll: () => [netflix] }, visibleStyle),
+    null
+  );
+  assert.strictEqual(
+    asqFindEndingControl('fakecrunchyroll.com', { querySelectorAll: () => [crunchyroll] }, visibleStyle),
+    null
+  );
+});
+
 test('가장 큰 5분 이상 가시 영상을 본편으로 선택한다', () => {
   const shortAd = { duration: 120, hidden: false, getBoundingClientRect: () => ({ width: 1920, height: 1080 }) };
   const small = { duration: 1400, hidden: false, getBoundingClientRect: () => ({ width: 640, height: 360 }) };
@@ -84,7 +98,9 @@ test('일시정지와 버퍼링은 누적하지 않고 재생 재개 시 이어�
     tracker.tick({ ...playing, nowMs: second * 1000 });
   }
   tracker.tick({ ...playing, paused: true, nowMs: 20_000 });
-  tracker.tick({ ...playing, paused: true, nowMs: 40_000 });
+  assert.strictEqual(tracker.snapshot().playedSeconds, 10);
+  tracker.tick({ ...playing, readyState: 2, nowMs: 40_000 });
+  assert.strictEqual(tracker.snapshot().playedSeconds, 10);
   tracker.tick({ ...playing, nowMs: 41_000 });
   assert.strictEqual(tracker.snapshot().playedSeconds, 11);
 });
