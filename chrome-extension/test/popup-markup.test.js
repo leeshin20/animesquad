@@ -25,3 +25,28 @@ test('팝업은 전용 스타일시트를 연결한다', () => {
   assert.match(html, /href="popup\.css"/);
   assert.match(css, /\.hidden\s*{\s*display:\s*none\s*!important;/);
 });
+
+test('팝업은 브랜드 락업과 접근 가능한 기록 입력을 제공한다', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../popup/index.html'), 'utf8');
+
+  assert.match(html, /src="\.\.\/assets\/logo-mark\.svg"/);
+  assert.match(html, /class="brand-lockup"/);
+  assert.match(html, /<textarea[^>]*id="comment-input"[^>]*maxlength="280"/);
+  assert.match(html, /<label[^>]*for="ep-input"/);
+  assert.match(html, /role="radiogroup"[^>]*aria-label="평점"/);
+  assert.strictEqual((html.match(/<button[^>]*class="star"/g) || []).length, 5);
+  assert.match(html, /role="status"/);
+});
+
+test('팝업 스타일은 승인된 크기와 브랜드 역할을 사용한다', () => {
+  const css = fs.readFileSync(path.join(__dirname, '../popup/popup.css'), 'utf8');
+
+  assert.match(css, /--brand-bright:\s*#22C55E/);
+  assert.match(css, /--brand-strong:\s*#15803D/);
+  assert.match(css, /--brand-soft:\s*#DCFCE7/);
+  assert.match(css, /width:\s*320px/);
+  assert.match(css, /padding:\s*18px/);
+  assert.match(css, /#comment-input[\s\S]*height:\s*72px/);
+  assert.match(css, /resize:\s*none/);
+  assert.match(css, /focus-visible[\s\S]*--brand-strong/);
+});
