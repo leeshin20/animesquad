@@ -8,7 +8,12 @@ function plain(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function createHarness({ host }) {
+function createHarness({
+  host,
+  href = `https://${host}/watch/episode-11`,
+  title = "Frieren: Beyond Journey's End - Episode 11 - The Real Hero",
+  metadata = {},
+}) {
   const controls = [];
   const messages = [];
   const videos = [];
@@ -20,7 +25,7 @@ function createHarness({ host }) {
 
   const location = {
     hostname: host,
-    href: `https://${host}/watch/episode-11`,
+    href,
   };
   function makeVideo({ width = 1280, height = 720 } = {}) {
     const listeners = new Map();
@@ -51,8 +56,11 @@ function createHarness({ host }) {
   const video = makeVideo();
   videos.push(video);
   const document = {
-    title: "Frieren: Beyond Journey's End - Episode 11 - The Real Hero",
+    title,
     documentElement: {},
+    querySelector(selector) {
+      return metadata[selector] ?? null;
+    },
     querySelectorAll(selector) {
       if (selector === 'video') return videos;
       controlScans += 1;
@@ -62,6 +70,7 @@ function createHarness({ host }) {
   const context = vm.createContext({
     location,
     document,
+    metadata,
     Date: { now: () => now },
     getComputedStyle: () => ({ display: 'block', visibility: 'visible', opacity: '1' }),
     MutationObserver: class {
@@ -262,4 +271,59 @@ test('여러 DOM mutation을 한 번의 예약된 엔딩 컨트롤 스캔으로 
 
   harness.flushScheduled();
   assert.strictEqual(harness.controlScans(), scansBefore + 1);
+});
+
+test('Netflix 홈 화면의 영상과 다음 화 UI는 WATCHED를 보내지 않는다', () => {
+  const harness = createHarness({
+    host: 'www.netflix.com',
+    href: 'https://www.netflix.com/browse',
+    title: '홈 - 넷플릭스',
+  });
+  harness.controls.push(harness.control({ text: '다음 화', ariaHidden: 'false' }));
+  harness.mutate();
+  harness.flushScheduled();
+  harness.video.dispatch('ended');
+
+  assert.deepStrictEqual(harness.messages, []);
+});
+
+test('Netflix 재생 화면은 DOM 작품명과 회차로 WATCHED를 보낸다', () => {
+  const metadata = {
+    '[data-uia="evidence-overlay-season-title"]': { textContent: '담배 고양이' },
+    '[data-uia="evidence-overlay-episode-title"]': { textContent: '3화: 3화' },
+  };
+  const harness = createHarness({
+    host: 'www.netflix.com',
+    href: 'https://www.netflix.com/watch/81713945',
+    title: 'Netflix',
+    metadata,
+  });
+  delete metadata['[data-uia="evidence-overlay-season-title"]'];
+  delete metadata['[data-uia="evidence-overlay-episode-title"]'];
+  harness.controls.push(harness.control({ text: '다음 화', ariaHidden: 'false' }));
+  harness.mutate();
+  harness.flushScheduled();
+
+  assert.deepStrictEqual(harness.messages, [
+    { type: 'WATCHED', payload: { animeName: '담배 고양이', ep: 3 } },
+  ]);
+});
+
+test('Netflix 메타데이터와 엔딩 UI가 늦게 함께 나타나도 WATCHED를 보낸다', () => {
+  const metadata = {};
+  const harness = createHarness({
+    host: 'www.netflix.com',
+    href: 'https://www.netflix.com/watch/81713945',
+    title: 'Netflix',
+    metadata,
+  });
+  metadata['[data-uia="evidence-overlay-season-title"]'] = { textContent: '담배 고양이' };
+  metadata['[data-uia="evidence-overlay-episode-title"]'] = { textContent: '3화: 3화' };
+  harness.controls.push(harness.control({ text: '다음 화', ariaHidden: 'false' }));
+  harness.mutate();
+  harness.flushScheduled();
+
+  assert.deepStrictEqual(harness.messages, [
+    { type: 'WATCHED', payload: { animeName: '담배 고양이', ep: 3 } },
+  ]);
 });

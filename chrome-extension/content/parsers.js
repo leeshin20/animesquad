@@ -47,6 +47,40 @@ function asqParseTitle(hostname, title) {
   return parser ? parser.parse(title) : null;
 }
 
+function asqIsHost(hostname, host) {
+  return hostname === host || hostname.endsWith(`.${host}`);
+}
+
+function asqParsePage(hostname, title, root) {
+  if (!asqIsHost(hostname, 'netflix.com')) {
+    return asqParseTitle(hostname, title);
+  }
+
+  const animeName = root
+    ?.querySelector('[data-uia="evidence-overlay-season-title"]')
+    ?.textContent?.trim();
+  const episodeTitle = root
+    ?.querySelector('[data-uia="evidence-overlay-episode-title"]')
+    ?.textContent?.trim();
+  const epMatch = episodeTitle?.match(/(\d+)\s*화/);
+
+  if (animeName) {
+    return { animeName, ep: epMatch ? parseInt(epMatch[1]) : null };
+  }
+
+  if (/^(?:홈\s*[-–]\s*)?(?:넷플릭스|Netflix)$/i.test(title.trim())) {
+    return null;
+  }
+
+  return asqParseTitle(hostname, title);
+}
+
+function asqIsWatchPage(hostname, href) {
+  if (!asqIsHost(hostname, 'netflix.com')) return true;
+  const path = href.match(/^https?:\/\/[^/]+([^?#]*)/i)?.[1] ?? '';
+  return path.startsWith('/watch/');
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { asqParseTitle };
+  module.exports = { asqParseTitle, asqParsePage, asqIsWatchPage };
 }

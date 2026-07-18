@@ -1,6 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { asqParseTitle } = require('../content/parsers.js');
+const {
+  asqParseTitle,
+  asqParsePage,
+  asqIsWatchPage,
+} = require('../content/parsers.js');
 
 test('크런치롤: 에피소드 있는 제목', () => {
   assert.deepStrictEqual(
@@ -30,6 +34,30 @@ test('넷플릭스: 에피소드 없는 제목', () => {
   assert.deepStrictEqual(
     asqParseTitle('www.netflix.com', "Frieren: Beyond Journey's End | Netflix"),
     { animeName: "Frieren: Beyond Journey's End", ep: null }
+  );
+});
+
+test('넷플릭스: 플레이어 DOM에서 작품명과 회차를 추출한다', () => {
+  const elements = {
+    '[data-uia="evidence-overlay-season-title"]': { textContent: '담배 고양이' },
+    '[data-uia="evidence-overlay-episode-title"]': { textContent: '3화: 3화' },
+  };
+  const root = { querySelector: (selector) => elements[selector] ?? null };
+
+  assert.deepStrictEqual(
+    asqParsePage('www.netflix.com', 'Netflix', root),
+    { animeName: '담배 고양이', ep: 3 }
+  );
+});
+
+test('넷플릭스: 일반 화면은 시청 페이지로 판단하지 않는다', () => {
+  assert.strictEqual(
+    asqIsWatchPage('www.netflix.com', 'https://www.netflix.com/browse'),
+    false
+  );
+  assert.strictEqual(
+    asqIsWatchPage('www.netflix.com', 'https://www.netflix.com/watch/81713945'),
+    true
   );
 });
 

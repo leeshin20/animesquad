@@ -1,5 +1,5 @@
 let lastUrl = location.href;
-let lastParsed = asqParseTitle(location.hostname, document.title);
+let lastParsed = asqParseCurrentPage();
 let episodeKey = asqEpisodeKey(lastParsed);
 let notified = false;
 let activeVideo = null;
@@ -21,20 +21,31 @@ function asqEpisodeKey(parsed) {
   return `${location.href}|${parsed?.animeName ?? ''}|${parsed?.ep ?? ''}`;
 }
 
+function asqParseCurrentPage() {
+  return asqParsePage(location.hostname, document.title, document);
+}
+
 function resetEpisodeIfChanged() {
-  const parsed = asqParseTitle(location.hostname, document.title);
-  const nextKey = asqEpisodeKey(parsed);
+  const urlChanged = location.href !== lastUrl;
+  if (urlChanged) {
+    lastUrl = location.href;
+    lastParsed = null;
+  }
+
+  const hadParsed = Boolean(lastParsed);
+  const parsed = asqParseCurrentPage();
+  if (parsed) lastParsed = parsed;
+  const nextKey = asqEpisodeKey(lastParsed);
   if (nextKey === episodeKey) return;
   episodeKey = nextKey;
-  lastParsed = parsed;
   notified = false;
   progressTracker = asqCreateProgressTracker();
-  endingControlArmed = false;
+  if (urlChanged || hadParsed) endingControlArmed = false;
   bindVideo(null);
 }
 
 function notifyOnce() {
-  if (notified || !lastParsed) return;
+  if (notified || !lastParsed || !asqIsWatchPage(location.hostname, location.href)) return;
   notified = true;
   chrome.runtime.sendMessage({ type: 'WATCHED', payload: lastParsed });
 }
@@ -111,7 +122,6 @@ pageObserver.observe(document.documentElement, {
 });
 
 setInterval(() => {
-  if (location.href !== lastUrl) lastUrl = location.href;
   resetEpisodeIfChanged();
   checkEndingControl();
   checkVideoProgress();
