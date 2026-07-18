@@ -7,7 +7,12 @@ const vm = require('node:vm');
 test('apiFetch는 세션 쿠키와 JSON 본문을 API로 보낸다', async () => {
   const source = fs.readFileSync(path.join(__dirname, '../shared/api.js'), 'utf8');
   let request;
+  const timeoutSignal = {};
   const context = {
+    AbortSignal: { timeout: (milliseconds) => {
+      assert.strictEqual(milliseconds, 15000);
+      return timeoutSignal;
+    } },
     fetch: async (...args) => {
       request = args;
       return { ok: true };
@@ -26,5 +31,6 @@ test('apiFetch는 세션 쿠키와 JSON 본문을 API로 보낸다', async () =>
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: '{"animeId":7,"status":"WATCHING"}',
+    signal: timeoutSignal,
   });
 });

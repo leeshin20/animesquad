@@ -143,6 +143,12 @@ $('btn-record').addEventListener('click', async () => {
   if (!ep || ep < 1) { alert('화수를 입력해주세요.'); return; }
 
   const comment = $('comment-input').value.trim();
+  const recordButton = $('btn-record');
+  const recordStatus = $('record-status');
+  recordButton.disabled = true;
+  recordButton.textContent = '기록 중...';
+  recordStatus.classList.add('hidden');
+  recordStatus.textContent = '';
 
   try {
     if (!inList) {
@@ -177,7 +183,11 @@ $('btn-record').addEventListener('click', async () => {
     showView('view-done');
     setTimeout(() => window.close(), 1200);
   } catch (e) {
-    alert('기록 실패: ' + e.message);
+    recordStatus.textContent = `기록 실패 (${e.message}). 다시 시도해주세요.`;
+    recordStatus.classList.remove('hidden');
+  } finally {
+    recordButton.disabled = false;
+    recordButton.textContent = '기록하기';
   }
 });
 

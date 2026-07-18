@@ -8,6 +8,7 @@ async function apiFetch(path, { method = 'GET', body } = {}) {
     credentials: 'include',
     headers: body != null ? { 'Content-Type': 'application/json' } : undefined,
     body: body != null ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(15000),
   });
 }
 

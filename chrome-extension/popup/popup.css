@@ -29,6 +29,7 @@ button {
 }
 
 button.secondary { background: #333; color: #aaa; }
+button:disabled { cursor: wait; opacity: 0.7; }
 
 input[type="text"], input[type="number"] {
   width: 100%;
@@ -54,6 +55,7 @@ input[type="text"], input[type="number"] {
 
 .btn-row { display: flex; gap: 8px; }
 .btn-row button { flex: 1; }
+.record-status { font-size: 12px; color: #fca5a5; }
 
 ul { list-style: none; max-height: 120px; overflow-y: auto; border: 1px solid #444; border-radius: 6px; }
 ul:empty { display: none; }

@@ -51,7 +51,7 @@ function popupContext(apiFetch, {
     'view-login', 'view-empty', 'view-record', 'view-done', 'anime-label',
     'watchlist-warning', 'search-section', 'search-input', 'search-results',
     'ep-input', 'comment-input', 'btn-login', 'btn-dismiss', 'btn-record',
-    'btn-change-anime',
+    'btn-change-anime', 'record-status',
   ];
   const elements = Object.fromEntries(ids.map((id) => [id, new FakeElement()]));
   const stars = Array.from({ length: 5 }, (_, index) => {
@@ -93,6 +93,34 @@ function popupContext(apiFetch, {
     },
   };
 }
+
+test('기록 요청 중에는 진행 상태를 보이고 실패하면 화면 안에서 재시도 안내를 한다', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8');
+  const write = deferred();
+  const apiFetch = async (requestPath, options = {}) => {
+    if (requestPath === '/api/me') return { ok: true };
+    if (requestPath === '/api/watch/3' && !options.method) return { ok: false, status: 404 };
+    if (requestPath === '/api/watch' && options.method === 'POST') return write.promise;
+    return { ok: true };
+  };
+  const harness = popupContext(apiFetch);
+
+  vm.runInNewContext(source, harness.context);
+  await new Promise((resolve) => setImmediate(resolve));
+  const recording = harness.elements['btn-record'].dispatch('click');
+
+  assert.strictEqual(harness.elements['btn-record'].disabled, true);
+  assert.strictEqual(harness.elements['btn-record'].textContent, '기록 중...');
+
+  write.resolve({ ok: false, status: 500 });
+  await recording;
+
+  assert.strictEqual(harness.elements['btn-record'].disabled, false);
+  assert.strictEqual(harness.elements['btn-record'].textContent, '기록하기');
+  assert.strictEqual(harness.elements['record-status'].textContent, '기록 실패 (API 500). 다시 시도해주세요.');
+  assert.strictEqual(harness.elements['record-status'].classNames.has('hidden'), false);
+  assert.deepStrictEqual(harness.alerts, []);
+});
 
 function deferred() {
   let resolve;
