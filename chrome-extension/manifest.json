@@ -15,7 +15,11 @@
         "https://laftel.net/*",
         "https://www.crunchyroll.com/*"
       ],
-      "js": ["content/parsers.js", "content/index.js"]
+      "js": [
+        "content/parsers.js",
+        "content/watch-detectors.js",
+        "content/index.js"
+      ]
     }
   ],
   "action": {

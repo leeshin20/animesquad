@@ -1,38 +1,82 @@
-const MIN_WATCH_SECONDS = 600; // 10분
-
-let startTime = Date.now();
 let lastUrl = location.href;
 let lastParsed = asqParseTitle(location.hostname, document.title);
+let episodeKey = asqEpisodeKey(lastParsed);
+let notified = false;
+let activeVideo = null;
+let progressTracker = asqCreateProgressTracker();
 
-// 제목이 다른 애니로 바뀌면 재파싱 + 타이머 리셋
-const titleObserver = new MutationObserver(() => {
+function asqEpisodeKey(parsed) {
+  return `${location.href}|${parsed?.animeName ?? ''}|${parsed?.ep ?? ''}`;
+}
+
+function resetEpisodeIfChanged() {
   const parsed = asqParseTitle(location.hostname, document.title);
-  if (parsed && parsed.animeName !== lastParsed?.animeName) {
-    startTime = Date.now();
-    lastParsed = parsed;
-  }
-});
-titleObserver.observe(document.querySelector('title') ?? document.head, {
-  subtree: true,
-  childList: true,
-  characterData: true,
-});
+  const nextKey = asqEpisodeKey(parsed);
+  if (nextKey === episodeKey) return;
+  episodeKey = nextKey;
+  lastParsed = parsed;
+  notified = false;
+  progressTracker = asqCreateProgressTracker();
+  bindVideo(null);
+}
 
-function notifyIfWatched() {
-  const elapsed = (Date.now() - startTime) / 1000;
-  if (elapsed >= MIN_WATCH_SECONDS && lastParsed) {
-    chrome.runtime.sendMessage({ type: 'WATCHED', payload: lastParsed });
+function notifyOnce() {
+  if (notified || !lastParsed) return;
+  notified = true;
+  chrome.runtime.sendMessage({ type: 'WATCHED', payload: lastParsed });
+}
+
+function onVideoEnded() {
+  if (progressTracker.end()) notifyOnce();
+}
+
+function bindVideo(video) {
+  if (video === activeVideo) return;
+  activeVideo?.removeEventListener('ended', onVideoEnded);
+  activeVideo = video;
+  activeVideo?.addEventListener('ended', onVideoEnded);
+  progressTracker.reset();
+}
+
+function checkEndingControl() {
+  if (asqFindEndingControl(location.hostname, document)) notifyOnce();
+}
+
+function checkVideoProgress() {
+  const video = asqSelectMainVideo(document.querySelectorAll('video'));
+  bindVideo(video);
+  if (!video) return;
+  if (progressTracker.tick({
+    currentTime: video.currentTime,
+    duration: video.duration,
+    paused: video.paused,
+    seeking: video.seeking,
+    readyState: video.readyState,
+    nowMs: Date.now(),
+  })) {
+    notifyOnce();
   }
 }
 
-// SPA URL 변경 감지 — isolated world라 pushState 후킹이 불가능해 폴링 사용
+const pageObserver = new MutationObserver(() => {
+  resetEpisodeIfChanged();
+  checkEndingControl();
+});
+
+pageObserver.observe(document.documentElement, {
+  subtree: true,
+  childList: true,
+  characterData: true,
+  attributes: true,
+  attributeFilter: ['aria-hidden', 'hidden', 'class', 'style'],
+});
+
 setInterval(() => {
-  if (location.href === lastUrl) return;
-  lastUrl = location.href;
-  notifyIfWatched();
-  startTime = Date.now();
-  lastParsed = asqParseTitle(location.hostname, document.title);
+  if (location.href !== lastUrl) lastUrl = location.href;
+  resetEpisodeIfChanged();
+  checkEndingControl();
+  checkVideoProgress();
 }, 1000);
 
-// 탭 닫기 / 사이트 이탈
-window.addEventListener('pagehide', notifyIfWatched);
+checkEndingControl();
+checkVideoProgress();
