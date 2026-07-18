@@ -9,6 +9,16 @@ test('크런치롤: 에피소드 있는 제목', () => {
   );
 });
 
+test('크런치롤: 한국어 제N화 제목에서 작품명과 회차만 분리한다', () => {
+  assert.deepStrictEqual(
+    asqParseTitle(
+      'www.crunchyroll.com',
+      '깨끗하게 해주시겠어요? 제2화 천연 온천이 자랑이라서 - 크런치롤에서 시청하세요'
+    ),
+    { animeName: '깨끗하게 해주시겠어요?', ep: 2 }
+  );
+});
+
 test('넷플릭스: 에피소드 있는 제목', () => {
   assert.deepStrictEqual(
     asqParseTitle('www.netflix.com', "Episode 11 | Frieren: Beyond Journey's End | Netflix"),

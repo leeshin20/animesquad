@@ -4,9 +4,13 @@ const ASQ_PARSERS = [
     host: 'crunchyroll.com',
     // "Frieren: Beyond Journey's End - Episode 11 - A Real Hero"
     parse(title) {
-      const epMatch = title.match(/[-–]\s*Episode\s*(\d+)/i);
+      const cleaned = title
+        .replace(/\s*[-–]\s*크런치롤에서 시청하세요\s*$/i, '')
+        .trim();
+      const epMatch = cleaned.match(/[-–]\s*Episode\s*(\d+)/i)
+        ?? cleaned.match(/\s+제\s*(\d+)\s*화(?:\s|$)/);
       const ep = epMatch ? parseInt(epMatch[1]) : null;
-      const animeName = title.split(/[-–]\s*Episode/i)[0].trim();
+      const animeName = epMatch ? cleaned.slice(0, epMatch.index).trim() : cleaned;
       return animeName ? { animeName, ep } : null;
     },
   },
