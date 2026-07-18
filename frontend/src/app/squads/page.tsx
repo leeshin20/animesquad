@@ -95,7 +95,7 @@ export default function SquadsPage() {
             />
             <button
               type="submit"
-              className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
+              className="rounded-md bg-brand-strong px-4 py-2 text-sm font-medium text-white hover:bg-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2"
             >
               만들기
             </button>
@@ -113,7 +113,7 @@ export default function SquadsPage() {
             />
             <button
               type="submit"
-              className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
+              className="rounded-md bg-brand-strong px-4 py-2 text-sm font-medium text-white hover:bg-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2"
             >
               참여
             </button>

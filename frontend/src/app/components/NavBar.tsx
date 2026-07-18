@@ -167,7 +167,7 @@ export default function NavBar() {
           <div className="ml-auto md:hidden w-36">
             {searchInput(
               mobileSearchRef as React.RefObject<HTMLDivElement>,
-              "w-full rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-neutral-900 focus:outline-none",
+              "w-full rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-brand-bright focus:outline-none focus:ring-2 focus:ring-brand-light",
               "absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg"
             )}
           </div>
@@ -176,7 +176,7 @@ export default function NavBar() {
           <nav className="ml-auto hidden items-center gap-1 md:flex">
             {searchInput(
               desktopSearchRef as React.RefObject<HTMLDivElement>,
-              "w-44 rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-neutral-900 focus:outline-none",
+              "w-44 rounded-md border border-neutral-300 py-1.5 pl-8 pr-3 text-sm focus:border-brand-bright focus:outline-none focus:ring-2 focus:ring-brand-light",
               "absolute right-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg"
             )}
 
@@ -189,7 +189,7 @@ export default function NavBar() {
                   className={
                     "rounded-md px-3 py-1.5 text-sm transition " +
                     (active
-                      ? "bg-neutral-900 text-white"
+                      ? "bg-brand-soft text-brand-strong"
                       : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900")
                   }
                 >
@@ -203,7 +203,7 @@ export default function NavBar() {
                 className={
                   "ml-2 flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-sm transition " +
                   (profileActive
-                    ? "bg-neutral-900 text-white"
+                    ? "bg-brand-soft text-brand-strong"
                     : "text-neutral-700 hover:bg-neutral-100")
                 }
               >
@@ -269,7 +269,7 @@ export default function NavBar() {
                   className={
                     "block px-4 py-3 text-sm font-medium transition " +
                     (active
-                      ? "bg-neutral-100 text-neutral-900"
+                      ? "bg-brand-soft text-brand-strong"
                       : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900")
                   }
                 >

@@ -44,7 +44,7 @@ function Landing() {
       </p>
       <a
         href={`${apiBase}/oauth2/authorization/google`}
-        className="mt-8 inline-flex items-center justify-center rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-700"
+        className="mt-8 inline-flex items-center justify-center rounded-lg bg-brand-strong px-5 py-2.5 text-sm font-medium text-white transition hover:bg-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2"
       >
         Google로 시작하기
       </a>
