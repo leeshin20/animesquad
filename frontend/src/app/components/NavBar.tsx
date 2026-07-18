@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BrandLockup } from "@/app/components/BrandLockup";
 import { apiGet, type AnimeView, type Me } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 
@@ -158,8 +159,8 @@ export default function NavBar() {
     <>
       <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4 md:px-6">
-          <Link href="/" className="shrink-0 text-base font-semibold tracking-tight">
-            AnimeSquad
+          <Link href="/" className="shrink-0" aria-label="AnimeSquad 홈">
+            <BrandLockup />
           </Link>
 
           {/* 모바일 검색창 — 햄버거 바로 왼쪽 */}
@@ -241,7 +242,9 @@ export default function NavBar() {
         <div className={`absolute right-0 top-0 flex h-full w-64 flex-col bg-white shadow-xl transition-transform duration-200 ease-out ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}>
           {/* 헤더 */}
           <div className="flex h-14 items-center justify-between border-b border-neutral-200 px-4">
-            <span className="text-base font-semibold tracking-tight">AnimeSquad</span>
+            <Link href="/" aria-label="AnimeSquad 홈">
+              <BrandLockup />
+            </Link>
             <button
               type="button"
               aria-label="메뉴 닫기"
