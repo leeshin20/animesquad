@@ -95,12 +95,37 @@ function renderResults(results) {
 }
 
 // ── 별점 ──────────────────────────────────────────────────
-document.querySelectorAll('.star').forEach((star) => {
+const ratingStars = [...document.querySelectorAll('.star')];
+
+function setRating(value, { focus = false } = {}) {
+  selectedRating = Math.min(5, Math.max(1, value));
+  ratingStars.forEach((star) => {
+    const starValue = parseInt(star.dataset.v);
+    const selected = starValue === selectedRating;
+    star.classList.toggle('active', starValue <= selectedRating);
+    star.setAttribute('aria-checked', selected ? 'true' : 'false');
+    star.tabIndex = selected ? 0 : -1;
+    if (selected && focus) star.focus();
+  });
+}
+
+ratingStars.forEach((star, index) => {
+  star.tabIndex = index === 0 ? 0 : -1;
   star.addEventListener('click', () => {
-    selectedRating = parseInt(star.dataset.v);
-    document.querySelectorAll('.star').forEach((s) => {
-      s.classList.toggle('active', parseInt(s.dataset.v) <= selectedRating);
-    });
+    setRating(parseInt(star.dataset.v));
+  });
+  star.addEventListener('keydown', (event) => {
+    const movement = {
+      ArrowLeft: -1,
+      ArrowDown: -1,
+      ArrowRight: 1,
+      ArrowUp: 1,
+    }[event.key];
+    if (!movement) return;
+
+    event.preventDefault();
+    const current = selectedRating || index + 1;
+    setRating(current + movement, { focus: true });
   });
 });
 

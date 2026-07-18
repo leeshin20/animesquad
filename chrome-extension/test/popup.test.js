@@ -11,6 +11,9 @@ class FakeElement {
     this.dataset = {};
     this.children = [];
     this.listeners = {};
+    this.attributes = {};
+    this.tabIndex = 0;
+    this.focused = false;
     this.classNames = new Set(['hidden']);
     this.classList = {
       add: (name) => this.classNames.add(name),
@@ -26,12 +29,20 @@ class FakeElement {
     this.listeners[type] = listener;
   }
 
+  setAttribute(name, value) {
+    this.attributes[name] = String(value);
+  }
+
+  focus() {
+    this.focused = true;
+  }
+
   appendChild(child) {
     this.children.push(child);
   }
 
-  dispatch(type) {
-    return this.listeners[type]();
+  dispatch(type, event = {}) {
+    return this.listeners[type](event);
   }
 
   set innerHTML(value) {
@@ -433,4 +444,42 @@ test('감지된 화수와 평점·한줄평을 회차 PUT 요청에 전달한다
     '/api/watch/3/episodes/11',
     { method: 'PUT', body: { score: 4, comment: '좋았어요' } },
   ]);
+});
+
+test('별점 클릭은 활성 별과 접근 가능한 현재 값을 함께 갱신한다', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8');
+  const harness = popupContext(async (requestPath) => {
+    if (requestPath === '/api/me') return { ok: true };
+    return { ok: true };
+  });
+
+  vm.runInNewContext(source, harness.context);
+  await new Promise((resolve) => setImmediate(resolve));
+  harness.stars[2].dispatch('click');
+
+  assert.deepStrictEqual(harness.stars.map((star) => star.classNames.has('active')),
+    [true, true, true, false, false]);
+  assert.deepStrictEqual(harness.stars.map((star) => star.attributes['aria-checked']),
+    ['false', 'false', 'true', 'false', 'false']);
+  assert.deepStrictEqual(harness.stars.map((star) => star.tabIndex), [-1, -1, 0, -1, -1]);
+});
+
+test('별점 방향키는 값을 이동하고 선택한 별에 포커스한다', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8');
+  const harness = popupContext(async (requestPath) => {
+    if (requestPath === '/api/me') return { ok: true };
+    return { ok: true };
+  });
+  let prevented = false;
+
+  vm.runInNewContext(source, harness.context);
+  await new Promise((resolve) => setImmediate(resolve));
+  harness.stars[0].dispatch('keydown', {
+    key: 'ArrowRight',
+    preventDefault: () => { prevented = true; },
+  });
+
+  assert.strictEqual(prevented, true);
+  assert.strictEqual(harness.stars[1].attributes['aria-checked'], 'true');
+  assert.strictEqual(harness.stars[1].focused, true);
 });
