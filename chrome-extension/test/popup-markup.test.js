@@ -54,3 +54,10 @@ test('팝업 스타일은 승인된 크기와 브랜드 역할을 사용한다',
   assert.match(css, /\.result-button\s*{[^}]*background:\s*transparent[^}]*color:\s*var\(--neutral-600\)/s);
   assert.match(css, /\.result-button:focus-visible\s*{[^}]*--brand-strong/s);
 });
+
+test('빈 상태 안내는 엔딩 감지 기준을 설명한다', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../popup/index.html'), 'utf8');
+
+  assert.match(html, /엔딩 구간에 도달하면/);
+  assert.doesNotMatch(html, /10분 이상/);
+});
