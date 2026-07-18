@@ -66,7 +66,25 @@ test('가장 큰 5분 이상 가시 영상을 본편으로 선택한다', () => 
   assert.strictEqual(asqSelectMainVideo([shortAd, small, main], visibleStyle), main);
 });
 
-test('90% 이후 실제 재생 30초가 누적될 때 한 번만 완료한다', () => {
+test('90% 이후 미디어 시간이 30초 전진할 때 한 번만 완료한다', () => {
+  const tracker = asqCreateProgressTracker();
+  const sample = {
+    duration: 1400,
+    paused: false,
+    seeking: false,
+    readyState: 4,
+    playbackRate: 1,
+  };
+
+  assert.strictEqual(tracker.tick({ ...sample, currentTime: 1260, nowMs: 0 }), false);
+  for (let second = 1; second < 30; second += 1) {
+    assert.strictEqual(tracker.tick({ ...sample, currentTime: 1260 + second, nowMs: second * 1000 }), false);
+  }
+  assert.strictEqual(tracker.tick({ ...sample, currentTime: 1290, nowMs: 30_000 }), true);
+  assert.strictEqual(tracker.tick({ ...sample, currentTime: 1291, nowMs: 31_000 }), false);
+});
+
+test('재생 상태여도 currentTime이 멈춰 있으면 누적하지 않는다', () => {
   const tracker = asqCreateProgressTracker();
   const sample = {
     currentTime: 1260,
@@ -74,43 +92,78 @@ test('90% 이후 실제 재생 30초가 누적될 때 한 번만 완료한다', 
     paused: false,
     seeking: false,
     readyState: 4,
+    playbackRate: 1,
   };
 
-  assert.strictEqual(tracker.tick({ ...sample, nowMs: 0 }), false);
-  for (let second = 1; second < 30; second += 1) {
-    assert.strictEqual(tracker.tick({ ...sample, nowMs: second * 1000 }), false);
-  }
-  assert.strictEqual(tracker.tick({ ...sample, nowMs: 30_000 }), true);
-  assert.strictEqual(tracker.tick({ ...sample, nowMs: 31_000 }), false);
+  tracker.tick({ ...sample, nowMs: 0 });
+  tracker.tick({ ...sample, nowMs: 40_000 });
+
+  assert.strictEqual(tracker.snapshot().playedSeconds, 0);
 });
 
 test('일시정지와 버퍼링은 누적하지 않고 재생 재개 시 이어간다', () => {
   const tracker = asqCreateProgressTracker();
   const playing = {
-    currentTime: 1260,
     duration: 1400,
     paused: false,
     seeking: false,
     readyState: 4,
+    playbackRate: 1,
   };
 
   for (let second = 0; second <= 10; second += 1) {
-    tracker.tick({ ...playing, nowMs: second * 1000 });
+    tracker.tick({ ...playing, currentTime: 1260 + second, nowMs: second * 1000 });
   }
-  tracker.tick({ ...playing, paused: true, nowMs: 20_000 });
+  tracker.tick({ ...playing, currentTime: 1270, paused: true, nowMs: 20_000 });
   assert.strictEqual(tracker.snapshot().playedSeconds, 10);
-  tracker.tick({ ...playing, readyState: 2, nowMs: 40_000 });
+  tracker.tick({ ...playing, currentTime: 1270, readyState: 2, nowMs: 40_000 });
   assert.strictEqual(tracker.snapshot().playedSeconds, 10);
-  tracker.tick({ ...playing, nowMs: 41_000 });
+  tracker.tick({ ...playing, currentTime: 1271, nowMs: 41_000 });
+  assert.strictEqual(tracker.snapshot().playedSeconds, 10);
+  tracker.tick({ ...playing, currentTime: 1272, nowMs: 42_000 });
   assert.strictEqual(tracker.snapshot().playedSeconds, 11);
+});
+
+test('큰 미디어 시간 점프는 경과 시간 이상을 즉시 누적하지 않는다', () => {
+  const tracker = asqCreateProgressTracker();
+  const sample = {
+    duration: 1400,
+    paused: false,
+    seeking: false,
+    readyState: 4,
+    playbackRate: 0.5,
+  };
+
+  tracker.tick({ ...sample, currentTime: 1260, nowMs: 0 });
+  assert.strictEqual(tracker.tick({ ...sample, currentTime: 1390, nowMs: 1000 }), false);
+  assert.ok(tracker.snapshot().playedSeconds <= 0.75);
+});
+
+test('비디오 교체용 타이밍 초기화는 누적 시간은 보존하고 새 기준점을 잡는다', () => {
+  const tracker = asqCreateProgressTracker();
+  const sample = {
+    duration: 1400,
+    paused: false,
+    seeking: false,
+    readyState: 4,
+    playbackRate: 1,
+  };
+
+  tracker.tick({ ...sample, currentTime: 1260, nowMs: 0 });
+  tracker.tick({ ...sample, currentTime: 1270, nowMs: 10_000 });
+  tracker.resetTiming();
+  tracker.tick({ ...sample, currentTime: 1300, nowMs: 20_000 });
+
+  assert.strictEqual(tracker.snapshot().playedSeconds, 10);
+  assert.strictEqual(tracker.tick({ ...sample, currentTime: 1320, nowMs: 40_000 }), true);
 });
 
 test('90% 아래로 탐색하면 누적 시간을 초기화한다', () => {
   const tracker = asqCreateProgressTracker();
 
-  tracker.tick({ currentTime: 1260, duration: 1400, paused: false, seeking: false, readyState: 4, nowMs: 0 });
-  tracker.tick({ currentTime: 1270, duration: 1400, paused: false, seeking: false, readyState: 4, nowMs: 10_000 });
-  tracker.tick({ currentTime: 1000, duration: 1400, paused: false, seeking: true, readyState: 4, nowMs: 11_000 });
+  tracker.tick({ currentTime: 1260, duration: 1400, paused: false, seeking: false, readyState: 4, playbackRate: 1, nowMs: 0 });
+  tracker.tick({ currentTime: 1270, duration: 1400, paused: false, seeking: false, readyState: 4, playbackRate: 1, nowMs: 10_000 });
+  tracker.tick({ currentTime: 1000, duration: 1400, paused: false, seeking: true, readyState: 4, playbackRate: 1, nowMs: 11_000 });
 
   assert.deepStrictEqual(tracker.snapshot(), { playedSeconds: 0, completed: false });
 });

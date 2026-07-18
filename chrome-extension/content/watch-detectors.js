@@ -1,6 +1,7 @@
 const ASQ_MIN_VIDEO_SECONDS = 300;
 const ASQ_PROGRESS_THRESHOLD = 0.9;
 const ASQ_REQUIRED_PLAY_SECONDS = 30;
+const ASQ_PLAYBACK_TOLERANCE_SECONDS = 0.25;
 
 const ASQ_ENDING_LABELS = [
   {
@@ -55,33 +56,43 @@ function asqSelectMainVideo(videos, getStyle = getComputedStyle) {
 function asqCreateProgressTracker() {
   let playedSeconds = 0;
   let lastTickAt = null;
+  let lastMediaTime = null;
   let completed = false;
+
+  function resetTiming() {
+    lastTickAt = null;
+    lastMediaTime = null;
+  }
 
   function reset() {
     playedSeconds = 0;
-    lastTickAt = null;
+    resetTiming();
     completed = false;
   }
 
-  function tick({ currentTime, duration, paused, seeking, readyState, nowMs }) {
+  function tick({ currentTime, duration, paused, seeking, readyState, playbackRate, nowMs }) {
     const eligible = Number.isFinite(duration)
       && duration >= ASQ_MIN_VIDEO_SECONDS
       && currentTime / duration >= ASQ_PROGRESS_THRESHOLD;
 
     if (!eligible) {
       playedSeconds = 0;
-      lastTickAt = nowMs;
+      resetTiming();
       return false;
     }
     if (completed) return false;
-    if (paused || seeking || readyState < 3) {
-      lastTickAt = nowMs;
+    if (paused || seeking || readyState < 3 || !Number.isFinite(playbackRate) || playbackRate <= 0) {
+      resetTiming();
       return false;
     }
-    if (lastTickAt !== null) {
-      playedSeconds += Math.min(Math.max((nowMs - lastTickAt) / 1000, 0), 2);
+    if (lastTickAt !== null && lastMediaTime !== null) {
+      const elapsedSeconds = Math.max((nowMs - lastTickAt) / 1000, 0);
+      const mediaDelta = Math.max(currentTime - lastMediaTime, 0);
+      const maximumCredit = elapsedSeconds * playbackRate + ASQ_PLAYBACK_TOLERANCE_SECONDS;
+      playedSeconds += Math.min(mediaDelta, maximumCredit);
     }
     lastTickAt = nowMs;
+    lastMediaTime = currentTime;
     if (playedSeconds < ASQ_REQUIRED_PLAY_SECONDS) return false;
     completed = true;
     return true;
@@ -97,6 +108,7 @@ function asqCreateProgressTracker() {
     tick,
     end,
     reset,
+    resetTiming,
     snapshot: () => ({ playedSeconds, completed }),
   };
 }
