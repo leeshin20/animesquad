@@ -48,3 +48,8 @@ test('manifest declares every Chrome icon size', () => {
   assert.deepEqual(manifest.icons, icons);
   assert.deepEqual(manifest.action.default_icon, icons);
 });
+
+test('manifest uses the packaged extension version', () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(extensionRoot, 'manifest.json'), 'utf8'));
+  assert.strictEqual(manifest.version, '1.0.1');
+});
