@@ -127,6 +127,23 @@ test('잘못 저장된 넷플릭스 서비스 제목은 삭제하고 빈 화면�
   assert.strictEqual(harness.elements['view-record'].classNames.has('hidden'), true);
 });
 
+test('비문자열 제목이 남은 pending은 삭제하고 빈 화면을 표시한다', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8');
+
+  for (const animeName of [42, { title: '담배 고양이' }]) {
+    const harness = popupContext(async () => ({ ok: true }), {
+      pending: { animeName, ep: null, results: [] },
+    });
+
+    vm.runInNewContext(source, harness.context);
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.strictEqual(harness.removedKey, 'pending');
+    assert.strictEqual(harness.elements['view-empty'].classNames.has('hidden'), false);
+    assert.strictEqual(harness.elements['view-record'].classNames.has('hidden'), true);
+  }
+});
+
 test('기록 요청 중에는 진행 상태를 보이고 실패하면 화면 안에서 재시도 안내를 한다', async () => {
   const source = fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8');
   const write = deferred();

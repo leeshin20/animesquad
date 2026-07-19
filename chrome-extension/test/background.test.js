@@ -265,3 +265,42 @@ test('넷플릭스 빈 제목의 WATCHED 메시지는 무시한다', async () =>
     assert.strictEqual(popupAttempts, 0);
   }
 });
+
+test('넷플릭스 비문자열 제목의 WATCHED 메시지는 부작용 없이 무시한다', async () => {
+  for (const animeName of [42, { title: '담배 고양이' }]) {
+    let listener;
+    let searchAttempts = 0;
+    let storageAttempts = 0;
+    let popupAttempts = 0;
+    const context = {
+      importScripts: () => {},
+      searchAnime: async () => { searchAttempts += 1; return []; },
+      chrome: {
+        runtime: { onMessage: { addListener: (value) => { listener = value; } } },
+        storage: { local: { set: async () => { storageAttempts += 1; } } },
+        action: {
+          openPopup: async () => { popupAttempts += 1; },
+          setBadgeText: () => {},
+          setBadgeBackgroundColor: () => {},
+        },
+      },
+    };
+    vm.runInNewContext(
+      `${fs.readFileSync(path.join(__dirname, '../shared/api.js'), 'utf8')}\n${fs.readFileSync(
+        path.join(__dirname, '../background/service-worker.js'),
+        'utf8'
+      )}`,
+      context
+    );
+
+    listener(
+      { type: 'WATCHED', payload: { animeName, ep: null } },
+      { tab: { url: 'https://www.netflix.com/watch/81713945', windowId: 42 } }
+    );
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.strictEqual(searchAttempts, 0);
+    assert.strictEqual(storageAttempts, 0);
+    assert.strictEqual(popupAttempts, 0);
+  }
+});

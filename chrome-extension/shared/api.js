@@ -3,6 +3,7 @@ const API_BASE = 'https://api.animesquad.me';
 const WEB_BASE = 'https://animesquad.me';
 
 function asqIsInvalidNetflixTitle(animeName) {
+  if (typeof animeName !== 'string') return true;
   const normalized = animeName?.trim() ?? '';
   return normalized === ''
     || /^(?:홈\s*[-–]\s*)?(?:넷플릭스|Netflix)$/i.test(normalized);
