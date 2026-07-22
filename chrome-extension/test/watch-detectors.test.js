@@ -30,17 +30,42 @@ test('Crunchyroll 크레딧 버튼은 aria-hidden=false일 때만 감지한다',
   assert.strictEqual(asqFindEndingControl('www.crunchyroll.com', root, visibleStyle), shown);
 });
 
-test('Netflix와 라프텔의 엔딩 또는 다음 화 버튼을 감지한다', () => {
+test('Netflix 엔딩 버튼의 기존 부분 일치를 유지한다', () => {
   const netflix = element({ ariaLabel: 'Skip Credits' });
-  const laftel = element({ text: '다음 화' });
 
   assert.strictEqual(
     asqFindEndingControl('www.netflix.com', { querySelectorAll: () => [netflix] }, visibleStyle),
     netflix
   );
+});
+
+test('라프텔은 엔딩 스킵과 바로 재생을 정확히 감지한다', () => {
+  const endingSkip = element({ text: '엔딩 스킵' });
+  const playNow = element({ ariaLabel: '바로 재생' });
+
   assert.strictEqual(
-    asqFindEndingControl('laftel.net', { querySelectorAll: () => [laftel] }, visibleStyle),
-    laftel
+    asqFindEndingControl('laftel.net', { querySelectorAll: () => [endingSkip] }, visibleStyle),
+    endingSkip
+  );
+  assert.strictEqual(
+    asqFindEndingControl('laftel.net', { querySelectorAll: () => [playNow] }, visibleStyle),
+    playNow
+  );
+});
+
+test('라프텔은 이전 문구와 부분 일치 및 숨겨진 버튼을 감지하지 않는다', () => {
+  const oldLabels = ['엔딩 건너뛰기', '크레딧 건너뛰기', '다음 화', '다음화']
+    .map((text) => element({ text }));
+  const partial = element({ text: '바로 재생 설정' });
+  const hidden = element({ text: '엔딩 스킵', ariaHidden: 'true' });
+
+  assert.strictEqual(
+    asqFindEndingControl(
+      'laftel.net',
+      { querySelectorAll: () => [...oldLabels, partial, hidden] },
+      visibleStyle
+    ),
+    null
   );
 });
 

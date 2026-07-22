@@ -14,7 +14,8 @@ const ASQ_ENDING_LABELS = [
   },
   {
     host: 'laftel.net',
-    labels: ['엔딩 건너뛰기', '크레딧 건너뛰기', '다음 화', '다음화'],
+    labels: ['엔딩 스킵', '바로 재생'],
+    exact: true,
   },
 ];
 
@@ -34,11 +35,15 @@ function asqFindEndingControl(hostname, root, getStyle = getComputedStyle) {
 
   const controls = root.querySelectorAll('button, [role="button"], [aria-label]');
   return Array.from(controls).find((control) => {
-    const label = `${control.getAttribute?.('aria-label') ?? ''} ${control.textContent ?? ''}`
-      .trim()
-      .toLowerCase();
-    return rule.labels.some((candidate) => label.includes(candidate))
-      && asqIsVisible(control, getStyle);
+    const labels = [
+      control.getAttribute?.('aria-label') ?? '',
+      control.textContent ?? '',
+    ].map((label) => label.trim().toLowerCase());
+    const combinedLabel = labels.join(' ').trim();
+    const matches = rule.exact
+      ? rule.labels.some((candidate) => labels.includes(candidate))
+      : rule.labels.some((candidate) => combinedLabel.includes(candidate));
+    return matches && asqIsVisible(control, getStyle);
   }) ?? null;
 }
 
