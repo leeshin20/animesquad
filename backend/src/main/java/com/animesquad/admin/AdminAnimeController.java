@@ -11,13 +11,17 @@ import com.animesquad.user.User;
 import com.animesquad.user.UserService;
 import com.animesquad.watch.WatchEntryRepository;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -40,11 +44,12 @@ public class AdminAnimeController {
     private final WatchEntryRepository watches;
     private final EpisodeRatingRepository episodeRatings;
     private final ActivityRepository activities;
+    private final AnimeFolderArchiveService folderArchives;
 
     public AdminAnimeController(AnimeRepository animes, AnimeService animeService,
                                 UserService users, AdminProperties adminProperties,
                                 WatchEntryRepository watches, EpisodeRatingRepository episodeRatings,
-                                ActivityRepository activities) {
+                                ActivityRepository activities, AnimeFolderArchiveService folderArchives) {
         this.animes = animes;
         this.animeService = animeService;
         this.users = users;
@@ -52,6 +57,32 @@ public class AdminAnimeController {
         this.watches = watches;
         this.episodeRatings = episodeRatings;
         this.activities = activities;
+        this.folderArchives = folderArchives;
+    }
+
+    @GetMapping("/folder-archive")
+    public ResponseEntity<byte[]> folderArchive(
+        @AuthenticationPrincipal CurrentUser current,
+        @RequestParam int year,
+        @RequestParam String season
+    ) {
+        requireAdmin(current);
+        if (year < 1960 || year > 2100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid year");
+        }
+        String normalized = season.toUpperCase(java.util.Locale.ROOT);
+        if (!VALID_SEASONS.contains(normalized)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "season must be WINTER/SPRING/SUMMER/FALL");
+        }
+        AnimeFolderArchiveService.Archive archive = folderArchives.create(year, normalized);
+        String disposition = "attachment; filename=\"anime-folders-" + year + "-" + normalized
+            + ".zip\"; filename*=UTF-8''"
+            + UriUtils.encode(archive.downloadFilename(), StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType("application/zip"))
+            .header(HttpHeaders.CONTENT_DISPOSITION, disposition)
+            .body(archive.bytes());
     }
 
     private void requireAdmin(CurrentUser current) {

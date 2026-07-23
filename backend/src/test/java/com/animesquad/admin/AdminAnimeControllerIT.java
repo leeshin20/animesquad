@@ -55,13 +55,78 @@ class AdminAnimeControllerIT extends AbstractIntegrationTest {
     }
 
     private Anime seedAnime(int anilistId, String korean) {
+        return seedAnime(anilistId, korean, 2024, null);
+    }
+
+    private Anime seedAnime(int anilistId, String korean, int year, String season) {
         Anime a = animeService.upsertFromAniList(new AniListMedia(
-            anilistId, "Romaji" + anilistId, "Native", "Eng", "img", 12, "FINISHED", "TV", 2024, null, null));
+            anilistId, "Romaji" + anilistId, "Native", "Eng", "img", 12, "FINISHED", "TV", year, season, null));
         if (korean != null) {
             a.setTitleKorean(korean);
             animes.save(a);
         }
         return a;
+    }
+
+    private static List<String> zipEntries(byte[] bytes) throws Exception {
+        List<String> names = new java.util.ArrayList<>();
+        try (java.util.zip.ZipInputStream zip = new java.util.zip.ZipInputStream(
+                new java.io.ByteArrayInputStream(bytes))) {
+            for (java.util.zip.ZipEntry entry; (entry = zip.getNextEntry()) != null;) {
+                names.add(entry.getName());
+            }
+        }
+        return names;
+    }
+
+    @Test
+    void folderArchive_returnsZipForSeasonAnime() throws Exception {
+        Long admin = adminId();
+        seedAnime(501, "한글 제목", 2026, "SPRING");
+
+        ResponseEntity<byte[]> res = rest.exchange(
+            url("/api/admin/anime/folder-archive?year=2026&season=SPRING"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(admin)), byte[].class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getHeaders().getContentType())
+            .isEqualTo(MediaType.parseMediaType("application/zip"));
+        assertThat(res.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
+            .contains("anime-folders-2026-SPRING.zip")
+            .contains("filename*=UTF-8''2026%EB%85%84-2%EB%B6%84%EA%B8%B0");
+        assertThat(zipEntries(res.getBody())).contains(
+            "2026년/2026년 2분기/한글 제목 (Romaji501)/");
+    }
+
+    @Test
+    void folderArchive_returnsRootFolders_whenNoAnimeMatch() throws Exception {
+        ResponseEntity<byte[]> res = rest.exchange(
+            url("/api/admin/anime/folder-archive?year=2026&season=WINTER"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(adminId())), byte[].class);
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(zipEntries(res.getBody()))
+            .containsExactly("2026년/", "2026년/2026년 1분기/");
+    }
+
+    @Test
+    void folderArchive_rejectsInvalidParameters() {
+        Long admin = adminId();
+        for (String query : List.of("year=1959&season=SPRING", "year=2026&season=NOPE")) {
+            ResponseEntity<String> res = rest.exchange(
+                url("/api/admin/anime/folder-archive?" + query), HttpMethod.GET,
+                new HttpEntity<>(cookieFor(admin)), String.class);
+            assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Test
+    void folderArchive_returns403_forNonAdmin() {
+        User viewer = userService.upsertFromGoogle(
+            "g-archive-viewer", "archive@x.y", "Viewer", null);
+        ResponseEntity<String> res = rest.exchange(
+            url("/api/admin/anime/folder-archive?year=2026&season=SPRING"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(viewer.getId())), String.class);
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @SuppressWarnings("unchecked")
