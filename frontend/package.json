@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "tsx --test \"src/**/*.test.ts\" \"src/**/*.test.tsx\" && node --test \"src/**/*.test.mjs\""
   },
   "dependencies": {
     "@next/third-parties": "^16.2.10",
