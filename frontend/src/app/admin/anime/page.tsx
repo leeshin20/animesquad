@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiPatch, apiPost, apiDelete, type AnimeView } from "@/app/lib/api";
 import { aniFormat } from "@/app/lib/anilist-labels";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
+import { fetchFolderArchive } from "./folder-archive";
 
 export default function AdminAnimePage() {
   const [items, setItems] = useState<AnimeView[] | null>(null);
@@ -176,6 +177,7 @@ function BulkCacheSection({
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [season, setSeason] = useState<string>("FALL");
   const [busy, setBusy] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [result, setResult] = useState<number | null>(null);
 
   async function go() {
@@ -192,6 +194,25 @@ function BulkCacheSection({
       onError(String(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function downloadFolders() {
+    setDownloading(true);
+    try {
+      const { blob, filename } = await fetchFolderArchive(Number(year), season);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      onError(String(e));
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -223,6 +244,13 @@ function BulkCacheSection({
           className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-40"
         >
           {busy ? "가져오는 중…" : "가져오기"}
+        </button>
+        <button
+          onClick={downloadFolders}
+          disabled={downloading}
+          className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-40"
+        >
+          {downloading ? "ZIP 생성 중…" : "음원 폴더 ZIP 다운로드"}
         </button>
         {result != null && (
           <span className="text-sm text-emerald-600">{result}개 캐시됨</span>
