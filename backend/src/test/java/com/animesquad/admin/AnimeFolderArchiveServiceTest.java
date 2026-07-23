@@ -5,6 +5,7 @@ import com.animesquad.anime.AnimeRepository;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -62,6 +63,49 @@ class AnimeFolderArchiveServiceTest {
         assertThat(folder).endsWith(")");
     }
 
+    @Test
+    void limitsHangulAndEmojiFolderNamesByCodePointsAndUtf8Bytes() throws Exception {
+        Anime longTitle = anime(204, "😀".repeat(220), "한".repeat(220));
+        when(animes.findBySeasonYearAndSeasonAndTitleKoreanIsNotNullOrderByTitleKoreanAscIdAsc(
+            2026, "SUMMER")).thenReturn(List.of(longTitle));
+
+        String folder = animeFolders(service.create(2026, "SUMMER").bytes()).getFirst();
+
+        assertThat(folder.codePointCount(0, folder.length())).isLessThanOrEqualTo(200);
+        assertThat(folder.getBytes(StandardCharsets.UTF_8).length).isLessThanOrEqualTo(240);
+        assertThat(folder).matches(".+ \\(.+\\)");
+    }
+
+    @Test
+    void keepsCollisionSuffixWithinFolderLimits() throws Exception {
+        Anime first = anime(205, "😀".repeat(220), "한".repeat(220));
+        Anime second = anime(206, "😀".repeat(220), "한".repeat(220));
+        when(animes.findBySeasonYearAndSeasonAndTitleKoreanIsNotNullOrderByTitleKoreanAscIdAsc(
+            2026, "FALL")).thenReturn(List.of(first, second));
+
+        List<String> folders = animeFolders(service.create(2026, "FALL").bytes());
+
+        assertThat(folders).hasSize(2);
+        assertThat(folders.get(1)).endsWith(") [AniList-206]");
+        assertThat(folders).allSatisfy(folder -> {
+            assertThat(folder.codePointCount(0, folder.length())).isLessThanOrEqualTo(200);
+            assertThat(folder.getBytes(StandardCharsets.UTF_8).length).isLessThanOrEqualTo(240);
+        });
+    }
+
+    @Test
+    void replacesBackslashesSoZipEntriesCannotContainWindowsTraversalSegments() throws Exception {
+        Anime unsafe = anime(207, "..\\..\\evil", "..\\..\\악성");
+        when(animes.findBySeasonYearAndSeasonAndTitleKoreanIsNotNullOrderByTitleKoreanAscIdAsc(
+            2026, "WINTER")).thenReturn(List.of(unsafe));
+
+        List<String> names = entries(service.create(2026, "WINTER").bytes());
+
+        assertThat(names).noneMatch(name -> name.contains("\\"));
+        assertThat(names).allSatisfy(name ->
+            assertThat(List.of(name.split("/"))).doesNotContain(".."));
+    }
+
     private static Anime anime(Integer anilistId, String romaji, String korean) {
         Anime anime = new Anime(anilistId, romaji, "Native", null, null, 12,
             "FINISHED", "TV", 2026, "SPRING", null);
@@ -77,5 +121,13 @@ class AnimeFolderArchiveServiceTest {
             }
         }
         return names;
+    }
+
+    private static List<String> animeFolders(byte[] bytes) throws Exception {
+        return entries(bytes).stream()
+            .skip(2)
+            .map(name -> name.substring(name.lastIndexOf('/', name.length() - 2) + 1,
+                name.length() - 1))
+            .toList();
     }
 }

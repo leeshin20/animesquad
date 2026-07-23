@@ -63,20 +63,26 @@ public class AdminAnimeController {
     @GetMapping("/folder-archive")
     public ResponseEntity<byte[]> folderArchive(
         @AuthenticationPrincipal CurrentUser current,
-        @RequestParam int year,
-        @RequestParam String season
+        @RequestParam(required = false) String year,
+        @RequestParam(required = false) String season
     ) {
         requireAdmin(current);
-        if (year < 1960 || year > 2100) {
+        int parsedYear;
+        try {
+            parsedYear = Integer.parseInt(year);
+        } catch (NumberFormatException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid year");
         }
-        String normalized = season.toUpperCase(java.util.Locale.ROOT);
+        if (parsedYear < 1960 || parsedYear > 2100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid year");
+        }
+        String normalized = season == null ? "" : season.toUpperCase(java.util.Locale.ROOT);
         if (!VALID_SEASONS.contains(normalized)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "season must be WINTER/SPRING/SUMMER/FALL");
         }
-        AnimeFolderArchiveService.Archive archive = folderArchives.create(year, normalized);
-        String disposition = "attachment; filename=\"anime-folders-" + year + "-" + normalized
+        AnimeFolderArchiveService.Archive archive = folderArchives.create(parsedYear, normalized);
+        String disposition = "attachment; filename=\"anime-folders-" + parsedYear + "-" + normalized
             + ".zip\"; filename*=UTF-8''"
             + UriUtils.encode(archive.downloadFilename(), StandardCharsets.UTF_8);
         return ResponseEntity.ok()

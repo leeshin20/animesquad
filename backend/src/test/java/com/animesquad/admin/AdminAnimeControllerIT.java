@@ -111,12 +111,31 @@ class AdminAnimeControllerIT extends AbstractIntegrationTest {
     @Test
     void folderArchive_rejectsInvalidParameters() {
         Long admin = adminId();
-        for (String query : List.of("year=1959&season=SPRING", "year=2026&season=NOPE")) {
+        for (String query : List.of(
+                "season=SPRING",
+                "year=2026",
+                "year=abc&season=SPRING",
+                "year=1959&season=SPRING",
+                "year=2026&season=NOPE")) {
             ResponseEntity<String> res = rest.exchange(
                 url("/api/admin/anime/folder-archive?" + query), HttpMethod.GET,
                 new HttpEntity<>(cookieFor(admin)), String.class);
-            assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(res.getStatusCode()).as("query %s", query)
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(res.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+            assertThat(res.getBody()).contains("\"code\":\"400 BAD_REQUEST\"");
         }
+    }
+
+    @Test
+    void folderArchive_acceptsCaseInsensitiveSeason() throws Exception {
+        ResponseEntity<byte[]> res = rest.exchange(
+            url("/api/admin/anime/folder-archive?year=2026&season=spring"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(adminId())), byte[].class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(zipEntries(res.getBody()))
+            .containsExactly("2026년/", "2026년/2026년 2분기/");
     }
 
     @Test
