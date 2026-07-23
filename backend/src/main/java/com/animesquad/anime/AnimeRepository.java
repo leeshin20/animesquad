@@ -38,4 +38,7 @@ public interface AnimeRepository extends JpaRepository<Anime, Long> {
         @Param("qs") String loweredStripped, @Param("raws") String rawStripped);
 
     List<Anime> findBySeasonYearAndSeasonOrderByTitleRomajiAsc(Integer seasonYear, String season);
+
+    List<Anime> findBySeasonYearAndSeasonAndTitleKoreanIsNotNullOrderByTitleKoreanAscIdAsc(
+        Integer seasonYear, String season);
 }
