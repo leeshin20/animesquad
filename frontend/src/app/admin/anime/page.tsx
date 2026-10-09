@@ -6,8 +6,10 @@ import { apiGet, apiPatch, apiPost, apiDelete, type AnimeView } from "@/app/lib/
 import { aniFormat } from "@/app/lib/anilist-labels";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { fetchFolderArchive } from "./folder-archive";
+import { ExcludedAnimeList } from "./excluded-anime-list";
 
 export default function AdminAnimePage() {
+  const [showExcluded, setShowExcluded] = useState(false);
   const [items, setItems] = useState<AnimeView[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -56,8 +58,8 @@ export default function AdminAnimePage() {
       setBulkConfirming(false);
       setBulkResult(
         res.skipped > 0
-          ? `${res.deleted}개 삭제, ${res.skipped}개 건너뜀 (시청·평가 기록 있음)`
-          : `${res.deleted}개 삭제됨`
+          ? `${res.deleted}개 제외, ${res.skipped}개 건너뜀 (시청·평가 기록 있음)`
+          : `${res.deleted}개 제외됨`
       );
       refresh(q);
     } catch (e) {
@@ -78,7 +80,7 @@ export default function AdminAnimePage() {
     <div className="space-y-6">
       <header>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">관리자 · 한국어 제목</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">관리자 · 작품 관리</h1>
           <Link
             href="/admin/watch-import"
             className="text-sm font-medium text-neutral-600 hover:text-neutral-900"
@@ -87,7 +89,7 @@ export default function AdminAnimePage() {
           </Link>
         </div>
         <p className="mt-1 text-sm text-neutral-500">
-          캐시된 작품의 한국어 제목을 직접 입력합니다.
+          작품 제목을 편집하고, 제외된 작품을 관리합니다.
         </p>
       </header>
 
@@ -99,6 +101,26 @@ export default function AdminAnimePage() {
 
       <BulkCacheSection onDone={() => refresh(q)} onError={setError} />
 
+      <div className="flex gap-2" role="tablist" aria-label="작품 관리 목록">
+        <button
+          role="tab"
+          aria-selected={!showExcluded}
+          onClick={() => { setShowExcluded(false); setError(null); }}
+          className={`rounded-md px-4 py-2 text-sm font-medium ${!showExcluded ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600"}`}
+        >
+          작품 관리
+        </button>
+        <button
+          role="tab"
+          aria-selected={showExcluded}
+          onClick={() => { setShowExcluded(true); setSelected(new Set()); setError(null); }}
+          className={`rounded-md px-4 py-2 text-sm font-medium ${showExcluded ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600"}`}
+        >
+          제외된 작품
+        </button>
+      </div>
+
+      {showExcluded ? <ExcludedAnimeList onRestored={() => refresh(q)} /> : <>
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -129,7 +151,7 @@ export default function AdminAnimePage() {
               disabled={selected.size === 0 || bulkDeleting}
               className="rounded-md border border-rose-200 px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-40"
             >
-              {bulkDeleting ? "삭제 중…" : `선택 삭제 (${selected.size}개)`}
+              {bulkDeleting ? "제외 중…" : `선택 제외 (${selected.size}개)`}
             </button>
             {bulkResult && <span className="text-sm text-emerald-600">{bulkResult}</span>}
           </div>
@@ -148,9 +170,11 @@ export default function AdminAnimePage() {
         </>
       )}
 
+      </>}
+
       {bulkConfirming && (
         <ConfirmDialog
-          message={`선택한 ${selected.size}개 작품을 캐시에서 삭제할까요? 되돌릴 수 없어요.`}
+          message={`선택한 ${selected.size}개 작품을 제외할까요? 다음 가져오기에서 건너뛰며, 제외 목록에서 복원할 수 있어요.`}
           onConfirm={bulkDelete}
           onCancel={() => setBulkConfirming(false)}
         />
@@ -220,7 +244,7 @@ function BulkCacheSection({
     <section className="rounded-xl border border-neutral-200 p-5">
       <h2 className="text-sm font-semibold text-neutral-700">시즌 일괄 캐싱</h2>
       <p className="mt-1 text-xs text-neutral-500">
-        AniList에서 해당 시즌 작품을 인기순으로 가져와 캐시에 저장합니다 (최대 250개).
+        AniList에서 해당 시즌 작품을 인기순으로 가져와 캐시에 저장합니다 (최대 250개). 제외한 작품은 건너뜁니다.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <input
@@ -363,7 +387,7 @@ function Row({
             disabled={deleting}
             className="rounded-md border border-rose-200 px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-40"
           >
-            삭제
+            제외
           </button>
           {savedAt && !dirty && (
             <span className="text-xs text-emerald-600">저장됨 ✓</span>
@@ -373,7 +397,7 @@ function Row({
 
       {confirming && (
         <ConfirmDialog
-          message={`'${anime.titleRomaji}'을(를) 캐시에서 삭제할까요? 되돌릴 수 없어요.`}
+          message={`'${anime.titleRomaji}'을(를) 제외할까요? 다음 가져오기에서 건너뛰며, 제외 목록에서 복원할 수 있어요.`}
           onConfirm={remove}
           onCancel={() => setConfirming(false)}
         />

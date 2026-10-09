@@ -3,6 +3,8 @@ package com.animesquad.admin;
 import com.animesquad.anime.Anime;
 import com.animesquad.anime.AnimeRepository;
 import com.animesquad.anime.AnimeService;
+import com.animesquad.anime.ExcludedAnime;
+import com.animesquad.anime.ExcludedAnimeRepository;
 import com.animesquad.anime.dto.AnimeResponse;
 import com.animesquad.activity.ActivityRepository;
 import com.animesquad.auth.CurrentUser;
@@ -39,6 +41,7 @@ public class AdminAnimeController {
 
     private final AnimeRepository animes;
     private final AnimeService animeService;
+    private final ExcludedAnimeRepository excluded;
     private final UserService users;
     private final AdminProperties adminProperties;
     private final WatchEntryRepository watches;
@@ -49,8 +52,10 @@ public class AdminAnimeController {
     public AdminAnimeController(AnimeRepository animes, AnimeService animeService,
                                 UserService users, AdminProperties adminProperties,
                                 WatchEntryRepository watches, EpisodeRatingRepository episodeRatings,
-                                ActivityRepository activities, AnimeFolderArchiveService folderArchives) {
+                                ActivityRepository activities, AnimeFolderArchiveService folderArchives,
+                                ExcludedAnimeRepository excluded) {
         this.animes = animes;
+        this.excluded = excluded;
         this.animeService = animeService;
         this.users = users;
         this.adminProperties = adminProperties;
@@ -119,6 +124,36 @@ public class AdminAnimeController {
         return result.stream().map(AnimeResponse::from).toList();
     }
 
+    @GetMapping("/excluded")
+    public List<ExcludedAnime> listExcluded(
+        @AuthenticationPrincipal CurrentUser current,
+        @RequestParam(required = false) String q
+    ) {
+        requireAdmin(current);
+        String query = q == null ? "" : q.trim().toLowerCase(java.util.Locale.ROOT).replace(" ", "");
+        return excluded.findAllByOrderByExcludedAtDescIdDesc().stream()
+            .filter(a -> query.isEmpty() || java.util.stream.Stream.of(
+                a.getTitleRomaji(), a.getTitleNative(), a.getTitleEnglish(), a.getTitleKorean(), a.getSearchKeywords())
+                .filter(java.util.Objects::nonNull)
+                .anyMatch(title -> title.toLowerCase(java.util.Locale.ROOT).replace(" ", "").contains(query)))
+            .toList();
+    }
+
+    @PostMapping("/excluded/{id}/restore")
+    @Transactional
+    public AnimeResponse restore(
+        @AuthenticationPrincipal CurrentUser current,
+        @PathVariable Long id
+    ) {
+        requireAdmin(current);
+        excluded.lockCatalog();
+        ExcludedAnime snapshot = excluded.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "excluded anime not found"));
+        Anime anime = animes.save(snapshot.restore());
+        excluded.delete(snapshot);
+        return AnimeResponse.from(anime);
+    }
+
     @PostMapping("/bulk-cache-season")
     public BulkCacheResult bulkCacheSeason(
         @AuthenticationPrincipal CurrentUser current,
@@ -167,6 +202,7 @@ public class AdminAnimeController {
         if (body.ids() == null || body.ids().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ids required");
         }
+        excluded.lockCatalog();
         int deleted = 0;
         int skipped = 0;
         for (Long id : body.ids()) {
@@ -176,6 +212,7 @@ public class AdminAnimeController {
                 skipped++;
                 continue;
             }
+            excluded.save(ExcludedAnime.from(anime));
             animes.delete(anime);
             deleted++;
         }
@@ -189,11 +226,13 @@ public class AdminAnimeController {
         @PathVariable Long id
     ) {
         requireAdmin(current);
+        excluded.lockCatalog();
         Anime anime = animes.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "anime not found"));
         if (watches.existsByAnimeId(id) || episodeRatings.existsByAnimeId(id) || activities.existsByAnimeId(id)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 시청·평가 기록이 있어 삭제할 수 없어요");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 시청·평가 기록이 있어 제외할 수 없어요");
         }
+        excluded.save(ExcludedAnime.from(anime));
         animes.delete(anime);
         return ResponseEntity.noContent().build();
     }

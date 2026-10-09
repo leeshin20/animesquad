@@ -5,6 +5,7 @@ import com.animesquad.anime.AniListMedia;
 import com.animesquad.anime.Anime;
 import com.animesquad.anime.AnimeRepository;
 import com.animesquad.anime.AnimeService;
+import com.animesquad.anime.ExcludedAnimeRepository;
 import com.animesquad.auth.JwtAuthenticationFilter;
 import com.animesquad.auth.JwtService;
 import com.animesquad.support.AbstractIntegrationTest;
@@ -34,6 +35,7 @@ class AdminAnimeControllerIT extends AbstractIntegrationTest {
     @Autowired JwtService jwtService;
     @Autowired AnimeService animeService;
     @Autowired AnimeRepository animes;
+    @org.springframework.boot.test.mock.mockito.SpyBean ExcludedAnimeRepository excluded;
     @Autowired WatchService watchService;
     @Autowired TestRestTemplate rest;
     @LocalServerPort int port;
@@ -220,6 +222,116 @@ class AdminAnimeControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void exclusion_survivesRepeatedImports_andRestoresMetadata() {
+        Long admin = adminId();
+        Anime a = seedAnime(601, "제외 작품", 2026, "FALL");
+        a.setSearchKeywords("별칭");
+        animes.save(a);
+        rest.exchange(url("/api/admin/anime/" + a.getId()), HttpMethod.DELETE,
+            new HttpEntity<>(cookieFor(admin)), Void.class);
+
+        ResponseEntity<List> excluded = rest.exchange(
+            url("/api/admin/anime/excluded?q=제외작품"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(admin)), List.class);
+        assertThat(excluded.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(excluded.getBody()).hasSize(1);
+        Map snapshot = (Map) excluded.getBody().get(0);
+        assertThat(snapshot.get("titleKorean")).isEqualTo("제외 작품");
+        assertThat(snapshot.get("excludedAt")).isNotNull();
+
+        org.mockito.Mockito.when(aniList.fetchSeason(2026, "FALL")).thenReturn(List.of(
+            new AniListMedia(601, "Remote changed", "Native", "Eng", "img", 24,
+                "FINISHED", "TV", 2026, "FALL", null),
+            new AniListMedia(602, "Included", "Native", "Eng", "img", 12,
+                "FINISHED", "TV", 2026, "FALL", null)));
+        assertThat(animeService.bulkCacheSeason(2026, "FALL")).isEqualTo(1);
+        assertThat(animeService.bulkCacheSeason(2026, "FALL")).isEqualTo(1);
+        assertThat(animes.findByAnilistId(601)).isEmpty();
+        assertThat(animes.findByAnilistId(602)).isPresent();
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> animeService.findOrFetchByAnilistId(601))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> animeService.upsertFromAniList(
+            new AniListMedia(601, "Blocked", "Native", "Eng", "img", 12,
+                "FINISHED", "TV", 2026, "FALL", null)))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThat(rest.exchange(url("/api/anime/browse?year=2026&season=FALL"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(admin)), List.class).getBody()).hasSize(1);
+        assertThat(rest.exchange(url("/api/anime/search?q=Romaji601"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(admin)), List.class).getBody()).isEmpty();
+
+        ResponseEntity<Map> restored = rest.exchange(
+            url("/api/admin/anime/excluded/" + snapshot.get("id") + "/restore"), HttpMethod.POST,
+            new HttpEntity<>(cookieFor(admin)), Map.class);
+        assertThat(restored.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Anime saved = animes.findByAnilistId(601).orElseThrow();
+        assertThat(saved.getTitleKorean()).isEqualTo("제외 작품");
+        assertThat(saved.getSearchKeywords()).isEqualTo("별칭");
+        assertThat(saved.getTitleRomaji()).isEqualTo("Romaji601");
+        assertThat(saved.getSeason()).isEqualTo("FALL");
+        assertThat(rest.exchange(url("/api/admin/anime/excluded"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(admin)), List.class).getBody()).isEmpty();
+        assertThat(animeService.bulkCacheSeason(2026, "FALL")).isEqualTo(2);
+    }
+
+    @Test
+    void concurrentImportAndExclusion_cannotLeaveAnimeActive() throws Exception {
+        Long admin = adminId();
+        Anime anime = seedAnime(701, null);
+        var checked = new java.util.concurrent.CountDownLatch(1);
+        var resume = new java.util.concurrent.CountDownLatch(1);
+        var pauseOnce = new java.util.concurrent.atomic.AtomicBoolean(true);
+        org.mockito.Mockito.doAnswer(invocation -> {
+            boolean result = excluded.findAll().stream().anyMatch(a -> Integer.valueOf(701).equals(a.getAnilistId()));
+            if (pauseOnce.compareAndSet(true, false)) {
+                checked.countDown();
+                if (!resume.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                    throw new AssertionError("import was not resumed");
+                }
+            }
+            return result;
+        }).when(excluded).existsByAnilistId(701);
+        var executor = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var importing = executor.submit(() -> animeService.upsertFromAniList(new AniListMedia(
+                701, "Updated", "Native", "Eng", "img", 12, "FINISHED", "TV", 2024, null, null)));
+            assertThat(checked.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            var deleting = executor.submit(() -> rest.exchange(
+                url("/api/admin/anime/" + anime.getId()), HttpMethod.DELETE,
+                new HttpEntity<>(cookieFor(admin)), Void.class));
+            try {
+                deleting.get(1, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (java.util.concurrent.TimeoutException expected) {
+                // A concurrent exclusion must wait until the import transaction finishes.
+            } finally {
+                resume.countDown();
+            }
+            importing.get(10, java.util.concurrent.TimeUnit.SECONDS);
+            assertThat(deleting.get(10, java.util.concurrent.TimeUnit.SECONDS).getStatusCode())
+                .isEqualTo(HttpStatus.NO_CONTENT);
+            assertThat(animes.findByAnilistId(701)).isEmpty();
+            assertThat(excluded.existsByAnilistId(701)).isTrue();
+        } finally {
+            resume.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void excludedManagement_requiresAdmin_andMissingRestoreReturns404() {
+        Long admin = adminId();
+        User viewer = userService.upsertFromGoogle("g-excluded-access", "access@x.y", "V", null);
+        assertThat(rest.exchange(url("/api/admin/anime/excluded"), HttpMethod.GET,
+            new HttpEntity<>(cookieFor(viewer.getId())), String.class).getStatusCode())
+            .isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(rest.exchange(url("/api/admin/anime/excluded/1/restore"), HttpMethod.POST,
+            new HttpEntity<>(cookieFor(viewer.getId())), String.class).getStatusCode())
+            .isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(rest.exchange(url("/api/admin/anime/excluded/999999/restore"), HttpMethod.POST,
+            new HttpEntity<>(cookieFor(admin)), String.class).getStatusCode())
+            .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
     void delete_removesAnime_whenNoReferences() {
         Long admin = adminId();
         Anime a = seedAnime(201, null);
@@ -230,6 +342,7 @@ class AdminAnimeControllerIT extends AbstractIntegrationTest {
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(animes.findById(a.getId())).isEmpty();
+        assertThat(excluded.existsByAnilistId(201)).isTrue();
     }
 
     @SuppressWarnings("unchecked")
@@ -253,6 +366,7 @@ class AdminAnimeControllerIT extends AbstractIntegrationTest {
         assertThat(animes.findById(free1.getId())).isEmpty();
         assertThat(animes.findById(free2.getId())).isEmpty();
         assertThat(animes.findById(referenced.getId())).isPresent();
+        assertThat(excluded.findAll()).extracting("anilistId").containsExactlyInAnyOrder(301, 303);
     }
 
     @Test
@@ -266,6 +380,7 @@ class AdminAnimeControllerIT extends AbstractIntegrationTest {
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(animes.findById(a.getId())).isPresent();
+        assertThat(excluded.existsByAnilistId(304)).isFalse();
     }
 
     @Test
@@ -281,5 +396,6 @@ class AdminAnimeControllerIT extends AbstractIntegrationTest {
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(animes.findById(a.getId())).isPresent();
+        assertThat(excluded.existsByAnilistId(202)).isFalse();
     }
 }
