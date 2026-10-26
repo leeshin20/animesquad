@@ -70,3 +70,8 @@ export function mergeRecords(
 
   return [...seriesRecords, ...episodeRecords, ...progressRecords];
 }
+
+export function onlyReviews(records: ReviewRecord[]): ReviewRecord[] {
+  return records.filter(record => record.kind !== "progress" &&
+    (record.score != null || Boolean(record.comment?.trim())));
+}

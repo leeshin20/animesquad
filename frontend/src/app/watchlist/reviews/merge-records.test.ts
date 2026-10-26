@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { MyProgressActivity, WatchEntry } from "@/app/lib/api";
-import { mergeRecords } from "./merge-records";
+import { mergeRecords, onlyReviews } from "./merge-records";
 
 const entry = {
   id: 1,
@@ -40,4 +40,11 @@ test("merges a progress activity with watch status and deletion identity", () =>
 
 test("excludes series rows with no score or comment", () => {
   assert.deepEqual(mergeRecords([entry], [], []), []);
+});
+
+ test("review tab includes only real ratings or comments", () => {
+  const mixed = mergeRecords([entry], [{ id: 4, anime: entry.anime, episodeNumber: 2, score: null, comment: "", updatedAt: entry.updatedAt } as never], [progress]);
+  assert.deepEqual(onlyReviews(mixed), []);
+  const rated = mergeRecords([{ ...entry, score: 4 }], []);
+  assert.equal(onlyReviews(rated).length, 1);
 });

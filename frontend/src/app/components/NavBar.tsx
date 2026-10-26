@@ -12,7 +12,7 @@ const publicLinks = [
 ];
 
 const memberLinks = [
-  { href: "/watchlist/anime", label: "내 목록" },
+  { href: "/watchlist/anime", label: "내 기록" },
   { href: "/squads", label: "스쿼드" },
 ];
 

@@ -6,7 +6,6 @@ import {
   apiDelete,
   apiGet,
   type MyEpisodeReview,
-  type MyProgressActivity,
   type WatchEntry,
   type WatchStatus,
 } from "@/app/lib/api";
@@ -14,7 +13,7 @@ import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { Stars, StarIcon } from "@/app/components/Stars";
 import { relativeTime } from "@/app/components/Timeline";
 import { STATUS_LABEL, statusLabel, statusBadge } from "@/app/lib/watch-status";
-import { mergeRecords, type ReviewRecord } from "./merge-records";
+import { mergeRecords, onlyReviews, type ReviewRecord } from "./merge-records";
 
 type StatusFilter = WatchStatus | "ALL";
 type ScoreFilter = "ALL" | 1 | 2 | 3 | 4 | 5 | "NONE";
@@ -43,7 +42,6 @@ function sortRecords(records: ReviewRecord[], key: SortKey, dir: SortDir): Revie
 export default function ReviewsPage() {
   const [entries, setEntries] = useState<WatchEntry[] | null>(null);
   const [episodeReviews, setEpisodeReviews] = useState<MyEpisodeReview[] | null>(null);
-  const [progressActivities, setProgressActivities] = useState<MyProgressActivity[] | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ReviewRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,14 +53,12 @@ export default function ReviewsPage() {
   async function loadRecords() {
     setError(null);
     try {
-      const [watchRows, episodeRows, progressRows] = await Promise.all([
+      const [watchRows, episodeRows] = await Promise.all([
         apiGet<WatchEntry[]>("/api/watch"),
         apiGet<MyEpisodeReview[]>("/api/me/episode-reviews?limit=500&commentOnly=false"),
-        apiGet<MyProgressActivity[]>("/api/me/progress-activities?limit=500"),
       ]);
       setEntries(watchRows);
       setEpisodeReviews(episodeRows);
-      setProgressActivities(progressRows);
     } catch (error) {
       setError(String(error));
     }
@@ -70,8 +66,8 @@ export default function ReviewsPage() {
 
   useEffect(() => { loadRecords(); }, []);
 
-  const loading = entries === null || episodeReviews === null || progressActivities === null;
-  const records = loading ? [] : mergeRecords(entries, episodeReviews, progressActivities);
+  const loading = entries === null || episodeReviews === null;
+  const records = loading ? [] : onlyReviews(mergeRecords(entries, episodeReviews));
 
   function deleteMessage(record: ReviewRecord): string {
     if (record.kind === "series") {
@@ -151,7 +147,7 @@ export default function ReviewsPage() {
   if (records.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-neutral-300 px-6 py-10 text-center text-sm text-neutral-500">
-        아직 감상 기록이 없어요.
+        남긴 감상평이 없어요. 시청 기록은 감상 없이도 쌓여요.
       </div>
     );
   }

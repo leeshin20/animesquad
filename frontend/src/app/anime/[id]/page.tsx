@@ -9,7 +9,7 @@ import {
 import { aniFormat, displayTitle } from "@/app/lib/anilist-labels";
 import { Stars, StarsInput } from "@/app/components/Stars";
 import { Avatar } from "@/app/components/Timeline";
-import { EpisodeLogModal } from "@/app/components/EpisodeLogModal";
+import { WatchEpisodeAction } from "@/app/components/WatchEpisodeAction";
 import { SeriesReviewModal } from "@/app/components/SeriesReviewModal";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { STATUSES, STATUS_LABEL, STATUS_STYLE } from "@/app/lib/watch-status";
@@ -109,7 +109,7 @@ function MyActions({
   onSaved: () => void;
   onError: (s: string) => void;
 }) {
-  const [modal, setModal] = useState<"series" | "episode" | null>(null);
+  const [modal, setModal] = useState<"series" | null>(null);
   const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8080";
 
   if (!loggedIn) {
@@ -141,7 +141,6 @@ function MyActions({
     );
   }
 
-  const maxed = anime.episodes != null && mine.progress >= anime.episodes;
 
   return (
     <>
@@ -151,16 +150,9 @@ function MyActions({
           onClick={() => setModal("series")}
           className={`rounded-md border px-3 py-1.5 text-sm font-medium transition hover:brightness-95 ${STATUS_STYLE[mine.status]}`}
         >
-          {STATUS_LABEL[mine.status]} · 감상평 작성하기
+          {STATUS_LABEL[mine.status]} · 관리
         </button>
-        <button
-          type="button"
-          onClick={() => setModal("episode")}
-          title={maxed ? "기록 수정" : "회차 기록"}
-          className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100"
-        >
-          {maxed ? "기록 수정" : `+ 회차 기록 (${mine.progress + 1}화)`}
-        </button>
+
       </div>
 
       {modal === "series" && (
@@ -171,13 +163,7 @@ function MyActions({
           onSaved={() => { setModal(null); onSaved(); }}
         />
       )}
-      {modal === "episode" && (
-        <EpisodeLogModal
-          entry={mine}
-          onClose={() => setModal(null)}
-          onSaved={() => { setModal(null); onSaved(); }}
-        />
-      )}
+      <WatchEpisodeAction entry={mine} onSaved={onSaved} />
     </>
   );
 }

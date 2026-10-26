@@ -12,10 +12,10 @@ import {
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { Timeline, type FeedItemWithSquad } from "@/app/components/Timeline";
 import { HorizontalScroll } from "@/app/components/HorizontalScroll";
-import { EpisodeLogModal } from "@/app/components/EpisodeLogModal";
+import { WatchEpisodeAction } from "@/app/components/WatchEpisodeAction";
+import { projectWatchFeed } from "@/app/lib/watch-feed";
 import { NoticeBanner } from "@/app/components/NoticeBanner";
 import { MAIN_NOTICE } from "@/app/lib/notice";
-import { STATUS_LABEL } from "@/app/lib/watch-status";
 
 export default function HomePage() {
   const [me, setMe] = useState<Me | null>(null);
@@ -40,7 +40,7 @@ function Landing() {
     <section className="mx-auto max-w-2xl py-16 text-center">
       <h1 className="text-4xl font-semibold tracking-tight">AnimeSquad</h1>
       <p className="mt-4 text-neutral-600">
-        친구들과 애니메이션 시청 현황을 공유하세요.
+        시청 기록을 자동으로 쌓고, 스쿼드와 함께 나누세요.
       </p>
       <a
         href={`${apiBase}/oauth2/authorization/google`}
@@ -86,8 +86,9 @@ function Dashboard({ currentUserId }: { currentUserId: number }) {
 
   useEffect(() => { loadAll(); }, []);
 
-  const visibleFeed = feed ? feed.slice(0, displayCount) : null;
-  const hasMore = feed != null && displayCount < feed.length;
+  const projected = feed ? projectWatchFeed(feed) : null;
+  const visibleFeed = projected ? projected.slice(0, displayCount) : null;
+  const hasMore = projected != null && displayCount < projected.length;
 
   return (
     <div className="space-y-6">
@@ -101,7 +102,7 @@ function Dashboard({ currentUserId }: { currentUserId: number }) {
 
       <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
         <section className="min-w-0">
-          <SectionHeader title="내가 최근 기록한 애니" linkHref="/watchlist/anime" linkLabel="내 목록 전체" />
+          <SectionHeader title="최근 본 애니" linkHref="/watchlist/anime" linkLabel="내 기록 전체" />
           <MyRecentGrid entries={entries} onChanged={loadAll} />
         </section>
 
@@ -186,11 +187,9 @@ function MyRecentCard({
   entry: WatchEntry;
   onChanged: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const maxed = entry.anime.episodes != null && entry.progress >= entry.anime.episodes;
 
   return (
-    <div className="w-20 shrink-0 snap-start lg:w-auto lg:snap-align-none">
+    <div className="w-32 shrink-0 snap-start lg:w-auto lg:snap-align-none">
       <Link href={`/anime/${entry.anime.id}`} className="block transition hover:opacity-80">
         {entry.anime.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -212,22 +211,7 @@ function MyRecentCard({
           {entry.anime.episodes ? `/${entry.anime.episodes}` : ""}화
         </span>
       </p>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        title={maxed ? "기록 수정" : "감상 기록"}
-        className="mt-1.5 w-full rounded-md border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100"
-      >
-        {maxed ? <>기록 수정 <span className="whitespace-nowrap">({STATUS_LABEL[entry.status]})</span></> : `+ 감상 기록 (${entry.progress + 1}화)`}
-      </button>
-
-      {open && (
-        <EpisodeLogModal
-          entry={entry}
-          onClose={() => setOpen(false)}
-          onSaved={() => { setOpen(false); onChanged(); }}
-        />
-      )}
+      <WatchEpisodeAction entry={entry} onSaved={onChanged} />
     </div>
   );
 }

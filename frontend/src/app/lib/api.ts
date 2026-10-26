@@ -272,3 +272,11 @@ export type WatchImportCommitResponse = {
   created: number;
   updated: number;
 };
+
+export type EpisodeWatch = {
+  id: number;
+  anime: NonNullable<FeedItem["anime"]>;
+  episodeNumber: number;
+  recordedAt: string;
+  source: "EXTENSION" | "MANUAL" | "UNKNOWN" | "LEGACY";
+};

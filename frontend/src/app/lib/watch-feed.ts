@@ -30,7 +30,7 @@ export function projectWatchFeed(raw: WatchFeedItem[]): WatchFeedItem[] {
       ? `${row.actor?.id}:${row.anime?.id}:${row.payload.episodeWatchId}` : null;
     const prior = key ? copies.get(key) : null;
     if (prior) {
-      prior.squads = [...new Map([...scope(prior), ...scope(row)].map(s => [s.id, s])).values()]
+      prior.squads = Array.from(new Map([...scope(prior), ...scope(row)].map(s => [s.id, s])).values())
         .sort((a, b) => a.id - b.id);
     } else {
       const copy = { ...row, squads: [...scope(row)] };

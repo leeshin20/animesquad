@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet, apiPut, apiPatch, type WatchEntry } from "@/app/lib/api";
+import { apiGet, apiPut, type WatchEntry } from "@/app/lib/api";
 import { displayTitle } from "@/app/lib/anilist-labels";
 import { StarsInput } from "@/app/components/Stars";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
@@ -11,15 +11,17 @@ import { scoreForEpisodeReview } from "@/app/lib/episode-log";
 
 export function EpisodeLogModal({
   entry,
+  initialEpisode,
   onClose,
   onSaved,
 }: {
   entry: WatchEntry;
+  initialEpisode?: number;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const max = entry.anime.episodes;
-  const defaultEp = Math.min(entry.progress + 1, max ?? entry.progress + 1);
+  const defaultEp = initialEpisode ?? Math.max(1, entry.progress);
   const [ep, setEp] = useState<string>(String(defaultEp));
   const [score, setScore] = useState<number | null>(null);
   const [comment, setComment] = useState("");
@@ -29,26 +31,39 @@ export function EpisodeLogModal({
   const [overwriting, setOverwriting] = useState(false);
   const [ratedEps, setRatedEps] = useState<Map<number, number | null>>(new Map());
   const [shareOnSave, setShareOnSave] = useState(false);
+  const [reviews, setReviews] = useState<Map<number, { score: number | null; comment: string | null }>>(new Map());
+  const [loaded, setLoaded] = useState(false);
 
   // 이미 평가한 회차를 알아두면 저장 전 덮어쓰기 경고를 띄울 수 있다.
   useEffect(() => {
-    apiGet<{ episodeNumber: number; score: number | null }[]>(`/api/watch/${entry.anime.id}/episodes`)
-      .then((list) => setRatedEps(new Map(list.map((r) => [r.episodeNumber, r.score]))))
-      .catch(() => { /* 조회 실패 시 경고 없이 진행 */ });
+    apiGet<{ episodeNumber: number; score: number | null; comment: string | null }[]>(`/api/watch/${entry.anime.id}/episodes`)
+      .then((list) => {
+        setRatedEps(new Map(list.map(r => [r.episodeNumber, r.score])));
+        setReviews(new Map(list.map(r => [r.episodeNumber, r]))); setLoaded(true);
+      })
+      .catch(() => setError("기존 감상을 불러오지 못했어요. 닫은 후 다시 시도해주세요."));
   }, [entry.anime.id]);
 
-  const dirty = score != null || comment.trim() !== "";
+  useEffect(() => {
+    const previous = reviews.get(Number(ep));
+    setScore(previous?.score ?? null); setComment(previous?.comment ?? "");
+  }, [ep, reviews]);
+  const previous = reviews.get(Number(ep));
+  const dirty = score !== (previous?.score ?? null) || comment.trim() !== (previous?.comment ?? "");
   const requestClose = () => (dirty ? setConfirming(true) : onClose());
 
   function save() {
     const epNum = Number(ep);
-    if (!Number.isFinite(epNum) || epNum < 1) {
+    if (!Number.isSafeInteger(epNum) || epNum < 1) {
       setError("유효한 회차를 입력해주세요");
       return;
     }
     if (max != null && epNum > max) {
       setError(`최종화는 ${max}화예요`);
       return;
+    }
+    if (score == null && !comment.trim()) {
+      setError("별점 또는 감상을 남겨주세요. 시청 기록은 감상 없이도 저장할 수 있어요."); return;
     }
     if ((score != null || comment.trim() !== "") && ratedEps.has(epNum)) {
       setError(null);
@@ -68,8 +83,6 @@ export function EpisodeLogModal({
           score: scoreForEpisodeReview(score, ratedEps.get(epNum) ?? null),
           comment: comment.trim() || null,
         });
-      } else {
-        await apiPatch(`/api/watch/${entry.anime.id}`, { progress: epNum });
       }
       if (shareOnSave) {
         const title = displayTitle(entry.anime);
@@ -179,10 +192,10 @@ export function EpisodeLogModal({
           <button
             type="button"
             onClick={save}
-            disabled={saving}
+            disabled={saving || !loaded}
             className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
           >
-            {saving ? "저장 중…" : "저장"}
+            {saving ? "저장 중…" : "감상 저장"}
           </button>
         </div>
       </div>

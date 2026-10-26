@@ -6,7 +6,7 @@ import { apiGet, type WatchEntry, type WatchStatus } from "@/app/lib/api";
 import { aniFormat, displayTitle } from "@/app/lib/anilist-labels";
 import { StarIcon, Stars } from "@/app/components/Stars";
 import { SeriesReviewModal } from "@/app/components/SeriesReviewModal";
-import { EpisodeLogModal } from "@/app/components/EpisodeLogModal";
+import { WatchEpisodeAction } from "@/app/components/WatchEpisodeAction";
 import { STATUSES, STATUS_LABEL, STATUS_STYLE } from "@/app/lib/watch-status";
 
 type StatusFilter = WatchStatus | "ALL";
@@ -242,8 +242,7 @@ function Row({
   entry: WatchEntry;
   onSaved: () => void;
 }) {
-  const [modal, setModal] = useState<"series" | "episode" | null>(null);
-  const maxed = entry.anime.episodes != null && entry.progress >= entry.anime.episodes;
+  const [modal, setModal] = useState<"series" | null>(null);
 
   return (
     <li className="flex gap-4 rounded-xl border border-neutral-200 p-4">
@@ -277,15 +276,9 @@ function Row({
           >
             {STATUS_LABEL[entry.status]}
           </button>
-          <button
-            type="button"
-            onClick={() => setModal("episode")}
-            title={maxed ? "기록 수정" : "회차 기록"}
-            className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100"
-          >
-            {maxed ? "기록 수정" : `+ 회차 기록 (${entry.progress + 1}화)`}
-          </button>
+
         </div>
+        <WatchEpisodeAction entry={entry} onSaved={onSaved} />
       </div>
 
       {modal === "series" && (
@@ -296,13 +289,7 @@ function Row({
           onSaved={() => { setModal(null); onSaved(); }}
         />
       )}
-      {modal === "episode" && (
-        <EpisodeLogModal
-          entry={entry}
-          onClose={() => setModal(null)}
-          onSaved={() => { setModal(null); onSaved(); }}
-        />
-      )}
+
     </li>
   );
 }

@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/watchlist/anime", label: "애니" },
-  { href: "/watchlist/reviews", label: "감상기록" },
+  { href: "/watchlist/anime", label: "작품" },
+  { href: "/watchlist/history", label: "시청 기록" },
+  { href: "/watchlist/reviews", label: "감상평" },
 ];
 
 export default function WatchlistLayout({ children }: { children: React.ReactNode }) {
@@ -13,7 +14,7 @@ export default function WatchlistLayout({ children }: { children: React.ReactNod
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">내 목록</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">내 기록</h1>
         <nav className="mt-4 flex gap-1 border-b border-neutral-200">
           {TABS.map((t) => {
             const active = pathname === t.href || pathname.startsWith(t.href + "/");
