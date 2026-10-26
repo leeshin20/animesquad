@@ -4,6 +4,8 @@ let inList = false;
 let detectedAnimeName = null;
 let manualMatch = false;
 let selectionGeneration = 0;
+let platformLink = null;
+let matchedByPlatform = false;
 
 const $ = (id) => document.getElementById(id);
 
@@ -46,17 +48,36 @@ async function init() {
   loadRecord(pending);
 }
 
-async function loadRecord({ animeName, ep, results }) {
+function exactAnimeMatch(results, title) {
+  const normalize = (value) => value.trim().toLowerCase().replace(/\s+/g, '');
+  const needle = normalize(title);
+  const matches = results.filter((anime) => [
+    anime.titleKorean, anime.titleRomaji, anime.titleNative, anime.titleEnglish,
+    ...(anime.searchKeywords ?? '').split(/,|\r?\n/),
+  ].some((value) => typeof value === 'string' && normalize(value) === needle));
+  return matches.length === 1 ? matches[0] : null;
+}
+
+async function loadRecord({ animeName, ep, results, platformLink: source, matchedByPlatform: resolved }) {
+  platformLink = source ?? null;
+  matchedByPlatform = resolved === true;
   detectedAnimeName = animeName;
   if (ep) $('ep-input').value = ep;
 
-  if (results && results.length > 0) {
-    await selectAnime(results[0]);
+  const suggestion = platformLink && !matchedByPlatform
+    ? exactAnimeMatch(results ?? [], animeName)
+    : results?.[0];
+  if (suggestion) {
+    await selectAnime(suggestion);
     $('btn-change-anime').classList.remove('hidden');
   } else {
     $('anime-label').textContent = `"${animeName}" 을(를) 찾지 못했어요. 직접 검색해주세요.`;
     $('search-section').classList.remove('hidden');
     $('search-input').value = animeName;
+    if (platformLink && results?.length) {
+      $('anime-label').textContent = '자동으로 연결할 작품을 확정하지 못했어요. 검색 결과에서 선택해주세요.';
+      renderResults(results);
+    }
   }
 }
 
@@ -147,16 +168,30 @@ ratingStars.forEach((star, index) => {
   });
 });
 
-async function learnAliasIfNeeded() {
-  if (!manualMatch || !detectedAnimeName) return true;
+async function learnAliasIfNeeded(animeId, wasManualMatch) {
+  if (!wasManualMatch || !detectedAnimeName) return true;
   try {
-    const response = await apiFetch(`/api/anime/${selectedAnime.id}/aliases`, {
+    const response = await apiFetch(`/api/anime/${animeId}/aliases`, {
       method: 'POST',
       body: { alias: detectedAnimeName },
     });
     return response.ok;
   } catch {
     return false;
+  }
+}
+
+async function learnPlatformLinkIfNeeded(animeId, wasManualMatch) {
+  if (!platformLink || (matchedByPlatform && !wasManualMatch)) return 'saved';
+  try {
+    const response = await apiFetch(`/api/anime/${animeId}/platform-links`, {
+      method: 'POST',
+      body: platformLink,
+    });
+    if (response.status === 409) return 'conflict';
+    return response.ok ? 'saved' : 'failed';
+  } catch {
+    return 'failed';
   }
 }
 
@@ -181,6 +216,8 @@ $('btn-dismiss').addEventListener('click', async () => {
 
 $('btn-record').addEventListener('click', async () => {
   if (!selectedAnime) { alert('애니를 선택해주세요.'); return; }
+  const animeId = selectedAnime.id;
+  const wasManualMatch = manualMatch;
 
   const ep = parseInt($('ep-input').value);
   if (!ep || ep < 1) { alert('화수를 입력해주세요.'); return; }
@@ -197,30 +234,36 @@ $('btn-record').addEventListener('click', async () => {
     if (!inList) {
       const res = await apiFetch('/api/watch', {
         method: 'POST',
-        body: { animeId: selectedAnime.id, status: 'WATCHING' },
+        body: { animeId, status: 'WATCHING' },
       });
       if (!res.ok) throw new Error(`API ${res.status}`);
       inList = true;
     }
 
     if (selectedRating != null || comment) {
-      const res = await apiFetch(`/api/watch/${selectedAnime.id}/episodes/${ep}`, {
+      const res = await apiFetch(`/api/watch/${animeId}/episodes/${ep}`, {
         method: 'PUT',
         body: { score: selectedRating, comment: comment || null },
       });
       if (!res.ok) throw new Error(`API ${res.status}`);
     } else {
-      const res = await apiFetch(`/api/watch/${selectedAnime.id}`, {
+      const res = await apiFetch(`/api/watch/${animeId}`, {
         method: 'PATCH',
         body: { progress: ep },
       });
       if (!res.ok) throw new Error(`API ${res.status}`);
     }
 
-    const aliasLearned = await learnAliasIfNeeded();
+    const linkLearned = await learnPlatformLinkIfNeeded(animeId, wasManualMatch);
+    const aliasLearned = linkLearned === 'conflict'
+      ? true : await learnAliasIfNeeded(animeId, wasManualMatch);
     await chrome.storage.local.remove('pending');
     chrome.action.setBadgeText({ text: '' });
-    if (!aliasLearned) {
+    if (linkLearned === 'conflict') {
+      alert('기록은 완료됐지만 이 라프텔 작품은 이미 다른 작품에 연결되어 있어 연결을 변경하지 않았어요.');
+    } else if (linkLearned === 'failed') {
+      alert('기록은 완료됐지만 작품 ID 연결 저장에 실패했어요.');
+    } else if (!aliasLearned) {
       alert('기록은 완료됐지만 별칭 저장에 실패했어요.');
     }
     showView('view-done');

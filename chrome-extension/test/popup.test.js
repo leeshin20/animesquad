@@ -619,3 +619,106 @@ test('검색 결과 button 클릭은 하나의 선택 상태만 노출하고 작
   assert.deepStrictEqual(harness.elements['search-results'].children.map((li) => li.classNames.has('selected')), [false, true]);
   assert.match(harness.elements['anime-label'].textContent, /둘째 작품/);
 });
+
+const laftelLink = { platform: 'LAFTEL', platformAnimeId: '41666' };
+function laftelPending(results, matchedByPlatform = false) {
+  return { animeName: '(자막) 장송의 프리렌', ep: 1, results, platformLink: laftelLink, matchedByPlatform };
+}
+async function openLaftelPopup({ pending = laftelPending([]), searchResults = [], linkStatus = 204, recordStatus = 200 } = {}) {
+  const calls = [];
+  const h = popupContext(async (requestPath, options = {}) => {
+    calls.push([requestPath, options]);
+    if (requestPath.endsWith('/platform-links')) return { ok: linkStatus === 204, status: linkStatus };
+    if (requestPath.startsWith('/api/watch/') && options.method === 'PATCH') return { ok: recordStatus === 200, status: recordStatus };
+    return { ok: true };
+  }, { pending, searchResults });
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8'), h.context);
+  await new Promise((resolve) => setImmediate(resolve));
+  return { ...h, calls, setRecordStatus: (status) => { recordStatus = status; } };
+}
+async function chooseLaftelResult(h) {
+  h.elements['search-input'].value = '장송의 프리렌';
+  h.elements['search-input'].dispatch('input');
+  await new Promise((resolve) => setImmediate(resolve));
+  await resultButton(h).dispatch('click');
+}
+
+test('Laftel ID-resolved anime wins even when the detected title changes', async () => {
+  const pending = { ...laftelPending([{ id: 1516, titleKorean: '장송의 프리렌' }], true), animeName: '완전히 다른 표기' };
+  const h = await openLaftelPopup({ pending });
+  assert.strictEqual(h.elements['anime-label'].textContent, '장송의 프리렌 1화 기록할까요?');
+  assert.strictEqual(h.elements['ep-input'].value, 1);
+});
+
+test('Laftel title fallback selects a unique exact alias rather than the first spinoff result', async () => {
+  const h = await openLaftelPopup({ pending: laftelPending([
+    { id: 99, titleKorean: '장송의 프리렌 외전' },
+    { id: 1516, titleKorean: '장송의 프리렌', searchKeywords: '(자막) 장송의 프리렌, 프리렌' },
+  ]) });
+  assert.strictEqual(h.elements['anime-label'].textContent, '장송의 프리렌 1화 기록할까요?');
+  assert.strictEqual(h.calls.some(([p]) => p === '/api/watch/99'), false);
+});
+
+test('Laftel ambiguous exact aliases require a user selection', async () => {
+  const h = await openLaftelPopup({ pending: laftelPending([
+    { id: 99, titleKorean: '본편', searchKeywords: '(자막) 장송의 프리렌' },
+    { id: 1516, titleKorean: '외전', searchKeywords: '(자막) 장송의 프리렌' },
+  ]) });
+  await h.elements['btn-record'].dispatch('click');
+  assert.deepStrictEqual(h.alerts, ['애니를 선택해주세요.']);
+  assert.strictEqual(h.calls.some(([p]) => p.startsWith('/api/watch/')), false);
+});
+
+test('manual Laftel choice learns work ID and alias only after a successful record', async () => {
+  const h = await openLaftelPopup({ searchResults: [{ id: 1516, titleKorean: '장송의 프리렌' }] });
+  await chooseLaftelResult(h);
+  assert.strictEqual(h.calls.some(([p]) => p.endsWith('/platform-links')), false);
+  await h.elements['btn-record'].dispatch('click');
+  const writes = h.calls.filter(([, o]) => o.method);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(writes)), [
+    ['/api/watch/1516', { method: 'PATCH', body: { progress: 1 } }],
+    ['/api/anime/1516/platform-links', { method: 'POST', body: { platform: 'LAFTEL', platformAnimeId: '41666' } }],
+    ['/api/anime/1516/aliases', { method: 'POST', body: { alias: '(자막) 장송의 프리렌' } }],
+  ]);
+  assert.strictEqual(h.elements['view-done'].classNames.has('hidden'), false);
+});
+
+test('conflicting Laftel choice keeps record complete and does not spread the conflicting alias', async () => {
+  const h = await openLaftelPopup({ linkStatus: 409, searchResults: [{ id: 1516, titleKorean: '장송의 프리렌' }] });
+  await chooseLaftelResult(h);
+  await h.elements['btn-record'].dispatch('click');
+  assert.strictEqual(h.calls.filter(([p, o]) => p.startsWith('/api/watch/') && o.method).length, 1);
+  assert.strictEqual(h.calls.some(([p]) => p.endsWith('/aliases')), false);
+  assert.strictEqual(h.elements['view-done'].classNames.has('hidden'), false);
+  assert.match(h.alerts.join(' '), /기록은 완료/);
+  assert.match(h.alerts.join(' '), /연결/);
+});
+
+test('Laftel link-only outage preserves a single completed record', async () => {
+  const h = await openLaftelPopup({ linkStatus: 503, searchResults: [{ id: 1516, titleKorean: '장송의 프리렌' }] });
+  await chooseLaftelResult(h);
+  await h.elements['btn-record'].dispatch('click');
+  assert.strictEqual(h.calls.filter(([p, o]) => p.startsWith('/api/watch/') && o.method).length, 1);
+  assert.strictEqual(h.elements['view-done'].classNames.has('hidden'), false);
+  assert.match(h.alerts.join(' '), /기록은 완료/);
+  assert.match(h.alerts.join(' '), /연결/);
+});
+
+test('Laftel record failure does not learn ID or alias and retry learns once after success', async () => {
+  const h = await openLaftelPopup({ recordStatus: 500, searchResults: [{ id: 1516, titleKorean: '장송의 프리렌' }] });
+  await chooseLaftelResult(h);
+  await h.elements['btn-record'].dispatch('click');
+  assert.strictEqual(h.calls.some(([p]) => p.endsWith('/platform-links') || p.endsWith('/aliases')), false);
+  assert.strictEqual(h.elements['view-done'].classNames.has('hidden'), true);
+  h.setRecordStatus(200);
+  await h.elements['btn-record'].dispatch('click');
+  assert.strictEqual(h.calls.filter(([p]) => p.endsWith('/platform-links')).length, 1);
+  assert.strictEqual(h.calls.filter(([p]) => p.endsWith('/aliases')).length, 1);
+  assert.strictEqual(h.elements['view-done'].classNames.has('hidden'), false);
+});
+
+test('dismissing Laftel detection does not learn a work link', async () => {
+  const h = await openLaftelPopup({ pending: laftelPending([{ id: 1516, titleKorean: '장송의 프리렌' }], true) });
+  await h.elements['btn-dismiss'].dispatch('click');
+  assert.strictEqual(h.calls.some(([, o]) => o.method), false);
+});
