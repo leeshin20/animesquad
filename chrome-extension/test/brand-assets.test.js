@@ -51,5 +51,5 @@ test('manifest declares every Chrome icon size', () => {
 
 test('manifest uses the packaged extension version', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(extensionRoot, 'manifest.json'), 'utf8'));
-  assert.strictEqual(manifest.version, '1.0.3');
+  assert.strictEqual(manifest.version, '1.0.4');
 });

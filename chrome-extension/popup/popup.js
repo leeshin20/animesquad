@@ -6,6 +6,8 @@ let manualMatch = false;
 let selectionGeneration = 0;
 let platformLink = null;
 let matchedByPlatform = false;
+const embedded = typeof location !== 'undefined' && location.search === '?embedded=1';
+let inlineEpisodeUrl = null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -38,15 +40,32 @@ async function init() {
   $('account-name').textContent = account.displayName || 'AnimeSquad 사용자';
   $('account-email').textContent = account.email || '';
   $('session-panel').classList.remove('hidden');
-  await loadCurrentAnime();
-
-  const { pending } = await chrome.storage.local.get('pending');
+  let pending;
+  if (embedded) {
+    document.body.classList.add('embedded');
+    $('btn-dismiss').textContent = '닫기';
+    try {
+      const context = await chrome.runtime.sendMessage({ type: 'LAFTEL_INLINE_CONTEXT' });
+      if (!context?.episodeUrl) throw new Error('No current episode');
+      inlineEpisodeUrl = context.episodeUrl;
+      renderCurrentAnime(context.current);
+      pending = context.pending;
+    } catch {
+      $('current-anime-title').textContent = '재생 정보를 다시 확인해주세요';
+      $('current-anime-meta').textContent = '회차가 변경됐다면 패널을 닫고 다시 열어주세요.';
+      showView('view-empty');
+      return;
+    }
+  } else {
+    await loadCurrentAnime();
+    ({ pending } = await chrome.storage.local.get('pending'));
+  }
   if (!pending) {
     showView('view-empty');
     return;
   }
   if (asqIsInvalidNetflixTitle(pending?.animeName)) {
-    await chrome.storage.local.remove('pending');
+    if (!embedded) await chrome.storage.local.remove('pending');
     showView('view-empty');
     return;
   }
@@ -65,6 +84,10 @@ async function loadCurrentAnime() {
   } catch {
     // 콘텐츠 스크립트가 없는 탭에서는 감지 대기 안내를 유지한다.
   }
+  renderCurrentAnime(current);
+}
+
+function renderCurrentAnime(current) {
   const detected = current && !asqIsInvalidNetflixTitle(current.animeName);
   $('current-anime-title').textContent = detected ? current.animeName : '감지된 작품이 없어요';
   $('current-anime-meta').textContent = detected
@@ -222,7 +245,7 @@ async function learnPlatformLinkIfNeeded(animeId, wasManualMatch) {
 // ── 버튼 ──────────────────────────────────────────────────
 $('btn-login').addEventListener('click', () => {
   chrome.tabs.create({ url: WEB_BASE });
-  window.close();
+  closePopup();
 });
 
 $('btn-change-anime').addEventListener('click', async () => {
@@ -233,6 +256,7 @@ $('btn-change-anime').addEventListener('click', async () => {
 });
 
 $('btn-dismiss').addEventListener('click', async () => {
+  if (embedded) { await closePopup(); return; }
   await chrome.storage.local.remove('pending');
   chrome.action.setBadgeText({ text: '' });
   window.close();
@@ -255,6 +279,10 @@ $('btn-record').addEventListener('click', async () => {
   recordStatus.textContent = '';
 
   try {
+    if (embedded) {
+      const validation = await chrome.runtime.sendMessage({ type: 'LAFTEL_INLINE_VALIDATE', episodeUrl: inlineEpisodeUrl });
+      if (!validation?.ok) throw new Error('회차가 변경됐어요. 패널을 다시 열어주세요');
+    }
     if (!inList) {
       const res = await apiFetch('/api/watch', {
         method: 'POST',
@@ -281,8 +309,16 @@ $('btn-record').addEventListener('click', async () => {
     const linkLearned = await learnPlatformLinkIfNeeded(animeId, wasManualMatch);
     const aliasLearned = linkLearned === 'conflict'
       ? true : await learnAliasIfNeeded(animeId, wasManualMatch);
-    await chrome.storage.local.remove('pending');
-    chrome.action.setBadgeText({ text: '' });
+    if (embedded) {
+      try {
+        await chrome.runtime.sendMessage({ type: 'LAFTEL_INLINE_SAVED', episodeUrl: inlineEpisodeUrl });
+      } catch {
+        // The viewing record already succeeded; a detached page must not offer a retry.
+      }
+    } else {
+      await chrome.storage.local.remove('pending');
+      chrome.action.setBadgeText({ text: '' });
+    }
     if (linkLearned === 'conflict') {
       alert('기록은 완료됐지만 이 라프텔 작품은 이미 다른 작품에 연결되어 있어 연결을 변경하지 않았어요.');
     } else if (linkLearned === 'failed') {
@@ -291,7 +327,7 @@ $('btn-record').addEventListener('click', async () => {
       alert('기록은 완료됐지만 별칭 저장에 실패했어요.');
     }
     showView('view-done');
-    setTimeout(() => window.close(), 1200);
+    if (!embedded) setTimeout(() => window.close(), 1200);
   } catch (e) {
     recordStatus.textContent = `기록 실패 (${e.message}). 다시 시도해주세요.`;
     recordStatus.classList.remove('hidden');
@@ -300,5 +336,13 @@ $('btn-record').addEventListener('click', async () => {
     recordButton.textContent = '기록하기';
   }
 });
+
+async function closePopup() {
+  if (embedded) {
+    if (inlineEpisodeUrl) await chrome.runtime.sendMessage({ type: 'LAFTEL_INLINE_CLOSE', episodeUrl: inlineEpisodeUrl });
+  } else {
+    window.close();
+  }
+}
 
 init();

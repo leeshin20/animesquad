@@ -66,6 +66,9 @@ function popupContext(apiFetch, {
   searchResults = [],
   currentAnime = null,
   tabError = false,
+  embeddedContext = null,
+  validateInline = true,
+  completionError = false,
 } = {}) {
   const ids = [
     'view-login', 'view-empty', 'view-record', 'view-done', 'anime-label',
@@ -81,10 +84,12 @@ function popupContext(apiFetch, {
     return star;
   });
   const alerts = [];
+  const inlineMessages = [];
   let removedKey;
 
   return {
     alerts,
+    inlineMessages,
     elements,
     stars,
     get removedKey() { return removedKey; },
@@ -99,12 +104,21 @@ function popupContext(apiFetch, {
       asqIsInvalidNetflixTitle: sharedApiContext.asqIsInvalidNetflixTitle,
       searchAnime: async () => searchResults,
       WEB_BASE: 'https://animesquad.me',
+      location: { search: embeddedContext ? '?embedded=1' : '' },
       document: {
+        body: new FakeElement('body'),
         getElementById: (id) => elements[id],
         querySelectorAll: (selector) => selector === '.star' ? stars : [],
         createElement: (tagName) => new FakeElement(tagName),
       },
       chrome: {
+        runtime: { sendMessage: async (message) => {
+          inlineMessages.push(JSON.parse(JSON.stringify(message)));
+          if (message.type === 'LAFTEL_INLINE_CONTEXT') return embeddedContext;
+          if (message.type === 'LAFTEL_INLINE_VALIDATE') return { ok: validateInline };
+          if (message.type === 'LAFTEL_INLINE_SAVED' && completionError) throw new Error('frame gone');
+          return { ok: true };
+        } },
         storage: {
           local: {
             get: async () => ({ pending }),
@@ -794,4 +808,76 @@ test('로그인이 만료되면 계정 패널을 표시하지 않는다', async 
   await new Promise((resolve) => setImmediate(resolve));
   assert.strictEqual(harness.elements['session-panel'].classNames.has('hidden'), true);
   assert.strictEqual(harness.elements['view-login'].classNames.has('hidden'), false);
+});
+
+
+function inlineContext(ready = true) {
+  return { episodeUrl: 'https://laftel.net/player/41666/65123',
+    current: { platform: '라프텔', animeName: '(자막) 장송의 프리렌', ep: 1 },
+    pending: ready ? { animeName: '(자막) 장송의 프리렌', ep: 1,
+      results: [{ id: 1516, titleKorean: '장송의 프리렌' }],
+      platformLink: { platform: 'LAFTEL', platformAnimeId: '41666' }, matchedByPlatform: true } : null };
+}
+
+async function embeddedPopup(options = {}, fetcher = async () => ({ ok: true })) {
+  const harness = popupContext(fetcher, { embeddedContext: inlineContext(), ...options });
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8'), harness.context);
+  await new Promise((resolve) => setImmediate(resolve));
+  return harness;
+}
+
+test('embedded popup uses its containing episode instead of another global pending', async () => {
+  const h = await embeddedPopup();
+  assert.strictEqual(h.elements['ep-input'].value, 1);
+  assert.match(h.elements['anime-label'].textContent, /장송의 프리렌 1화/);
+  assert.strictEqual(h.elements['current-anime-meta'].textContent, '라프텔 · 1화');
+  assert.strictEqual(h.inlineMessages[0]?.type, 'LAFTEL_INLINE_CONTEXT');
+});
+
+test('embedded popup before ending shows waiting state, not old global recording', async () => {
+  const h = await embeddedPopup({ embeddedContext: inlineContext(false) });
+  assert.strictEqual(h.elements['view-empty'].classNames.has('hidden'), false);
+  assert.strictEqual(h.elements['view-record'].classNames.has('hidden'), true);
+});
+
+test('stale embedded episode is rejected before any viewing write', async () => {
+  const writes = [];
+  const h = await embeddedPopup({ validateInline: false }, async (url, options = {}) => {
+    if (options.method) writes.push(url);
+    return { ok: true };
+  });
+  await h.elements['btn-record'].dispatch('click');
+  assert.deepStrictEqual(writes, []);
+  assert.match(h.elements['record-status'].textContent, /회차가 변경/);
+  assert.strictEqual(h.inlineMessages.some((m) => m.type === 'LAFTEL_INLINE_SAVED'), false);
+});
+
+test('successful embedded record updates only its page and keeps unrelated pending', async () => {
+  const h = await embeddedPopup();
+  await h.elements['btn-record'].dispatch('click');
+  assert.strictEqual(h.elements['view-done'].classNames.has('hidden'), false);
+  assert.strictEqual(h.removedKey, undefined);
+  assert.deepStrictEqual(h.inlineMessages.at(-1), { type: 'LAFTEL_INLINE_SAVED', episodeUrl: inlineContext().episodeUrl });
+});
+
+test('embedded record failure remains retryable and never marks page complete', async () => {
+  const h = await embeddedPopup({}, async (_url, options = {}) => ({ ok: !options.method, status: 503 }));
+  await h.elements['btn-record'].dispatch('click');
+  assert.strictEqual(h.elements['btn-record'].disabled, false);
+  assert.strictEqual(h.inlineMessages.some((m) => m.type === 'LAFTEL_INLINE_SAVED'), false);
+  assert.strictEqual(h.elements['view-done'].classNames.has('hidden'), true);
+});
+
+test('inline completion notification failure does not turn a successful record into retry', async () => {
+  const h = await embeddedPopup({ completionError: true });
+  await h.elements['btn-record'].dispatch('click');
+  assert.strictEqual(h.elements['view-done'].classNames.has('hidden'), false);
+  assert.strictEqual(h.elements['record-status'].classNames.has('hidden'), true);
+});
+
+test('embedded dismiss closes its panel without removing another pending', async () => {
+  const h = await embeddedPopup();
+  await h.elements['btn-dismiss'].dispatch('click');
+  assert.strictEqual(h.removedKey, undefined);
+  assert.deepStrictEqual(h.inlineMessages.at(-1), { type: 'LAFTEL_INLINE_CLOSE', episodeUrl: inlineContext().episodeUrl });
 });

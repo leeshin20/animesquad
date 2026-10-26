@@ -59,20 +59,20 @@ async function asqResolvePending({ animeName, ep }, platformLink) {
   let matchedByPlatform = false;
   if (platformLink) {
     try {
-    const anime = await findPlatformAnime(platformLink);
-    if (anime) {
-      results = [anime];
-      matchedByPlatform = true;
-    }
+      const anime = await findPlatformAnime(platformLink);
+      if (anime) {
+        results = [anime];
+        matchedByPlatform = true;
+      }
     } catch {
-    // Title search remains available when platform lookup is unavailable.
+      // Title search remains available when platform lookup is unavailable.
     }
   }
   if (!matchedByPlatform) {
     try {
-    results = await searchAnime(animeName);
+      results = await searchAnime(animeName);
     } catch {
-    // Keep the event so the popup can fall back to manual search.
+      // Keep the event so the popup can fall back to manual search.
     }
   }
   const pending = { animeName, ep, results };
