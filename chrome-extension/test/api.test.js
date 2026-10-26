@@ -51,3 +51,17 @@ test('넷플릭스 서비스 전용 제목과 빈 제목을 유효하지 않은 
   assert.strictEqual(context.testIsInvalidNetflixTitle({ title: '담배 고양이' }), true);
   assert.strictEqual(context.testIsInvalidNetflixTitle('담배 고양이'), false);
 });
+
+test('platform lookup returns the resolved anime and treats only 404 as absent', async () => {
+  const requests = [];
+  let response = { ok: true, json: async () => ({ id: 1516, titleKorean: '장송의 프리렌' }) };
+  const context = { AbortSignal, fetch: async (...args) => { requests.push(args); return response; } };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../shared/api.js'), 'utf8'), context);
+  const anime = await context.findPlatformAnime({ platform: 'LAFTEL', platformAnimeId: '41666' });
+  assert.strictEqual(anime.id, 1516);
+  assert.strictEqual(requests[0][0], 'https://api.animesquad.me/api/anime/platform-links/LAFTEL/41666');
+  response = { ok: false, status: 404 };
+  assert.strictEqual(await context.findPlatformAnime({ platform: 'LAFTEL', platformAnimeId: '41666' }), null);
+  response = { ok: false, status: 503 };
+  await assert.rejects(() => context.findPlatformAnime({ platform: 'LAFTEL', platformAnimeId: '41666' }), /503/);
+});

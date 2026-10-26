@@ -23,3 +23,10 @@ async function searchAnime(query) {
   const res = await apiFetch(`/api/anime/search?q=${encodeURIComponent(query)}`);
   return res.ok ? res.json() : [];
 }
+
+async function findPlatformAnime({ platform, platformAnimeId }) {
+  const res = await apiFetch(`/api/anime/platform-links/${encodeURIComponent(platform)}/${encodeURIComponent(platformAnimeId)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}

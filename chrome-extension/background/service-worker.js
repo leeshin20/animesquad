@@ -1,7 +1,13 @@
 importScripts('../shared/api.js');
 
+function asqLaftelSource(tabUrl) {
+  const match = (tabUrl ?? '').match(/^https:\/\/laftel\.net\/player\/([1-9][0-9]{0,19})\/([1-9][0-9]*)(?:\/)?(?:[?#].*)?$/);
+  return match ? { platform: 'LAFTEL', platformAnimeId: match[1] } : null;
+}
+
 function asqShouldIgnoreWatchedMessage(msg, sender) {
   const tabUrl = sender?.tab?.url ?? '';
+  if (/^https:\/\/laftel\.net(?:\/|$)/i.test(tabUrl) && !asqLaftelSource(tabUrl)) return true;
   const isNetflix = /^https:\/\/(?:[^/]+\.)?netflix\.com(?:\/|$)/i.test(tabUrl);
   if (!isNetflix) return false;
 
@@ -14,13 +20,30 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
   if (msg.type !== 'WATCHED' || asqShouldIgnoreWatchedMessage(msg, sender)) return;
   (async () => {
     const { animeName, ep } = msg.payload;
+    const platformLink = asqLaftelSource(sender?.tab?.url);
     let results = [];
-    try {
-      results = await searchAnime(animeName);
-    } catch {
-      // Keep the watched event so the popup can fall back to manual search.
+    let matchedByPlatform = false;
+    if (platformLink) {
+      try {
+        const anime = await findPlatformAnime(platformLink);
+        if (anime) {
+          results = [anime];
+          matchedByPlatform = true;
+        }
+      } catch {
+        // Title search remains available when platform lookup is unavailable.
+      }
     }
-    await chrome.storage.local.set({ pending: { animeName, ep, results } });
+    if (!matchedByPlatform) {
+      try {
+        results = await searchAnime(animeName);
+      } catch {
+        // Keep the event so the popup can fall back to manual search.
+      }
+    }
+    const pending = { animeName, ep, results };
+    if (platformLink) Object.assign(pending, { platformLink, matchedByPlatform });
+    await chrome.storage.local.set({ pending });
     try {
       const windowId = sender?.tab?.windowId;
       await chrome.action.openPopup(

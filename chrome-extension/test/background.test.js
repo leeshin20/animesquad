@@ -304,3 +304,76 @@ test('넷플릭스 비문자열 제목의 WATCHED 메시지는 부작용 없이 
     assert.strictEqual(popupAttempts, 0);
   }
 });
+
+function laftelWorkerHarness({ status = 200 } = {}) {
+  let listener;
+  const pending = [];
+  const paths = [];
+  const context = {
+    importScripts: () => {}, AbortSignal,
+    fetch: async (url) => {
+      paths.push(url);
+      if (url.includes('/platform-links/')) return { ok: status === 200, status,
+        json: async () => ({ id: 1516, titleKorean: '장송의 프리렌' }) };
+      return { ok: true, json: async () => [{ id: 7, titleKorean: '검색 후보' }] };
+    },
+    chrome: {
+      runtime: { onMessage: { addListener: (fn) => { listener = fn; } } },
+      storage: { local: { set: async (value) => pending.push(value.pending) } },
+      action: { openPopup: async () => {}, setBadgeText: () => {}, setBadgeBackgroundColor: () => {} },
+    },
+  };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../shared/api.js'), 'utf8') + '\n'
+    + fs.readFileSync(path.join(__dirname, '../background/service-worker.js'), 'utf8'), context);
+  return {
+    pending, paths,
+    async watched(url, title = '(자막) 장송의 프리렌', ep = 1) {
+      listener({ type: 'WATCHED', payload: { animeName: title, ep, platformAnimeId: 'forged' } },
+        { tab: { url, windowId: 42 } });
+      await new Promise((resolve) => setImmediate(resolve));
+    },
+  };
+}
+
+test('Laftel work ID takes priority over title and is reused for later episodes', async () => {
+  const h = laftelWorkerHarness();
+  await h.watched('https://laftel.net/player/41666/65123');
+  await h.watched('https://laftel.net/player/41666/65124', '제목이 바뀌어도', 2);
+  assert.strictEqual(h.pending.length, 2);
+  for (const pending of h.pending) {
+    assert.strictEqual(pending.results[0].id, 1516);
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(pending.platformLink)), { platform: 'LAFTEL', platformAnimeId: '41666' });
+    assert.strictEqual(pending.matchedByPlatform, true);
+  }
+  assert.strictEqual(h.pending[1].ep, 2);
+  assert.strictEqual(h.paths.some((p) => p.includes('/search')), false);
+});
+
+test('unknown and unavailable Laftel mappings fall back to title search', async () => {
+  for (const status of [404, 503]) {
+    const h = laftelWorkerHarness({ status });
+    await h.watched('https://laftel.net/player/41666/65123?test=1');
+    assert.strictEqual(h.pending[0].results[0].id, 7);
+    assert.strictEqual(h.pending[0].matchedByPlatform, false);
+    assert.strictEqual(h.pending[0].platformLink.platformAnimeId, '41666');
+    assert.strictEqual(h.paths.length, 2);
+  }
+});
+
+test('Laftel non-player and malformed player pages do not create watched records', async () => {
+  for (const url of ['https://laftel.net/item/41666', 'https://laftel.net/',
+    'https://laftel.net/player/0/65123', 'https://laftel.net/player/41666/',
+    'https://laftel.net/player/41666/65123/extra']) {
+    const h = laftelWorkerHarness();
+    await h.watched(url);
+    assert.strictEqual(h.pending.length, 0, url);
+    assert.strictEqual(h.paths.length, 0, url);
+  }
+});
+
+test('lookalike hosts cannot create Laftel work-ID mappings', async () => {
+  const h = laftelWorkerHarness();
+  await h.watched('https://laftel.net.example.com/player/41666/65123');
+  assert.strictEqual(h.pending[0]?.platformLink, undefined);
+  assert.strictEqual(h.paths.some((p) => p.includes('/platform-links/')), false);
+});
