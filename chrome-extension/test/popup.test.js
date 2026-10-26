@@ -64,12 +64,15 @@ function popupContext(apiFetch, {
     results: [{ id: 3, titleKorean: '장송의 프리렌' }],
   },
   searchResults = [],
+  currentAnime = null,
+  tabError = false,
 } = {}) {
   const ids = [
     'view-login', 'view-empty', 'view-record', 'view-done', 'anime-label',
     'watchlist-warning', 'search-section', 'search-input', 'search-results',
     'ep-input', 'comment-input', 'btn-login', 'btn-dismiss', 'btn-record',
-    'btn-change-anime', 'record-status',
+    'btn-change-anime', 'record-status', 'session-panel', 'account-name',
+    'account-email', 'current-anime-title', 'current-anime-meta',
   ];
   const elements = Object.fromEntries(ids.map((id) => [id, new FakeElement()]));
   const stars = Array.from({ length: 5 }, (_, index) => {
@@ -86,7 +89,13 @@ function popupContext(apiFetch, {
     stars,
     get removedKey() { return removedKey; },
     context: {
-      apiFetch,
+      apiFetch: async (requestPath, options) => {
+        const response = await apiFetch(requestPath, options);
+        if (requestPath === '/api/me' && response.ok && !response.json) {
+          return { ...response, json: async () => ({ displayName: '테스터', email: 'test@example.com' }) };
+        }
+        return response;
+      },
       asqIsInvalidNetflixTitle: sharedApiContext.asqIsInvalidNetflixTitle,
       searchAnime: async () => searchResults,
       WEB_BASE: 'https://animesquad.me',
@@ -103,7 +112,14 @@ function popupContext(apiFetch, {
           },
         },
         action: { setBadgeText: () => {} },
-        tabs: { create: () => {} },
+        tabs: {
+          create: () => {},
+          query: async () => [{ id: 7 }],
+          sendMessage: async () => {
+            if (tabError) throw new Error('Receiving end does not exist');
+            return currentAnime;
+          },
+        },
       },
       window: { close: () => {} },
       alert: (message) => alerts.push(message),
@@ -721,4 +737,61 @@ test('dismissing Laftel detection does not learn a work link', async () => {
   const h = await openLaftelPopup({ pending: laftelPending([{ id: 1516, titleKorean: '장송의 프리렌' }], true) });
   await h.elements['btn-dismiss'].dispatch('click');
   assert.strictEqual(h.calls.some(([, o]) => o.method), false);
+});
+
+
+test('로그인한 계정과 엔딩 전 현재 탭의 작품 정보를 빈 상태에서도 표시한다', async () => {
+  const calls = [];
+  const harness = popupContext(async (requestPath) => {
+    calls.push(requestPath);
+    return { ok: true, json: async () => ({ displayName: '프리렌팬', email: 'frieren@example.com' }) };
+  }, { pending: null, currentAnime: { platform: '라프텔', animeName: '(자막) 장송의 프리렌', ep: 1 } });
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8'), harness.context);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.strictEqual(harness.elements['account-name'].textContent, '프리렌팬');
+  assert.strictEqual(harness.elements['account-email'].textContent, 'frieren@example.com');
+  assert.strictEqual(harness.elements['session-panel'].classNames.has('hidden'), false);
+  assert.strictEqual(harness.elements['current-anime-title'].textContent, '(자막) 장송의 프리렌');
+  assert.strictEqual(harness.elements['current-anime-meta'].textContent, '라프텔 · 1화');
+  assert.strictEqual(harness.elements['view-empty'].classNames.has('hidden'), false);
+  assert.deepStrictEqual(calls, ['/api/me']);
+});
+
+test('현재 탭과 이전 기록 대기 작품을 구분해서 표시한다', async () => {
+  const harness = popupContext(async () => ({ ok: true }), {
+    currentAnime: { platform: '라프텔', animeName: '도굴왕', ep: 2 },
+  });
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8'), harness.context);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.strictEqual(harness.elements['current-anime-title'].textContent, '도굴왕');
+  assert.match(harness.elements['anime-label'].textContent, /장송의 프리렌/);
+  assert.strictEqual(harness.elements['ep-input'].value, 11);
+});
+
+test('지원하지 않는 탭도 계정과 빈 감지 안내를 표시한다', async () => {
+  for (const tabError of [false, true]) {
+    const harness = popupContext(async () => ({ ok: true }), { pending: null, tabError });
+    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8'), harness.context);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.strictEqual(harness.elements['account-name'].textContent, '테스터');
+    assert.strictEqual(harness.elements['current-anime-title'].textContent, '감지된 작품이 없어요');
+    assert.strictEqual(harness.elements['view-empty'].classNames.has('hidden'), false);
+  }
+});
+
+test('회차를 알 수 없으면 추측하지 않고 확인 중으로 표시한다', async () => {
+  const harness = popupContext(async () => ({ ok: true }), {
+    pending: null, currentAnime: { platform: '넷플릭스', animeName: '장송의 프리렌', ep: null },
+  });
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8'), harness.context);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.strictEqual(harness.elements['current-anime-meta'].textContent, '넷플릭스 · 회차 확인 중');
+});
+
+test('로그인이 만료되면 계정 패널을 표시하지 않는다', async () => {
+  const harness = popupContext(async () => ({ ok: false, status: 401 }));
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8'), harness.context);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.strictEqual(harness.elements['session-panel'].classNames.has('hidden'), true);
+  assert.strictEqual(harness.elements['view-login'].classNames.has('hidden'), false);
 });

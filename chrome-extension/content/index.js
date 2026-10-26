@@ -129,3 +129,18 @@ setInterval(() => {
 
 checkEndingControl();
 checkVideoProgress();
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type !== 'GET_CURRENT_ANIME') return;
+  const path = location.href.match(/^https?:\/\/[^/]+([^?#]*)/i)?.[1] ?? '';
+  let platform = null;
+  if (location.hostname === 'laftel.net' && /^\/player\/[1-9]\d{0,19}\/[1-9]\d{0,19}\/?$/.test(path)) {
+    platform = '라프텔';
+  } else if (asqIsHost(location.hostname, 'netflix.com') && path.startsWith('/watch/')) {
+    platform = '넷플릭스';
+  } else if (asqIsHost(location.hostname, 'crunchyroll.com') && /^\/(?:[a-z]{2}(?:-[a-zA-Z0-9]+)?\/)?watch\//.test(path)) {
+    platform = '크런치롤';
+  }
+  const parsed = platform ? asqParseCurrentPage() : null;
+  sendResponse(parsed ? { ...parsed, platform } : null);
+});

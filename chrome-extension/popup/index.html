@@ -7,11 +7,23 @@
 </head>
 <body>
   <main id="app">
+    <header class="brand-lockup">
+      <img src="../assets/logo-mark.svg" alt="" aria-hidden="true" />
+      <h1>AnimeSquad</h1>
+    </header>
+    <div id="session-panel" class="session-panel hidden">
+      <section class="account-section" aria-label="로그인 계정">
+        <span class="field-kicker">로그인 계정</span>
+        <p id="account-name"></p>
+        <p id="account-email" class="hint"></p>
+      </section>
+      <section class="current-anime-section" aria-label="현재 탭에서 감지한 작품" aria-live="polite">
+        <span class="field-kicker">현재 탭에서 감지한 작품</span>
+        <p id="current-anime-title">감지 정보를 확인하고 있어요</p>
+        <p id="current-anime-meta" class="hint"></p>
+      </section>
+    </div>
     <section id="view-login" class="view hidden">
-      <header class="brand-lockup">
-        <img src="../assets/logo-mark.svg" alt="" aria-hidden="true" />
-        <h1>AnimeSquad</h1>
-      </header>
       <div class="state-copy">
         <span class="state-kicker">로그인이 필요해요</span>
         <p class="hint">animesquad.me에 로그인하면 확장 프로그램이 자동으로 연결돼요.</p>
@@ -20,25 +32,15 @@
     </section>
 
     <section id="view-empty" class="view hidden">
-      <header class="brand-lockup">
-        <img src="../assets/logo-mark.svg" alt="" aria-hidden="true" />
-        <h1>AnimeSquad</h1>
-      </header>
       <div class="empty-state">
-        <span class="status-badge">준비 완료</span>
-        <h2>아직 감지된 기록이 없어요</h2>
-        <p class="hint">넷플릭스, 라프텔, 크런치롤에서 애니의 엔딩 구간에 도달하면 여기서 기록할 수 있어요.</p>
+        <span class="status-badge">기록 대기</span>
+        <h2>엔딩 감지 후 기록할 수 있어요</h2>
+        <p class="hint">엔딩 구간에 도달하면 기록 화면이 열려요. 작품과 회차를 확인한 뒤 기록해주세요.</p>
       </div>
     </section>
 
     <section id="view-record" class="view hidden">
-      <header class="popup-header">
-        <div class="brand-lockup">
-          <img src="../assets/logo-mark.svg" alt="" aria-hidden="true" />
-          <h1>AnimeSquad</h1>
-        </div>
-        <span class="status-badge">시청 감지됨</span>
-      </header>
+      <span class="status-badge">시청 감지됨</span>
 
       <div class="anime-section">
         <div>

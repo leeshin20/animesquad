@@ -23,12 +23,18 @@ body {
 
 button, input, textarea { font: inherit; }
 .hidden { display: none !important; }
+#app { display: flex; flex-direction: column; gap: 18px; }
+.session-panel { display: flex; flex-direction: column; gap: 12px; }
+.account-section, .current-anime-section { display: flex; flex-direction: column; gap: 4px; overflow-wrap: anywhere; }
+.account-section { padding-bottom: 12px; border-bottom: 1px solid var(--neutral-200); }
+#account-name, #current-anime-title { font-size: 14px; font-weight: 700; line-height: 1.45; }
+#account-email { font-size: 12px; }
+.current-anime-section { padding: 12px; border-radius: 10px; background: var(--neutral-100); }
 .view { display: flex; flex-direction: column; gap: 18px; }
 
 .brand-lockup { display: flex; align-items: center; gap: 8px; }
 .brand-lockup img { width: 26px; height: 26px; }
 .brand-lockup h1 { font-size: 16px; font-weight: 700; letter-spacing: -.02em; }
-.popup-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid var(--neutral-100); }
 .status-badge { display: inline-flex; width: fit-content; padding: 5px 8px; border-radius: 999px; background: var(--brand-soft); color: var(--brand-strong); font-size: 11px; font-weight: 700; }
 .state-copy, .empty-state { display: flex; flex-direction: column; gap: 8px; }
 .state-kicker, .field-kicker { color: var(--neutral-500); font-size: 11px; font-weight: 700; }

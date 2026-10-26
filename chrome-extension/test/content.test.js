@@ -18,6 +18,7 @@ function createHarness({
   const messages = [];
   const videos = [];
   const scheduledCallbacks = [];
+  let messageListener;
   let observerCallback;
   let intervalCallback;
   let now = 0;
@@ -89,6 +90,7 @@ function createHarness({
     },
     chrome: {
       runtime: {
+        onMessage: { addListener: (listener) => { messageListener = listener; } },
         sendMessage(message) {
           messages.push(plain(message));
         },
@@ -106,6 +108,11 @@ function createHarness({
   }
 
   return {
+    currentAnime() {
+      let result;
+      messageListener?.({ type: 'GET_CURRENT_ANIME' }, {}, (value) => { result = plain(value); });
+      return result;
+    },
     controls,
     messages,
     video,
@@ -326,4 +333,41 @@ test('Netflix 메타데이터와 엔딩 UI가 늦게 함께 나타나도 WATCHED
   assert.deepStrictEqual(harness.messages, [
     { type: 'WATCHED', payload: { animeName: '담배 고양이', ep: 3 } },
   ]);
+});
+
+
+test('팝업 조회는 엔딩 전 라프텔 작품과 회차를 반환하고 기록 알림은 보내지 않는다', () => {
+  const h = createHarness({ host: 'laftel.net', href: 'https://laftel.net/player/41666/65123', title: '(자막) 장송의 프리렌 1화 다시보기 | 라프텔' });
+  assert.deepStrictEqual(h.currentAnime(), { platform: '라프텔', animeName: '(자막) 장송의 프리렌', ep: 1 });
+  assert.deepStrictEqual(h.messages, []);
+  h.location.href = 'https://laftel.net/player/41666/65124';
+  h.document.title = '(자막) 장송의 프리렌 2화 다시보기 | 라프텔';
+  assert.strictEqual(h.currentAnime().ep, 2);
+});
+
+test('감지 정보 조회 시 재생 페이지를 떠나거나 제목이 사라지면 이전 작품을 반환하지 않는다', () => {
+  const h = createHarness({ host: 'laftel.net', href: 'https://laftel.net/player/41666/65123', title: '장송의 프리렌 1화' });
+  assert.strictEqual(h.currentAnime()?.ep, 1);
+  h.document.title = '';
+  assert.strictEqual(h.currentAnime(), null);
+  h.document.title = '장송의 프리렌 1화';
+  h.location.href = 'https://laftel.net/item/41666';
+  assert.strictEqual(h.currentAnime(), null);
+});
+
+test('넷플릭스와 크런치롤의 현재 작품도 조회하며 홈 화면은 제외한다', () => {
+  const netflix = createHarness({ host: 'www.netflix.com', title: 'Episode 11 | 장송의 프리렌 | Netflix' });
+  assert.deepStrictEqual(netflix.currentAnime(), { platform: '넷플릭스', animeName: '장송의 프리렌', ep: 11 });
+  const crunchy = createHarness({ host: 'www.crunchyroll.com' });
+  assert.strictEqual(crunchy.currentAnime()?.platform, '크런치롤');
+  crunchy.location.href = 'https://www.crunchyroll.com/';
+  assert.strictEqual(crunchy.currentAnime(), null);
+});
+
+
+test('언어 경로가 포함된 크런치롤 재생 페이지에서도 현재 작품을 표시한다', () => {
+  for (const locale of ['ko', 'en-US', 'es-419']) {
+    const h = createHarness({ host: 'www.crunchyroll.com', href: `https://www.crunchyroll.com/${locale}/watch/G2XU04E88/the-journeys-end` });
+    assert.deepStrictEqual(h.currentAnime(), { platform: '크런치롤', animeName: "Frieren: Beyond Journey's End", ep: 11 });
+  }
 });

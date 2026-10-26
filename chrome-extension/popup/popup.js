@@ -22,8 +22,10 @@ function displayTitle(anime) {
 // ── 초기화 ────────────────────────────────────────────────
 async function init() {
   let me;
+  let account;
   try {
     me = await apiFetch('/api/me');
+    if (me.ok) account = await me.json();
   } catch {
     showView('view-login');
     return;
@@ -32,6 +34,11 @@ async function init() {
     showView('view-login');
     return;
   }
+
+  $('account-name').textContent = account.displayName || 'AnimeSquad 사용자';
+  $('account-email').textContent = account.email || '';
+  $('session-panel').classList.remove('hidden');
+  await loadCurrentAnime();
 
   const { pending } = await chrome.storage.local.get('pending');
   if (!pending) {
@@ -46,6 +53,23 @@ async function init() {
 
   showView('view-record');
   loadRecord(pending);
+}
+
+async function loadCurrentAnime() {
+  let current = null;
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id != null) {
+      current = await chrome.tabs.sendMessage(tab.id, { type: 'GET_CURRENT_ANIME' });
+    }
+  } catch {
+    // 콘텐츠 스크립트가 없는 탭에서는 감지 대기 안내를 유지한다.
+  }
+  const detected = current && !asqIsInvalidNetflixTitle(current.animeName);
+  $('current-anime-title').textContent = detected ? current.animeName : '감지된 작품이 없어요';
+  $('current-anime-meta').textContent = detected
+    ? `${current.platform} · ${current.ep ? current.ep + '화' : '회차 확인 중'}`
+    : '지원하는 스트리밍 사이트의 재생 탭에서 확인해주세요.';
 }
 
 function exactAnimeMatch(results, title) {
