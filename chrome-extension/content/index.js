@@ -47,6 +47,7 @@ function resetEpisodeIfChanged() {
 function notifyOnce() {
   if (notified || !lastParsed || !asqIsWatchPage(location.hostname, location.href)) return;
   notified = true;
+  asqSyncInline();
   chrome.runtime.sendMessage({ type: 'WATCHED', payload: lastParsed });
 }
 
@@ -109,6 +110,7 @@ const pageObserver = new MutationObserver(() => {
   setTimeout(() => {
     endingCheckScheduled = false;
     resetEpisodeIfChanged();
+    asqSyncInline();
     checkEndingControl();
   }, 50);
 });
@@ -123,14 +125,25 @@ pageObserver.observe(document.documentElement, {
 
 setInterval(() => {
   resetEpisodeIfChanged();
+  asqSyncInline();
   checkEndingControl();
   checkVideoProgress();
 }, 1000);
 
+asqSyncInline();
 checkEndingControl();
 checkVideoProgress();
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (['LAFTEL_INLINE_SAVED', 'LAFTEL_INLINE_CLOSE'].includes(message.type)) {
+    if (typeof asqHandleLaftelInlineAction === 'function') asqHandleLaftelInlineAction(message);
+    sendResponse({ ok: true });
+    return;
+  }
+  if (message.type === 'GET_INLINE_STATE') {
+    sendResponse(asqInlineState());
+    return;
+  }
   if (message.type !== 'GET_CURRENT_ANIME') return;
   const path = location.href.match(/^https?:\/\/[^/]+([^?#]*)/i)?.[1] ?? '';
   let platform = null;
@@ -144,3 +157,18 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   const parsed = platform ? asqParseCurrentPage() : null;
   sendResponse(parsed ? { ...parsed, platform } : null);
 });
+
+
+function asqInlineState() {
+  if (location.hostname !== 'laftel.net'
+    || !/^https:\/\/laftel\.net\/player\/[1-9]\d{0,19}\/[1-9]\d{0,19}\/?(?:[?#].*)?$/.test(location.href)) return null;
+  const parsed = asqParseCurrentPage();
+  if (!parsed) return null;
+  return { ...parsed, episodeUrl: location.href,
+    readyToRecord: notified && episodeKey === asqEpisodeKey(parsed),
+    inlineAvailable: typeof asqLaftelInlineAvailable === 'function' && asqLaftelInlineAvailable() };
+}
+
+function asqSyncInline() {
+  if (typeof asqUpdateLaftelInline === 'function') asqUpdateLaftelInline(asqInlineState());
+}

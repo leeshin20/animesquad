@@ -108,6 +108,11 @@ function createHarness({
   }
 
   return {
+    inlineState() {
+      let result;
+      messageListener?.({ type: 'GET_INLINE_STATE' }, {}, (value) => { result = plain(value); });
+      return result;
+    },
     currentAnime() {
       let result;
       messageListener?.({ type: 'GET_CURRENT_ANIME' }, {}, (value) => { result = plain(value); });
@@ -370,4 +375,16 @@ test('언어 경로가 포함된 크런치롤 재생 페이지에서도 현재 �
     const h = createHarness({ host: 'www.crunchyroll.com', href: `https://www.crunchyroll.com/${locale}/watch/G2XU04E88/the-journeys-end` });
     assert.deepStrictEqual(h.currentAnime(), { platform: '크런치롤', animeName: "Frieren: Beyond Journey's End", ep: 11 });
   }
+});
+
+
+test('inline readiness belongs to current Laftel episode and resets on navigation', () => {
+  const h = createHarness({ host: 'laftel.net', href: 'https://laftel.net/player/41666/65123', title: '장송의 프리렌 1화' });
+  assert.strictEqual(h.inlineState()?.readyToRecord, false);
+  h.video.dispatch('ended');
+  assert.strictEqual(h.inlineState().readyToRecord, true);
+  h.location.href = 'https://laftel.net/player/41666/65124';
+  h.document.title = '장송의 프리렌 2화';
+  assert.strictEqual(h.inlineState().readyToRecord, false);
+  assert.strictEqual(h.inlineState().ep, 2);
 });
