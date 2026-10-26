@@ -118,27 +118,25 @@ class EpisodeRatingServiceIT extends AbstractIntegrationTest {
         Seeded s = seed("del", 9002);
         squadServiceForEvents3.createSquad(s.user().getId(), "S");
         service.upsertRating(s.user().getId(), s.anime().getId(), 5, 4, "x");
-        assertThat(activityRepo3.findAll()).hasSize(1);
+        assertThat(activityRepo3.findAll()).hasSize(2);
 
         service.deleteRating(s.user().getId(), s.anime().getId(), 5);
 
-        assertThat(activityRepo3.findAll()).isEmpty();
+        assertThat(activityRepo3.findAll()).extracting(a -> a.getType().name()).containsExactly("PROGRESS_UPDATED");
     }
 
     @Test
-    void upsertRating_emitsOnlyEpisodeRated_evenWhenProgressBumps_whenInSquad() {
+    void upsertRating_preservesWatchedActivityAlongsideReview_whenInSquad() {
         Seeded s = seed("evt", 9001);
         squadServiceForEvents3.createSquad(s.user().getId(), "S");
-        // progress starts at 0; rating ep 5 bumps it, but we emit a single
-        // EPISODE_RATED activity (no separate PROGRESS_UPDATED) so the feed
-        // shows one entry per record.
+        // The display projection hides the watched row while its review exists.
 
         service.upsertRating(s.user().getId(), s.anime().getId(), 5, 4, "good ep");
 
         assertThat(activityRepo3.findAll())
             .extracting(a -> a.getType().name())
-            .containsExactly("EPISODE_RATED");
-        assertThat(activityRepo3.findAll().get(0).getPayload())
+            .containsExactlyInAnyOrder("EPISODE_RATED", "PROGRESS_UPDATED");
+        assertThat(activityRepo3.findAll().stream().filter(a -> a.getType().name().equals("EPISODE_RATED")).findFirst().orElseThrow().getPayload())
             .containsEntry("comment", "good ep");
     }
 }

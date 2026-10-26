@@ -47,6 +47,12 @@ public class ActivityListener {
     }
 
     @EventListener
+    public void on(com.animesquad.watch.events.EpisodeWatchedEvent e) {
+        fanOut(e.actorId(), ActivityType.PROGRESS_UPDATED, e.animeId(),
+            Map.of("progress", e.episode(), "episode", e.episode(), "episodeWatchId", e.episodeWatchId()));
+    }
+
+    @EventListener
     public void on(WatchRatedEvent e) {
         // An edit replaces the prior series-review entry so the feed shows it once, freshly.
         deleteSeriesActivities(e.actorId(), e.animeId());
@@ -69,8 +75,6 @@ public class ActivityListener {
     public void on(EpisodeRatedEvent e) {
         // An edit replaces the prior entry for this episode so the feed shows it once, freshly.
         deleteEpisodeActivities(e.actorId(), e.animeId(), e.episodeNumber());
-        // A plain "watched ep N" record for the same episode is superseded by this review.
-        deleteProgressActivities(e.actorId(), e.animeId(), e.episodeNumber());
         Map<String, Object> payload = new HashMap<>();
         payload.put("episode", e.episodeNumber());
         payload.put("score", e.score());
@@ -93,16 +97,6 @@ public class ActivityListener {
     private void deleteSeriesActivities(Long actorId, Long animeId) {
         activities.deleteAll(
             activities.findAllByActorIdAndAnimeIdAndType(actorId, animeId, ActivityType.RATED));
-    }
-
-    private void deleteProgressActivities(Long actorId, Long animeId, int episodeNumber) {
-        activities.deleteAll(
-            activities.findAllByActorIdAndAnimeIdAndType(actorId, animeId, ActivityType.PROGRESS_UPDATED).stream()
-                .filter(a -> {
-                    Object p = a.getPayload().get("progress");
-                    return p instanceof Number n && n.intValue() == episodeNumber;
-                })
-                .toList());
     }
 
     private void deleteEpisodeActivities(Long actorId, Long animeId, int episodeNumber) {

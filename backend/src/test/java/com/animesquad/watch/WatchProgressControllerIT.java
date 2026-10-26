@@ -62,7 +62,7 @@ class WatchProgressControllerIT extends AbstractIntegrationTest {
         assertThat(advance(anime.getId(), 3, headers).getBody().get("progress")).isEqualTo(3);
         assertThat(advance(anime.getId(), 1, headers).getBody().get("progress")).isEqualTo(3);
         assertThat(entries.findAll()).hasSize(1);
-        assertThat(activities.findAllByActorIdAndAnimeIdAndType(user.getId(), anime.getId(), ActivityType.PROGRESS_UPDATED)).hasSize(1);
+        assertThat(activities.findAllByActorIdAndAnimeIdAndType(user.getId(), anime.getId(), ActivityType.PROGRESS_UPDATED)).hasSize(2);
     }
     @Test
     void advancesProgressWithoutChangingStatusOrExistingReviews() {

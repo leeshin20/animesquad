@@ -26,12 +26,13 @@ public class MyProgressActivityService {
     ) {}
 
     private final ActivityRepository activities;
+    private final com.animesquad.watch.EpisodeWatchService history;
     private final WatchEntryRepository watches;
 
     public MyProgressActivityService(
-        ActivityRepository activities, WatchEntryRepository watches
+        ActivityRepository activities, WatchEntryRepository watches, com.animesquad.watch.EpisodeWatchService history
     ) {
-        this.activities = activities;
+        this.activities = activities; this.history = history;
         this.watches = watches;
     }
 
@@ -67,6 +68,10 @@ public class MyProgressActivityService {
             .filter(a -> a.getActorId().equals(userId))
             .filter(a -> a.getType() == ActivityType.PROGRESS_UPDATED)
             .orElseThrow(MyProgressActivityService::notFound);
+        if (target.getPayload().get("episodeWatchId") instanceof Number id) {
+            history.deleteMine(userId, id.longValue());
+            return;
+        }
         Integer progress = progressOf(target);
         if (target.getAnimeId() == null || progress == null) throw notFound();
 

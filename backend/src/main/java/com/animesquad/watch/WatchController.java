@@ -86,7 +86,7 @@ public class WatchController {
         return WatchEntryResponse.from(e, a);
     }
 
-    public record AdvanceProgressRequest(@NotNull @Positive Integer progress) {}
+    public record AdvanceProgressRequest(@NotNull @Positive Integer progress, String source) {}
 
     @PostMapping("/{animeId}/progress")
     public WatchEntryResponse advanceProgress(
@@ -96,7 +96,7 @@ public class WatchController {
     ) {
         Anime anime = animes.findById(animeId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "anime not found"));
-        WatchEntry entry = watchService.advanceProgress(me.userId(), animeId, req.progress());
+        WatchEntry entry = watchService.advanceProgress(me.userId(), animeId, req.progress(), req.source());
         return WatchEntryResponse.from(entry, anime);
     }
 

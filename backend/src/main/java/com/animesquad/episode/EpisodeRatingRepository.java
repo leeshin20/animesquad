@@ -17,6 +17,8 @@ public interface EpisodeRatingRepository extends JpaRepository<EpisodeRating, Lo
 
     List<EpisodeRating> findAllByAnimeIdOrderByEpisodeNumberAscUpdatedAtDesc(Long animeId);
 
+    void deleteAllByUserIdAndAnimeId(Long userId, Long animeId);
+
     boolean existsByAnimeId(Long animeId);
 
     List<EpisodeRating> findAllByUserIdAndCommentIsNotNullOrderByUpdatedAtDesc(

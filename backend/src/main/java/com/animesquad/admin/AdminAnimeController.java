@@ -47,14 +47,15 @@ public class AdminAnimeController {
     private final WatchEntryRepository watches;
     private final EpisodeRatingRepository episodeRatings;
     private final ActivityRepository activities;
+    private final com.animesquad.watch.EpisodeWatchRepository history;
     private final AnimeFolderArchiveService folderArchives;
 
     public AdminAnimeController(AnimeRepository animes, AnimeService animeService,
                                 UserService users, AdminProperties adminProperties,
                                 WatchEntryRepository watches, EpisodeRatingRepository episodeRatings,
                                 ActivityRepository activities, AnimeFolderArchiveService folderArchives,
-                                ExcludedAnimeRepository excluded) {
-        this.animes = animes;
+                                ExcludedAnimeRepository excluded, com.animesquad.watch.EpisodeWatchRepository history) {
+        this.animes = animes; this.history = history;
         this.excluded = excluded;
         this.animeService = animeService;
         this.users = users;
@@ -208,7 +209,7 @@ public class AdminAnimeController {
         for (Long id : body.ids()) {
             Anime anime = animes.findById(id).orElse(null);
             if (anime == null
-                || watches.existsByAnimeId(id) || episodeRatings.existsByAnimeId(id) || activities.existsByAnimeId(id)) {
+                || watches.existsByAnimeId(id) || episodeRatings.existsByAnimeId(id) || activities.existsByAnimeId(id) || history.existsByAnimeId(id)) {
                 skipped++;
                 continue;
             }
@@ -229,7 +230,7 @@ public class AdminAnimeController {
         excluded.lockCatalog();
         Anime anime = animes.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "anime not found"));
-        if (watches.existsByAnimeId(id) || episodeRatings.existsByAnimeId(id) || activities.existsByAnimeId(id)) {
+        if (watches.existsByAnimeId(id) || episodeRatings.existsByAnimeId(id) || activities.existsByAnimeId(id) || history.existsByAnimeId(id)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 시청·평가 기록이 있어 제외할 수 없어요");
         }
         excluded.save(ExcludedAnime.from(anime));

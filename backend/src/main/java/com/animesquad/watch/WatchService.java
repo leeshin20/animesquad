@@ -17,12 +17,17 @@ import java.util.List;
 public class WatchService {
 
     private final WatchEntryRepository entries;
+    private final EpisodeWatchService episodeWatches;
+    private final EpisodeWatchRepository history;
+    private final com.animesquad.episode.EpisodeRatingRepository ratings;
     private final AnimeService animeService;
     private final ApplicationEventPublisher events;
 
     public WatchService(WatchEntryRepository entries, AnimeService animeService,
-                        ApplicationEventPublisher events) {
+                        ApplicationEventPublisher events, EpisodeWatchService episodeWatches,
+                        EpisodeWatchRepository history, com.animesquad.episode.EpisodeRatingRepository ratings) {
         this.entries = entries;
+        this.episodeWatches = episodeWatches; this.history = history; this.ratings = ratings;
         this.animeService = animeService;
         this.events = events;
     }
@@ -44,6 +49,7 @@ public class WatchService {
     public WatchEntry updateEntry(Long userId, Long animeId,
                                   WatchStatus status, Integer progress,
                                   Integer score, String comment) {
+        episodeWatches.lockUser(userId);
         WatchEntry e = entries.findByUserIdAndAnimeId(userId, animeId)
             .orElseThrow(() -> new IllegalArgumentException("watch entry not found"));
 
@@ -70,10 +76,12 @@ public class WatchService {
 
     @Transactional
     public WatchEntry advanceProgress(Long userId, Long animeId, int progress) {
-        if (entries.advanceProgress(userId, animeId, progress) > 0) {
-            events.publishEvent(new ProgressUpdatedEvent(userId, animeId, progress));
-        }
-        return entries.findByUserIdAndAnimeId(userId, animeId).orElseThrow();
+        return episodeWatches.record(userId, animeId, progress, null);
+    }
+
+    @Transactional
+    public WatchEntry advanceProgress(Long userId, Long animeId, int progress, String source) {
+        return episodeWatches.record(userId, animeId, progress, source);
     }
 
     @Transactional(readOnly = true)
@@ -88,14 +96,18 @@ public class WatchService {
 
     @Transactional
     public void removeFromList(Long userId, Long animeId) {
+        episodeWatches.lockUser(userId);
         WatchEntry e = entries.findByUserIdAndAnimeId(userId, animeId)
             .orElseThrow(() -> new IllegalArgumentException("watch entry not found"));
+        history.deleteAllByUserIdAndAnimeId(userId, animeId);
+        ratings.deleteAllByUserIdAndAnimeId(userId, animeId);
         entries.delete(e);
         events.publishEvent(new WatchEntryRemovedEvent(userId, animeId));
     }
 
     @Transactional
     public WatchEntry clearReview(Long userId, Long animeId) {
+        episodeWatches.lockUser(userId);
         WatchEntry e = entries.findByUserIdAndAnimeId(userId, animeId)
             .orElseThrow(() -> new IllegalArgumentException("watch entry not found"));
         e.clearReview();

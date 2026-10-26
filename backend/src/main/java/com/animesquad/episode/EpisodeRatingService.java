@@ -16,13 +16,15 @@ import java.util.List;
 public class EpisodeRatingService {
 
     private final EpisodeRatingRepository ratings;
+    private final com.animesquad.watch.EpisodeWatchService history;
     private final WatchEntryRepository watches;
     private final ApplicationEventPublisher events;
 
     public EpisodeRatingService(EpisodeRatingRepository ratings,
                                 WatchEntryRepository watches,
-                                ApplicationEventPublisher events) {
+                                ApplicationEventPublisher events, com.animesquad.watch.EpisodeWatchService history) {
         this.ratings = ratings;
+        this.history = history;
         this.watches = watches;
         this.events = events;
     }
@@ -30,10 +32,12 @@ public class EpisodeRatingService {
     @Transactional
     public EpisodeRating upsertRating(Long userId, Long animeId,
                                       int episodeNumber, Integer score, String comment) {
+        history.lockUser(userId);
         WatchEntry entry = watches.findByUserIdAndAnimeId(userId, animeId)
             .orElseThrow(() -> new IllegalArgumentException(
                 "watch entry not found — add the anime to your list first"));
 
+        history.record(userId, animeId, episodeNumber, "MANUAL");
         EpisodeRating rating = ratings.findByUserIdAndAnimeIdAndEpisodeNumber(
                 userId, animeId, episodeNumber)
             .map(existing -> {
@@ -44,12 +48,11 @@ public class EpisodeRatingService {
                 new EpisodeRating(userId, animeId, episodeNumber, score, comment)));
 
         if (entry.getProgress() < episodeNumber) {
-            // bump progress silently — the EpisodeRatedEvent below already
-            // represents this episode, so we skip the separate ProgressUpdatedEvent
+            // Keep the managed entry in sync with the native progress upsert.
             entry.apply(null, episodeNumber, null, null);
         }
 
-        events.publishEvent(new EpisodeRatedEvent(userId, animeId, episodeNumber, score, comment));
+        events.publishEvent(new EpisodeRatedEvent(userId, animeId, episodeNumber, rating.getScore(), rating.getComment()));
         return rating;
     }
 
@@ -60,6 +63,7 @@ public class EpisodeRatingService {
 
     @Transactional
     public void deleteRating(Long userId, Long animeId, int episodeNumber) {
+        history.lockUser(userId);
         EpisodeRating rating = ratings.findByUserIdAndAnimeIdAndEpisodeNumber(
                 userId, animeId, episodeNumber)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "감상평이 없어요"));
