@@ -82,6 +82,12 @@ const artifacts = process.env.ASQ_ARTIFACT_DIR || os.tmpdir();
     await host.locator('button[data-action="toggle"]').click();
     await panel.locator('#current-anime-meta').getByText('라프텔 · 2화').waitFor();
     assert.equal(await panel.locator('#view-empty').isVisible(), true);
+    await host.locator('[data-action="close"]').click();
+    await page.evaluate(() => { const button = document.createElement('button'); button.textContent = '엔딩 스킵'; document.body.appendChild(button); });
+    await host.locator('[data-status]').getByText('기록하기').waitFor();
+    await host.locator('[data-action="toggle"]').click();
+    await panel.locator('#view-record').waitFor({ state: 'visible', timeout: 3000 });
+    assert.equal(await panel.locator('#ep-input').inputValue(), '2', 'closed waiting iframe refreshes after ending');
     await page.evaluate(() => { history.pushState({}, '', '/item/41666'); document.title = '(자막) 장송의 프리렌'; });
     await page.waitForTimeout(150);
     assert.equal(await host.count(), 0, 'non-player navigation removes inline UI');
@@ -91,7 +97,7 @@ const artifacts = process.env.ASQ_ARTIFACT_DIR || os.tmpdir();
       { method: 'PATCH', path: '/api/watch/1516', payload: { progress: 1 } },
       { method: 'PATCH', path: '/api/watch/1516', payload: { progress: 1 } },
     ]);
-    console.log(JSON.stringify({ passed: true, writes, checked: ['real extension iframe APIs and sender identity','account/current episode','pre-ending no write','inline ending refresh','failed write retry','saved status','SPA frame reset','React remount','non-player removal'], screenshot: path.join(artifacts, 'animesquad-laftel-inline.png') }));
+    console.log(JSON.stringify({ passed: true, writes, checked: ['real extension iframe APIs and sender identity','account/current episode','pre-ending no write','inline ending refresh','failed write retry','saved status','SPA frame reset','React remount','closed waiting panel refresh','non-player removal'], screenshot: path.join(artifacts, 'animesquad-laftel-inline.png') }));
   } finally {
     if (context) await context.close();
     server.close();

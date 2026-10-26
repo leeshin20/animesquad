@@ -77,7 +77,7 @@ function asqUpdateLaftelInline(state) {
   const button = shadow.querySelector('[data-action="toggle"]');
   const description = `AnimeSquad ${label}`;
   if (button.getAttribute('aria-label') !== description) button.setAttribute('aria-label', description);
-  if (previous && previous.readyToRecord !== state.readyToRecord && !shadow.querySelector('.panel').hidden) {
+  if (previous && previous.readyToRecord !== state.readyToRecord) {
     const frame = shadow.querySelector('iframe');
     if (frame) frame.src = chrome.runtime.getURL('popup/index.html') + '?embedded=1';
   }

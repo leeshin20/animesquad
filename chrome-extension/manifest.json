@@ -3,12 +3,8 @@
   "name": "AnimeSquad",
   "version": "1.0.4",
   "description": "넷플릭스, 라프텔, 크런치롤에서 애니 시청 기록을 animesquad에 남기세요.",
-  "permissions": [
-    "storage"
-  ],
-  "host_permissions": [
-    "https://api.animesquad.me/*"
-  ],
+  "permissions": ["storage"],
+  "host_permissions": ["https://api.animesquad.me/*"],
   "background": {
     "service_worker": "background/service-worker.js"
   },
