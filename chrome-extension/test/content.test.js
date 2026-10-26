@@ -427,3 +427,15 @@ test('SPA retains old media position until new episode media resets before armin
   h.video.currentTime = 0; h.tick(2000); h.video.currentTime = 1120; h.tick(3000);
   assert.strictEqual(h.messages.length, 2);
 });
+
+
+test('separate SPA URL and title mutations cannot replace stale video reference with null', async () => {
+  const h = laftelAutoHarness(); h.video.paused = false; h.video.currentTime = 1120; h.tick(0);
+  await new Promise((r) => setImmediate(r));
+  h.location.href = 'https://laftel.net/player/41666/65124'; h.mutate(); h.flushScheduled();
+  h.document.title = '(자막) 장송의 프리렌 2화'; h.mutate(); h.flushScheduled(); h.runInterval();
+  assert.strictEqual(h.messages.length, 1, 'old video must not record episode 2');
+  assert.strictEqual(h.inlineState().autoRecordEligible, false);
+  h.video.currentTime = 0; h.runInterval(); h.video.currentTime = 1120; h.runInterval();
+  assert.strictEqual(h.messages.length, 2, 'new media timeline can record episode 2');
+});

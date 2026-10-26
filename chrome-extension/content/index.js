@@ -50,7 +50,7 @@ function resetEpisodeIfChanged() {
   autoRecordInFlight = false;
   autoRecordLastAttempt = -Infinity;
   autoEpisodeArmed = false;
-  autoPreviousVideo = activeVideo;
+  autoPreviousVideo = activeVideo ?? autoPreviousVideo;
   progressTracker = asqCreateProgressTracker();
   if (urlChanged || hadParsed) endingControlArmed = false;
   bindVideo(null);
