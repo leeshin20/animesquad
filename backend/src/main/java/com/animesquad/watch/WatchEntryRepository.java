@@ -20,6 +20,16 @@ public interface WatchEntryRepository extends JpaRepository<WatchEntry, Long> {
     boolean existsByAnimeId(Long animeId);
 
     @Modifying
+    @Query(value = """
+        INSERT INTO watch_entry (user_id, anime_id, status, progress, created_at, updated_at)
+        VALUES (:userId, :animeId, 'WATCHING', :progress, now(), now())
+        ON CONFLICT (user_id, anime_id) DO UPDATE
+        SET progress = EXCLUDED.progress, updated_at = now()
+        WHERE watch_entry.progress < EXCLUDED.progress
+        """, nativeQuery = true)
+    int advanceProgress(Long userId, Long animeId, int progress);
+
+    @Modifying
     @Query("DELETE FROM WatchEntry w WHERE w.userId = :userId")
     void deleteAllByUserId(Long userId);
 }

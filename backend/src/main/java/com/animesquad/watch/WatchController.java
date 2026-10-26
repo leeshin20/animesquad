@@ -7,6 +7,8 @@ import com.animesquad.watch.dto.AddWatchRequest;
 import com.animesquad.watch.dto.UpdateWatchRequest;
 import com.animesquad.watch.dto.WatchEntryResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -82,6 +84,20 @@ public class WatchController {
             req.status(), req.progress(), req.score(), req.comment());
         Anime a = animes.findById(e.getAnimeId()).orElseThrow();
         return WatchEntryResponse.from(e, a);
+    }
+
+    public record AdvanceProgressRequest(@NotNull @Positive Integer progress) {}
+
+    @PostMapping("/{animeId}/progress")
+    public WatchEntryResponse advanceProgress(
+        @AuthenticationPrincipal CurrentUser me,
+        @PathVariable Long animeId,
+        @Valid @RequestBody AdvanceProgressRequest req
+    ) {
+        Anime anime = animes.findById(animeId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "anime not found"));
+        WatchEntry entry = watchService.advanceProgress(me.userId(), animeId, req.progress());
+        return WatchEntryResponse.from(entry, anime);
     }
 
     @DeleteMapping("/{animeId}")

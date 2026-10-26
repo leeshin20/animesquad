@@ -68,6 +68,14 @@ public class WatchService {
         return e;
     }
 
+    @Transactional
+    public WatchEntry advanceProgress(Long userId, Long animeId, int progress) {
+        if (entries.advanceProgress(userId, animeId, progress) > 0) {
+            events.publishEvent(new ProgressUpdatedEvent(userId, animeId, progress));
+        }
+        return entries.findByUserIdAndAnimeId(userId, animeId).orElseThrow();
+    }
+
     @Transactional(readOnly = true)
     public List<WatchEntry> listMine(Long userId) {
         return entries.findAllByUserIdOrderByUpdatedAtDesc(userId);
