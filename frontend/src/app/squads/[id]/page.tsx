@@ -7,6 +7,7 @@ import { SquadEditModal } from "@/app/components/SquadEditModal";
 import { SquadMembersModal } from "@/app/components/SquadMembersModal";
 import { HorizontalScroll } from "@/app/components/HorizontalScroll";
 import { displayTitle } from "@/app/lib/anilist-labels";
+import { projectWatchFeed } from "@/app/lib/watch-feed";
 import { nextFeedCursor } from "@/app/lib/feed-pagination";
 import { Timeline, Avatar, type FeedItemWithSquad } from "@/app/components/Timeline";
 import { NoticeBanner } from "@/app/components/NoticeBanner";
@@ -105,7 +106,7 @@ export default function SquadFeedPage({ params }: { params: { id: string } }) {
 
         <section className="min-w-0">
           <h2 className="mb-3 text-sm font-semibold text-neutral-700">스쿼드 활동</h2>
-          <Timeline items={items} currentUserId={me?.id} />
+          <Timeline items={projectWatchFeed(items)} currentUserId={me?.id} />
           {!done && (
             <div className="mt-3 text-center">
               <button

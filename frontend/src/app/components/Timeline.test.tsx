@@ -45,3 +45,10 @@ test("keeps another user's avatar and name linked to the public profile", () => 
   assert.equal(html.match(/href="\/users\/7"/g)?.length, 2);
   assert.doesNotMatch(html, /href="\/profile"/);
 });
+
+test("renders consecutive watch groups without a missing-rating label", () => {
+  const watched = { ...item, episodes: [1, 2, 3], anime: { id: 10, titleRomaji: "Frieren", titleKorean: "프리렌", coverImageUrl: null } };
+  const html = renderToStaticMarkup(<Timeline items={[watched]} />);
+  assert.match(html, /1~3화 시청/);
+  assert.doesNotMatch(html, /별점 없음/);
+});

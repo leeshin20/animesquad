@@ -7,7 +7,8 @@ import { displayTitle } from "@/app/lib/anilist-labels";
 import { Stars } from "@/app/components/Stars";
 import { statusLabel, statusBadge } from "@/app/lib/watch-status";
 
-export type FeedItemWithSquad = FeedItem & { squad?: { id: number; name: string } };
+export type { WatchFeedItem as FeedItemWithSquad } from "@/app/lib/watch-feed";
+import type { WatchFeedItem as FeedItemWithSquad } from "@/app/lib/watch-feed";
 
 export function Timeline({
   items,
@@ -75,14 +76,15 @@ function TimelineItem({
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-          {showSquad && item.squad && (
+          {showSquad && (item.squads ?? (item.squad ? [item.squad] : [])).map((squad) => (
             <Link
-              href={`/squads/${item.squad.id}`}
+              key={squad.id}
+              href={`/squads/${squad.id}`}
               className="rounded-full bg-neutral-700 px-2 py-0.5 text-xs text-white hover:bg-neutral-600"
             >
-              {item.squad.name}
+              {squad.name}
             </Link>
-          )}
+          ))}
           {item.actor ? (
             <Link href={profileHref} className="font-semibold text-neutral-900 hover:underline">
               {name}
@@ -117,7 +119,7 @@ function TimelineItem({
                 </div>
                 <div className="flex items-center gap-1.5">
                   {ep != null && (
-                    <span className="flex-none whitespace-nowrap rounded bg-blue-50 px-1.5 py-0.5 text-sm font-medium text-blue-700">{ep}화</span>
+                    <span className="flex-none whitespace-nowrap rounded bg-blue-50 px-1.5 py-0.5 text-sm font-medium text-blue-700">{item.episodes && item.episodes.length > 1 ? `${item.episodes[0]}~${item.episodes[item.episodes.length - 1]}화 시청` : `${ep}화${item.type === "PROGRESS_UPDATED" ? " 시청" : ""}`}</span>
                   )}
                   {status != null && (
                     <span className={`flex-none whitespace-nowrap rounded px-1.5 py-0.5 text-sm font-medium ${statusBadge(status)}`}>
@@ -126,9 +128,7 @@ function TimelineItem({
                   )}
                   {score != null ? (
                     <Stars value={score} size="sm" />
-                  ) : (
-                    <span className="text-sm text-neutral-500">별점 없음</span>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
