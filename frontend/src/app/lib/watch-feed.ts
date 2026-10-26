@@ -48,8 +48,14 @@ export function projectWatchFeed(raw: WatchFeedItem[]): WatchFeedItem[] {
       const scopes = scope(row);
       if (scopes.length) {
         row.squads = scopes.filter(s => !reviews.has(reviewKey(row, s.id)));
-        if (!row.squads.length) continue;
-      } else if (reviews.has(reviewKey(row, 0))) continue;
+        if (!row.squads.length) {
+          if (actor != null) lastByActor.delete(actor);
+          continue;
+        }
+      } else if (reviews.has(reviewKey(row, 0))) {
+        if (actor != null) lastByActor.delete(actor);
+        continue;
+      }
       if (row.payload.episodeWatchId != null && Number.isSafeInteger(episode(row)) && episode(row) > 0) {
         row.episodes = [episode(row)];
       }

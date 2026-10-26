@@ -110,7 +110,8 @@ export function EpisodeLogModal({
           {max ? `/${max}` : ""}화
         </p>
 
-        <div className="mt-5 space-y-4">
+        {!loaded && !error && <p role="status" className="mt-3 text-xs text-neutral-500">감상을 불러오는 중…</p>}
+        <fieldset disabled={!loaded || saving} className="mt-5 space-y-4">
           <div>
             <span className="text-xs font-medium text-neutral-600">회차</span>
             <div className="mt-1 flex items-center gap-1.5">
@@ -169,7 +170,7 @@ export function EpisodeLogModal({
               {error}
             </p>
           )}
-        </div>
+        </fieldset>
 
         <label className="flex items-center gap-2 text-sm text-neutral-600">
           <input

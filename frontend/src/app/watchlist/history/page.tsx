@@ -59,7 +59,7 @@ export default function WatchHistoryPage() {
       {rows.map(row => <li key={row.id} className="flex flex-wrap items-center gap-3 p-4">
         <Link href={`/anime/${row.anime.id}`} className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{displayTitle(row.anime)} · {row.episodeNumber}화 시청</p>
-          <p className="mt-1 text-xs text-neutral-500">{relativeTime(row.recordedAt)}{row.source === "LEGACY" ? " · 이전 기록" : row.source === "EXTENSION" ? " · 자동 기록" : ""}</p>
+          <p className="mt-1 text-xs text-neutral-500">{relativeTime(row.recordedAt)}{row.source === "LEGACY" ? " · 이전 기록" : row.source === "EXTENSION" ? " · 확장 프로그램" : ""}</p>
         </Link>
         <button disabled={openingReview || deleting} onClick={() => openReview(row)} className="text-xs text-neutral-500 underline underline-offset-2">감상 남기기</button>
         <button disabled={deleting} onClick={() => setPendingDelete(row)} aria-label={`${row.episodeNumber}화 시청 기록 삭제`} className="text-xs text-neutral-400 hover:text-rose-600">삭제</button>

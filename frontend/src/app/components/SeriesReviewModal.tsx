@@ -20,6 +20,7 @@ export function SeriesReviewModal({
   onSaved: () => void;
 }) {
   const [status, setStatus] = useState<WatchStatus>(entry.status);
+  const [progress, setProgress] = useState(String(entry.progress));
   const [score, setScore] = useState<number | null>(entry.score);
   const [comment, setComment] = useState(entry.comment ?? "");
   const [saving, setSaving] = useState(false);
@@ -32,7 +33,7 @@ export function SeriesReviewModal({
   // A review only makes sense once watching has progressed past 볼 예정/보는 중.
   const canReview = status !== "PLAN_TO_WATCH" && status !== "WATCHING";
 
-  const dirty = score !== entry.score || comment.trim() !== (entry.comment ?? "");
+  const dirty = status !== entry.status || Number(progress) !== entry.progress || score !== entry.score || comment.trim() !== (entry.comment ?? "");
   const requestClose = () => (dirty ? setConfirming(true) : onClose());
 
   async function remove() {
@@ -49,11 +50,17 @@ export function SeriesReviewModal({
   }
 
   async function save() {
+    const nextProgress = Number(progress);
+    if (!Number.isSafeInteger(nextProgress) || nextProgress < 0 ||
+      (nextProgress !== entry.progress && entry.anime.episodes != null && nextProgress > entry.anime.episodes)) {
+      setError("유효한 진도를 입력해주세요"); return;
+    }
     setSaving(true);
     setError(null);
     try {
       await apiPatch(`/api/watch/${entry.anime.id}`, {
         status,
+        ...(nextProgress !== entry.progress ? { progress: nextProgress } : {}),
         score,
         comment: comment.trim() || null,
       });
@@ -90,6 +97,12 @@ export function SeriesReviewModal({
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
+          </label>
+
+          <label className="block">
+            <span className="text-xs font-medium text-neutral-600">현재 진도</span>
+            <input aria-label="현재 진도" type="number" min={0} value={progress} onChange={e => setProgress(e.target.value)} className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+            <span className="mt-1 block text-xs text-neutral-400">기존 시청 기록은 유지됩니다.</span>
           </label>
 
           <div className={canReview ? "" : "pointer-events-none opacity-50"}>

@@ -57,3 +57,11 @@ test("unknown legacy snapshots remain individual and input is not mutated", () =
   assert.equal(projectWatchFeed([one, two]).length, 2);
   assert.equal(one.episodes, undefined);
 });
+
+test("a watch hidden behind a later review still separates the viewer's sessions", () => {
+  const other = watched(1, 25, 1, 20);
+  const review: WatchFeedItem = { ...other, id: 999, type: "EPISODE_RATED", payload: { episode: 1, comment: "감상" }, createdAt: new Date(Date.UTC(2026, 9, 26, 2)).toISOString() };
+  const projected = projectWatchFeed([watched(1, 0), other, watched(2, 50), review]);
+  assert.equal(projected.length, 3);
+  assert.equal(projected.some(row => row.episodes?.length === 2), false);
+});
