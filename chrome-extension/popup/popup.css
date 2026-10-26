@@ -14,8 +14,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  width: 320px;
-  padding: 18px;
+  width: 300px;
+  padding: 12px;
   background: #FFFFFF;
   color: var(--neutral-950);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -25,26 +25,30 @@ body.embedded { width: 100%; }
 
 button, input, textarea { font: inherit; }
 .hidden { display: none !important; }
-#app { display: flex; flex-direction: column; gap: 18px; }
-.session-panel { display: flex; flex-direction: column; gap: 12px; }
-.account-section, .current-anime-section { display: flex; flex-direction: column; gap: 4px; overflow-wrap: anywhere; }
-.account-section { padding-bottom: 12px; border-bottom: 1px solid var(--neutral-200); }
-#account-name, #current-anime-title { font-size: 14px; font-weight: 700; line-height: 1.45; }
-#account-email { font-size: 12px; }
-.current-anime-section { padding: 12px; border-radius: 10px; background: var(--neutral-100); }
-.view { display: flex; flex-direction: column; gap: 18px; }
+#app { display: flex; flex-direction: column; gap: 10px; }
+.popup-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.embedded #view-empty { display: none; }
+.session-panel { display: flex; flex-direction: column; gap: 8px; }
+.account-section { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.account-avatar { position: relative; display: grid; place-items: center; flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; background: var(--brand-soft); color: var(--brand-strong); font-size: 12px; font-weight: 700; }
+#account-avatar { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#account-name { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; }
+.current-anime-section { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; border-radius: 8px; background: var(--neutral-100); overflow-wrap: anywhere; }
+#current-anime-title { font-size: 13px; font-weight: 700; line-height: 1.4; }
+#current-anime-meta, #auto-record-status { font-size: 11px; }
+#playback-status { font-size: 10px; font-variant-numeric: tabular-nums; }
+.view { display: flex; flex-direction: column; gap: 10px; }
 
-.brand-lockup { display: flex; align-items: center; gap: 8px; }
-.brand-lockup img { width: 26px; height: 26px; }
-.brand-lockup h1 { font-size: 16px; font-weight: 700; letter-spacing: -.02em; }
+.brand-lockup { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.brand-lockup img { width: 20px; height: 20px; }
+.brand-lockup h1 { font-size: 14px; font-weight: 700; letter-spacing: -.02em; }
 .status-badge { display: inline-flex; width: fit-content; padding: 5px 8px; border-radius: 999px; background: var(--brand-soft); color: var(--brand-strong); font-size: 11px; font-weight: 700; }
 .state-copy, .empty-state { display: flex; flex-direction: column; gap: 8px; }
 .state-kicker, .field-kicker { color: var(--neutral-500); font-size: 11px; font-weight: 700; }
-.empty-state h2 { font-size: 16px; line-height: 1.4; }
 .hint { color: var(--neutral-500); font-size: 13px; line-height: 1.55; }
 
 .anime-section { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-#anime-label { margin-top: 3px; font-size: 15px; font-weight: 700; line-height: 1.45; }
+#anime-label { margin-top: 2px; font-size: 13px; font-weight: 700; line-height: 1.45; }
 .text-button { width: auto; padding: 3px 0; background: transparent; color: var(--brand-strong); font-size: 11px; white-space: nowrap; }
 .text-button:hover, .text-button:active { background: transparent; color: #166534; }
 .warning { padding: 9px 10px; border-radius: 8px; background: #FFFBEB; color: #92400E; font-size: 11px; line-height: 1.4; }
@@ -52,21 +56,21 @@ button, input, textarea { font: inherit; }
 .search-section { display: flex; flex-direction: column; gap: 6px; }
 label, .rating-field > span { color: var(--neutral-600); font-size: 11px; font-weight: 700; }
 input, textarea { width: 100%; border: 1px solid var(--neutral-300); border-radius: 9px; background: #FFFFFF; color: var(--neutral-950); font-size: 13px; outline: none; }
-input { height: 38px; padding: 0 10px; }
+input { height: 32px; padding: 0 10px; }
 textarea { padding: 10px; line-height: 1.45; }
 input::placeholder, textarea::placeholder { color: #A3A3A3; }
 
-.record-fields { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; }
+.record-fields { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; }
 .episode-field, .rating-field, .comment-field { display: flex; flex-direction: column; gap: 6px; }
 .episode-field input { font-weight: 700; }
-#comment-input { height: 72px; resize: none; }
+#comment-input { height: 48px; resize: none; }
 
-#stars { display: flex; align-items: center; gap: 2px; height: 38px; }
+#stars { display: flex; align-items: center; gap: 2px; height: 32px; }
 .star { width: auto; min-height: 0; height: 30px; padding: 1px; border-radius: 4px; background: transparent; color: var(--neutral-300); font-size: 21px; line-height: 1; }
 .star.active { color: #F59E0B; }
 .star:hover, .star:active { background: transparent; }
 
-button { width: 100%; min-height: 42px; padding: 10px 12px; border: 0; border-radius: 10px; background: var(--brand-strong); color: #FFFFFF; cursor: pointer; font-size: 13px; font-weight: 700; transition: background-color .15s ease, border-color .15s ease, opacity .15s ease; }
+button { width: 100%; min-height: 36px; padding: 8px 10px; border: 0; border-radius: 10px; background: var(--brand-strong); color: #FFFFFF; cursor: pointer; font-size: 13px; font-weight: 700; transition: background-color .15s ease, border-color .15s ease, opacity .15s ease; }
 button:hover { background: #166534; }
 button:active { background: #14532D; }
 button.secondary { border: 1px solid var(--neutral-300); background: #FFFFFF; color: var(--neutral-600); }
@@ -84,7 +88,7 @@ ul:empty { display: none; }
 .result-button:focus-visible { outline: 2px solid var(--brand-strong); outline-offset: -2px; }
 ul li.selected .result-button { background: var(--brand-soft); color: var(--brand-strong); font-weight: 700; }
 
-.done-view { position: relative; min-height: 150px; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+.done-view { position: relative; min-height: 80px; align-items: center; justify-content: center; gap: 8px; text-align: center; }
 .done-icon { position: relative; width: 40px; height: 40px; }
 .done-icon > img { width: 40px; height: 40px; }
 .done-check { position: absolute; top: -4px; right: -8px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--brand-strong); color: #FFFFFF; font-size: 11px; font-weight: 800; }

@@ -38,14 +38,17 @@ async function init() {
   }
 
   $('account-name').textContent = account.displayName || 'AnimeSquad 사용자';
-  $('account-email').textContent = account.email || '';
+  $('account-initial').textContent = (account.displayName || 'A').trim().slice(0, 1) || 'A';
+  $('account-section').classList.remove('hidden');
+  if (account.avatarUrl) {
+    $('account-avatar').src = account.avatarUrl;
+    $('account-avatar').classList.remove('hidden');
+  }
   $('session-panel').classList.remove('hidden');
   let pending;
   if (embedded) {
     document.body.classList.add('embedded');
     $('btn-dismiss').textContent = '닫기';
-    $('empty-heading').textContent = '80%에 도달하면 자동으로 기록해요';
-    $('empty-hint').textContent = '작품이 연결되어 있으면 별도 클릭 없이 해당 회차를 시청 기록에 반영해요.';
     try {
       const context = await chrome.runtime.sendMessage({ type: 'LAFTEL_INLINE_CONTEXT' });
       if (!context?.episodeUrl) throw new Error('No current episode');
@@ -127,7 +130,7 @@ async function selectAnime(anime) {
   const generation = ++selectionGeneration;
   selectedAnime = anime;
   const ep = parseInt($('ep-input').value) || null;
-  $('anime-label').textContent = `${displayTitle(anime)} ${ep ? ep + '화' : ''} 기록할까요?`;
+  $('anime-label').textContent = `${displayTitle(anime)} ${ep ? ep + '화' : ''}`;
 
   const check = await apiFetch(`/api/watch/${anime.id}`);
   if (generation !== selectionGeneration) return;
@@ -334,16 +337,37 @@ $('btn-record').addEventListener('click', async () => {
 
 function renderAutoRecordStatus(result) {
   const labels = {
-    waiting: '전체 재생 시간의 80%에 도달하면 자동으로 기록해요.',
-    saving: '시청 기록을 자동 저장하고 있어요.',
-    saved: '시청 기록을 저장했어요. 별점과 한줄평도 남길 수 있어요.',
-    'needs-match': '작품을 자동으로 연결하지 못했어요. 아래에서 선택해 기록해주세요.',
-    'login-required': '자동 기록하려면 AnimeSquad에 다시 로그인해주세요.',
-    failed: '자동 기록에 실패했어요. 1분 후 재시도하거나 아래에서 직접 기록해주세요.',
+    waiting: '80%부터 자동 기록',
+    saving: '저장 중…',
+    saved: '시청 기록 저장 완료',
+    'needs-match': '작품을 선택해주세요',
+    'login-required': '로그인이 필요해요',
+    failed: '저장 실패 · 1분 후 재시도',
   };
-  $('auto-record-status').textContent = result.message || labels[result.status] || labels.waiting;
+  let text = result.message || labels[result.status] || '페이지를 새로고침해주세요';
+  if (result.status === 'waiting' && result.playback?.paused && !result.playback.ended
+    && result.playback.currentTime / result.playback.duration >= 0.8) text = '재생하면 자동 기록';
+  $('auto-record-status').textContent = text;
+  renderPlayback(result.playback);
   $('auto-record-status').classList.remove('hidden');
 }
+
+function renderPlayback(playback) {
+  const line = $('playback-status');
+  line.classList.remove('hidden');
+  if (!playback || !Number.isFinite(playback.duration) || playback.duration <= 0
+    || !Number.isFinite(playback.currentTime)) {
+    line.textContent = '재생 정보 확인 중';
+    return;
+  }
+  const format = (seconds) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+  const percent = Math.min(100, Math.max(0, Math.floor(playback.currentTime / playback.duration * 100)));
+  const state = playback.seeking ? '탐색 중' : playback.readyState < 3 ? '로딩 중'
+    : playback.ended ? '재생 완료' : playback.paused ? '일시정지' : '재생 중';
+  line.textContent = `${format(playback.currentTime)} / ${format(playback.duration)} · ${percent}% · ${state}`;
+}
+
+$('account-avatar').addEventListener('error', () => $('account-avatar').classList.add('hidden'));
 
 async function refreshInlineStatus() {
   try {

@@ -7,20 +7,24 @@
 </head>
 <body>
   <main id="app">
-    <header class="brand-lockup">
-      <img src="../assets/logo-mark.svg" alt="" aria-hidden="true" />
-      <h1>AnimeSquad</h1>
+    <header class="popup-header">
+      <div class="brand-lockup">
+        <img src="../assets/logo-mark.svg" alt="" aria-hidden="true" />
+        <h1>AnimeSquad</h1>
+      </div>
+      <section id="account-section" class="account-section hidden" aria-label="로그인 계정">
+        <span class="account-avatar">
+          <span id="account-initial" aria-hidden="true"></span>
+          <img id="account-avatar" class="hidden" alt="프로필 사진" referrerpolicy="no-referrer" />
+        </span>
+        <p id="account-name"></p>
+      </section>
     </header>
     <div id="session-panel" class="session-panel hidden">
-      <section class="account-section" aria-label="로그인 계정">
-        <span class="field-kicker">로그인 계정</span>
-        <p id="account-name"></p>
-        <p id="account-email" class="hint"></p>
-      </section>
       <section class="current-anime-section" aria-label="현재 탭에서 감지한 작품" aria-live="polite">
-        <span class="field-kicker">현재 탭에서 감지한 작품</span>
         <p id="current-anime-title">감지 정보를 확인하고 있어요</p>
         <p id="current-anime-meta" class="hint"></p>
+        <p id="playback-status" class="hint hidden" role="status"></p>
       </section>
     </div>
     <p id="auto-record-status" class="hint hidden" role="status"></p>
@@ -35,14 +39,10 @@
     <section id="view-empty" class="view hidden">
       <div class="empty-state">
         <span class="status-badge">기록 대기</span>
-        <h2 id="empty-heading">엔딩 감지 후 기록할 수 있어요</h2>
-        <p id="empty-hint" class="hint">엔딩 구간에 도달하면 기록 화면이 열려요. 작품과 회차를 확인한 뒤 기록해주세요.</p>
       </div>
     </section>
 
     <section id="view-record" class="view hidden">
-      <span class="status-badge">시청 감지됨</span>
-
       <div class="anime-section">
         <div>
           <span class="field-kicker">기록할 작품</span>

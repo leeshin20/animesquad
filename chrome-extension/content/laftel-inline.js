@@ -52,9 +52,9 @@ function asqUpdateLaftelInline(state) {
         button:hover { background: #DCFCE7; }
         button:focus-visible { outline: 2px solid #15803D; outline-offset: 3px; }
         img { width: 20px; height: 20px; }
-        .panel { position: fixed; width: 322px; max-width: calc(100vw - 24px); z-index: 2147483647; border: 1px solid #E5E5E5; border-radius: 14px; background: white; box-shadow: 0 10px 36px #0003; overflow: hidden; }
+        .panel { position: fixed; width: 302px; max-width: calc(100vw - 24px); z-index: 2147483647; border: 1px solid #E5E5E5; border-radius: 14px; background: white; box-shadow: 0 10px 36px #0003; overflow: hidden; }
         .panel[hidden] { display: none; }
-        header { display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 0 12px; border-bottom: 1px solid #F5F5F5; color: #525252; font-size: 12px; }
+        header { display: flex; align-items: center; justify-content: space-between; height: 32px; padding: 0 10px; border-bottom: 1px solid #F5F5F5; color: #525252; font-size: 12px; }
         header button { border: 0; padding: 4px 8px; background: transparent; color: #525252; }
         iframe { display: block; width: 100%; border: 0; background: white; }
       </style>
@@ -76,7 +76,7 @@ function asqUpdateLaftelInline(state) {
   if (button.getAttribute('aria-label') !== description) button.setAttribute('aria-label', description);
   if (previous && previous.readyToRecord !== state.readyToRecord) {
     const frame = shadow.querySelector('iframe');
-    if (frame) frame.src = chrome.runtime.getURL('popup/index.html') + '?embedded=1';
+    if (frame) { frame.src = chrome.runtime.getURL('popup/index.html') + '?embedded=1'; asqPlaceLaftelPanel(); }
   }
 }
 
@@ -90,14 +90,19 @@ function asqToggleLaftelPanel() {
     frame.src = chrome.runtime.getURL('popup/index.html') + '?embedded=1';
     panel.appendChild(frame);
   }
-  const rect = asqInlineHost.getBoundingClientRect();
-  const below = innerHeight - rect.bottom - 12;
-  const height = Math.min(620, below >= 300 ? below : innerHeight - 24);
-  panel.style.left = Math.max(12, Math.min(rect.left, innerWidth - 334)) + 'px';
-  panel.style.top = (below >= 300 ? rect.bottom + 8 : Math.max(12, rect.top - height - 8)) + 'px';
-  shadow.querySelector('iframe').style.height = Math.max(160, height - 42) + 'px';
+  asqPlaceLaftelPanel();
   panel.hidden = false;
   shadow.querySelector('[data-action="toggle"]').setAttribute('aria-expanded', 'true');
+}
+
+function asqPlaceLaftelPanel() {
+  const shadow = asqInlineHost.shadowRoot;
+  const panel = shadow.querySelector('.panel');
+  const rect = asqInlineHost.getBoundingClientRect();
+  const height = Math.min(asqInlineCurrent.readyToRecord ? 430 : 170, Math.max(120, innerHeight - 76));
+  panel.style.left = Math.max(12, Math.min(rect.left, innerWidth - 314)) + 'px';
+  panel.style.top = (rect.bottom + height + 42 <= innerHeight - 12 ? rect.bottom + 8 : Math.max(12, rect.top - height - 42)) + 'px';
+  shadow.querySelector('iframe').style.height = height + 'px';
 }
 
 function asqCloseLaftelPanel() {

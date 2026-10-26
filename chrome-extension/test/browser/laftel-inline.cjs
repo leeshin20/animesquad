@@ -15,6 +15,7 @@ const artifacts = process.env.ASQ_ARTIFACT_DIR || os.tmpdir();
   const writes = [];
   let progress = 0;
   const server = http.createServer(async (req, res) => {
+    if (req.url === '/avatar.svg') { res.setHeader('content-type', 'image/svg+xml'); res.end('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="16" fill="#22C55E"/></svg>'); return; }
     res.setHeader('content-type', 'application/json');
     if (req.method !== 'GET') {
       const chunks = [];
@@ -23,7 +24,7 @@ const artifacts = process.env.ASQ_ARTIFACT_DIR || os.tmpdir();
       writes.push({ method: req.method, path: req.url, payload });
       if (req.url === '/api/watch/1516/progress') progress = Math.max(progress, payload.progress);
     }
-    const value = req.url === '/api/me' ? { id: 7, displayName: '프리렌팬', email: 'frieren@example.com' }
+    const value = req.url === '/api/me' ? { id: 7, displayName: '프리렌팬', email: 'frieren@example.com', avatarUrl: base + '/avatar.svg' }
       : req.url.includes('/platform-links/') ? { id: 1516, titleKorean: '장송의 프리렌' }
       : req.url.includes('/search') ? [] : { progress };
     res.end(JSON.stringify(value));
@@ -75,17 +76,29 @@ const artifacts = process.env.ASQ_ARTIFACT_DIR || os.tmpdir();
     const panel = page.frameLocator('#animesquad-inline iframe');
     await panel.locator('#account-name').getByText('프리렌팬').waitFor();
     assert.equal(await panel.locator('#current-anime-meta').innerText(), '라프텔 · 1화');
-    assert.equal(await panel.locator('#view-empty').isVisible(), true);
+    assert.equal(await panel.locator('#view-record').isVisible(), false);
+    assert.equal(await panel.locator('body').innerText().then(text => text.includes('frieren@example.com')), false);
+    await panel.locator('#account-avatar').evaluate(img => img.decode());
+    assert.equal(await panel.locator('#account-avatar').evaluate(img => img.naturalWidth > 0), true);
+    assert.ok((await host.locator('iframe').boundingBox()).height <= 180, 'waiting panel is compact');
     const playAt = async (seconds) => {
       await page.locator('video').evaluate(async (video, time) => { video.currentTime = time; await video.play(); }, seconds);
       await page.waitForFunction(() => { const v = document.querySelector('video'); return !v.seeking && v.readyState >= 3 && !v.paused; });
     };
+    await page.locator('video').evaluate(video => { video.currentTime = 1440 * 0.8; });
+    await page.waitForFunction(() => !document.querySelector('video').seeking);
+    await page.waitForTimeout(1200);
+    assert.equal(writes.length, 0, 'paused threshold does not auto-record');
+    await panel.locator('#auto-record-status').getByText('재생하면 자동 기록').waitFor();
+    assert.match(await panel.locator('#playback-status').innerText(), /80% · 일시정지/);
+    await page.screenshot({ path: path.join(artifacts, 'animesquad-compact-waiting.png'), fullPage: true });
     await playAt(1440 * 0.79);
     await page.waitForTimeout(1200);
     assert.equal(writes.length, 0, '79% must not auto-record');
+    assert.match(await panel.locator('#playback-status').innerText(), /79%/);
     await playAt(1440 * 0.8);
     await page.waitForTimeout(1500);
-    await panel.locator('#auto-record-status').getByText(/시청 기록을 저장했어요/).waitFor();
+    await panel.locator('#auto-record-status').getByText(/시청 기록 저장 완료/).waitFor();
     assert.equal(progress, 1, '80% records without clicking record');
     assert.equal(await host.locator('[data-status]').innerText(), '🟢 자동 기록 중');
     await panel.locator('#comment-input').fill('작성 중인 감상');
@@ -109,7 +122,7 @@ const artifacts = process.env.ASQ_ARTIFACT_DIR || os.tmpdir();
     await playAt(1440 * 0.8);
     await host.locator('[data-action="toggle"]').click();
     await page.waitForTimeout(1200);
-    await panel.locator('#auto-record-status').getByText(/시청 기록을 저장했어요/).waitFor();
+    await panel.locator('#auto-record-status').getByText(/시청 기록 저장 완료/).waitFor();
     assert.equal(progress, 2);
     assert.equal(await host.locator('[data-status]').innerText(), '🟢 자동 기록 중');
     await page.evaluate(() => { history.pushState({}, '', '/item/41666'); document.title = '(자막) 장송의 프리렌'; });
@@ -121,7 +134,7 @@ const artifacts = process.env.ASQ_ARTIFACT_DIR || os.tmpdir();
       { method: 'POST', path: '/api/watch/1516/progress', payload: { progress: 1 } },
       { method: 'POST', path: '/api/watch/1516/progress', payload: { progress: 2 } },
     ]);
-    console.log(JSON.stringify({ passed: true, writes, checked: ['native video position','79% no write','80% automatic write','fixed logo text','panel outcome','comment retained','no duplicate','SPA old media blocked','closed panel refresh','React remount','non-player cleanup'], screenshot: path.join(artifacts, 'animesquad-laftel-auto.png') }));
+    console.log(JSON.stringify({ passed: true, writes, checked: ['compact panel/avatar/no email','paused 80% reason','live playback measurement','native video position','79% no write','80% automatic write','fixed logo text','panel outcome','comment retained','no duplicate','SPA old media blocked','closed panel refresh','React remount','non-player cleanup'], screenshot: path.join(artifacts, 'animesquad-laftel-auto.png') }));
   } finally {
     if (context) await context.close();
     server.close();

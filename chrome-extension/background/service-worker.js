@@ -93,13 +93,13 @@ async function asqHandleInline(message, sender) {
   if (!state || state.episodeUrl !== sender.tab.url || asqIsInvalidNetflixTitle(state.animeName)) {
     return { ok: false };
   }
-  if (message.type === 'LAFTEL_INLINE_STATUS') return { episodeUrl: state.episodeUrl, status: state.autoRecordStatus, message: state.autoRecordMessage };
+  if (message.type === 'LAFTEL_INLINE_STATUS') return { episodeUrl: state.episodeUrl, status: state.autoRecordStatus, message: state.autoRecordMessage, playback: state.playback };
   if (message.type === 'LAFTEL_INLINE_CONTEXT') {
     const pending = state.readyToRecord
       ? await asqResolvePending(state, asqLaftelSource(sender.tab.url)) : null;
     const latest = await chrome.tabs.sendMessage(sender.tab.id, { type: 'GET_INLINE_STATE' });
     if (latest?.episodeUrl !== state.episodeUrl || latest.ep !== state.ep || latest.animeName !== state.animeName) return { ok: false };
-    return { episodeUrl: state.episodeUrl, current: { platform: '라프텔', animeName: state.animeName, ep: state.ep }, pending, status: state.autoRecordStatus, message: state.autoRecordMessage };
+    return { episodeUrl: state.episodeUrl, current: { platform: '라프텔', animeName: state.animeName, ep: state.ep }, pending, status: state.autoRecordStatus, message: state.autoRecordMessage, playback: state.playback };
   }
   const matches = message.episodeUrl === state.episodeUrl;
   if (message.type === 'LAFTEL_INLINE_VALIDATE') return { ok: matches && state.readyToRecord === true };

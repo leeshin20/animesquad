@@ -75,8 +75,8 @@ function popupContext(apiFetch, {
     'watchlist-warning', 'search-section', 'search-input', 'search-results',
     'ep-input', 'comment-input', 'btn-login', 'btn-dismiss', 'btn-record',
     'btn-change-anime', 'record-status', 'session-panel', 'account-name',
-    'account-email', 'current-anime-title', 'current-anime-meta',
-    'auto-record-status', 'empty-heading', 'empty-hint',
+    'account-section', 'account-avatar', 'account-initial', 'current-anime-title', 'current-anime-meta', 'playback-status',
+    'auto-record-status',
   ];
   const elements = Object.fromEntries(ids.map((id) => [id, new FakeElement()]));
   const stars = Array.from({ length: 5 }, (_, index) => {
@@ -680,7 +680,7 @@ async function chooseLaftelResult(h) {
 test('Laftel ID-resolved anime wins even when the detected title changes', async () => {
   const pending = { ...laftelPending([{ id: 1516, titleKorean: '장송의 프리렌' }], true), animeName: '완전히 다른 표기' };
   const h = await openLaftelPopup({ pending });
-  assert.strictEqual(h.elements['anime-label'].textContent, '장송의 프리렌 1화 기록할까요?');
+  assert.strictEqual(h.elements['anime-label'].textContent, '장송의 프리렌 1화');
   assert.strictEqual(h.elements['ep-input'].value, 1);
 });
 
@@ -689,7 +689,7 @@ test('Laftel title fallback selects a unique exact alias rather than the first s
     { id: 99, titleKorean: '장송의 프리렌 외전' },
     { id: 1516, titleKorean: '장송의 프리렌', searchKeywords: '(자막) 장송의 프리렌, 프리렌' },
   ]) });
-  assert.strictEqual(h.elements['anime-label'].textContent, '장송의 프리렌 1화 기록할까요?');
+  assert.strictEqual(h.elements['anime-label'].textContent, '장송의 프리렌 1화');
   assert.strictEqual(h.calls.some(([p]) => p === '/api/watch/99'), false);
 });
 
@@ -767,7 +767,7 @@ test('로그인한 계정과 엔딩 전 현재 탭의 작품 정보를 빈 상�
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8'), harness.context);
   await new Promise((resolve) => setImmediate(resolve));
   assert.strictEqual(harness.elements['account-name'].textContent, '프리렌팬');
-  assert.strictEqual(harness.elements['account-email'].textContent, 'frieren@example.com');
+  assert.strictEqual(harness.elements['account-initial'].textContent, '프');
   assert.strictEqual(harness.elements['session-panel'].classNames.has('hidden'), false);
   assert.strictEqual(harness.elements['current-anime-title'].textContent, '(자막) 장송의 프리렌');
   assert.strictEqual(harness.elements['current-anime-meta'].textContent, '라프텔 · 1화');
@@ -891,7 +891,6 @@ test('inline panel explains 80% auto recording and displays actual saved outcome
   const h = await embeddedPopup({ embeddedContext: { ...inlineContext(), status: 'saved' } });
   assert.match(h.elements['auto-record-status'].textContent, /저장/);
   assert.strictEqual(h.elements['auto-record-status'].classNames.has('hidden'), false);
-  assert.match(h.elements['empty-heading'].textContent, /80%/);
 });
 test('auto status polling preserves a comment being typed while reporting failure', async () => {
   const info = { ...inlineContext(), status: 'saving' };
@@ -901,4 +900,34 @@ test('auto status polling preserves a comment being typed while reporting failur
   await h.context.refreshInlineStatus();
   assert.match(h.elements['auto-record-status'].textContent, /실패/);
   assert.strictEqual(h.elements['comment-input'].value, '작성 중인 감상');
+});
+
+
+test('account shows nickname and avatar without rendering email', async () => {
+  const h = popupContext(async () => ({ ok: true, json: async () => ({ displayName: '울라리', email: 'private@example.com', avatarUrl: 'https://images.example/avatar.png' }) }), { pending: null });
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../popup/popup.js'), 'utf8'), h.context);
+  await new Promise((r) => setImmediate(r));
+  assert.strictEqual(h.elements['account-name'].textContent, '울라리');
+  assert.strictEqual(h.elements['account-avatar'].src, 'https://images.example/avatar.png');
+  assert.strictEqual(h.elements['account-avatar'].classNames.has('hidden'), false);
+  assert.strictEqual(Object.values(h.elements).some((e) => e.textContent.includes('private@example.com')), false);
+  await h.elements['account-avatar'].dispatch('error');
+  assert.strictEqual(h.elements['account-avatar'].classNames.has('hidden'), true);
+  assert.strictEqual(h.elements['account-initial'].textContent, '울');
+});
+
+test('paused 80% snapshot explains that playback must resume and displays measured time', async () => {
+  const h = await embeddedPopup({ embeddedContext: { ...inlineContext(false), status: 'waiting',
+    playback: { currentTime: 1200, duration: 1440, paused: true, seeking: false, readyState: 4 } } });
+  assert.strictEqual(h.elements['playback-status'].textContent, '20:00 / 24:00 · 83% · 일시정지');
+  assert.match(h.elements['auto-record-status'].textContent, /재생하면/);
+});
+
+test('playback info distinguishes missing video from seeking without inventing time', async () => {
+  const info = { ...inlineContext(false), status: 'waiting', playback: null };
+  const h = await embeddedPopup({ embeddedContext: info });
+  assert.strictEqual(h.elements['playback-status'].textContent, '재생 정보 확인 중');
+  info.playback = { currentTime: 1152, duration: 1440, paused: false, seeking: true, readyState: 4 };
+  await h.context.refreshInlineStatus();
+  assert.match(h.elements['playback-status'].textContent, /탐색 중/);
 });

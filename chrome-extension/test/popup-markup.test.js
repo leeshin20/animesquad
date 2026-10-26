@@ -45,9 +45,9 @@ test('팝업 스타일은 승인된 크기와 브랜드 역할을 사용한다',
   assert.match(css, /--brand-bright:\s*#22C55E/);
   assert.match(css, /--brand-strong:\s*#15803D/);
   assert.match(css, /--brand-soft:\s*#DCFCE7/);
-  assert.match(css, /width:\s*320px/);
-  assert.match(css, /padding:\s*18px/);
-  assert.match(css, /#comment-input[\s\S]*height:\s*72px/);
+  assert.match(css, /width:\s*300px/);
+  assert.match(css, /padding:\s*12px/);
+  assert.match(css, /#comment-input[\s\S]*height:\s*48px/);
   assert.match(css, /resize:\s*none/);
   assert.match(css, /focus-visible[\s\S]*--brand-strong/);
   assert.match(css, /\.star\s*{[^}]*min-height:\s*0[^}]*height:\s*\d+px/s);
@@ -55,9 +55,9 @@ test('팝업 스타일은 승인된 크기와 브랜드 역할을 사용한다',
   assert.match(css, /\.result-button:focus-visible\s*{[^}]*--brand-strong/s);
 });
 
-test('빈 상태 안내는 엔딩 감지 기준을 설명한다', () => {
+test('compact account markup omits email and keeps an avatar', () => {
   const html = fs.readFileSync(path.join(__dirname, '../popup/index.html'), 'utf8');
-
-  assert.match(html, /엔딩 구간에 도달하면/);
-  assert.doesNotMatch(html, /10분 이상/);
+  assert.doesNotMatch(html, /account-email/);
+  assert.match(html, /id="account-avatar"/);
+  assert.doesNotMatch(html, /엔딩 구간에 도달하면/);
 });
