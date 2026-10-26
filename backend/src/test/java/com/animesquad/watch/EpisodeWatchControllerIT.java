@@ -126,8 +126,11 @@ class EpisodeWatchControllerIT extends AbstractIntegrationTest {
         assertThat(request(u, HttpMethod.POST, "/api/watch/" + a + "/progress", Map.of("progress", 1, "source", "LEGACY"), Map.class).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         request(u, HttpMethod.POST, "/api/watch/" + a + "/progress", Map.of("progress", 1), Map.class);
         assertThat((Map) history(u, "").getBody().getFirst()).containsEntry("source", "UNKNOWN");
+        assertThat(request(u, HttpMethod.PUT, "/api/watch/" + a + "/episodes/0", Map.of("score", 4), Map.class).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         watches.updateEntry(u, a, null, 10, null, null);
         assertThat(history(u, "").getBody()).hasSize(1);
+        request(u, HttpMethod.PUT, "/api/watch/" + a + "/episodes/2", Map.of("score", 4, "source", "EXTENSION"), Map.class);
+        assertThat((Map) history(u, "").getBody().getFirst()).containsEntry("source", "EXTENSION");
         watches.removeFromList(u, a);
         assertThat(history(u, "").getBody()).isEmpty();
     }

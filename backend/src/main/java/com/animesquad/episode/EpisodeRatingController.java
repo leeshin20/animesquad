@@ -28,7 +28,7 @@ public class EpisodeRatingController {
         @Valid @RequestBody RateEpisodeRequest req
     ) {
         EpisodeRating r = service.upsertRating(
-            me.userId(), animeId, episodeNumber, req.score(), req.comment());
+            me.userId(), animeId, episodeNumber, req.score(), req.comment(), req.source());
         return EpisodeRatingResponse.from(r);
     }
 

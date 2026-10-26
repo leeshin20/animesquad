@@ -58,11 +58,12 @@
         <ul id="search-results" aria-label="검색 결과"></ul>
       </div>
 
-      <div class="record-fields">
-        <div class="episode-field">
-          <label for="ep-input">화수</label>
-          <input id="ep-input" type="number" min="1" inputmode="numeric" />
-        </div>
+      <div class="episode-field">
+        <label for="ep-input">화수</label>
+        <input id="ep-input" type="number" min="1" inputmode="numeric" />
+      </div>
+      <details class="optional-review">
+        <summary>감상 남기기</summary>
         <div class="rating-field">
           <span>평점 · 선택</span>
           <div id="stars" role="radiogroup" aria-label="평점">
@@ -73,15 +74,14 @@
             <button class="star" type="button" role="radio" aria-checked="false" aria-label="5점" data-v="5">★</button>
           </div>
         </div>
-      </div>
-
-      <div class="comment-field">
-        <label for="comment-input">한줄평 · 선택</label>
-        <textarea id="comment-input" placeholder="이번 화는 어땠나요?" maxlength="280"></textarea>
-      </div>
+        <div class="comment-field">
+          <label for="comment-input">한줄평 · 선택</label>
+          <textarea id="comment-input" placeholder="이번 화는 어땠나요?" maxlength="280"></textarea>
+        </div>
+      </details>
 
       <div class="btn-row">
-        <button id="btn-record" type="button">기록하기</button>
+        <button id="btn-record" type="button">시청함</button>
         <button id="btn-dismiss" class="secondary" type="button">무시</button>
       </div>
       <p id="record-status" class="record-status hidden" role="status"></p>

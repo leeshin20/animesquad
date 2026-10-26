@@ -61,3 +61,9 @@ test('compact account markup omits email and keeps an avatar', () => {
   assert.match(html, /id="account-avatar"/);
   assert.doesNotMatch(html, /엔딩 구간에 도달하면/);
 });
+
+test('review fields are optional and collapsed by default', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../popup/index.html'), 'utf8');
+  assert.match(html, /<details class="optional-review">\s*<summary>감상 남기기<\/summary>/);
+  assert.doesNotMatch(html, /<details[^>]*\bopen\b/);
+});

@@ -60,7 +60,10 @@ input { height: 32px; padding: 0 10px; }
 textarea { padding: 10px; line-height: 1.45; }
 input::placeholder, textarea::placeholder { color: #A3A3A3; }
 
-.record-fields { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; }
+.episode-field { width: 64px; }
+.optional-review summary { cursor: pointer; font-size: 12px; color: var(--neutral-500); }
+.optional-review[open] summary { margin-bottom: 8px; }
+.optional-review .comment-field { margin-top: 8px; }
 .episode-field, .rating-field, .comment-field { display: flex; flex-direction: column; gap: 6px; }
 .episode-field input { font-weight: 700; }
 #comment-input { height: 48px; resize: none; }

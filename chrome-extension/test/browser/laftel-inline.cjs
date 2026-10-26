@@ -101,6 +101,8 @@ const artifacts = process.env.ASQ_ARTIFACT_DIR || os.tmpdir();
     await panel.locator('#auto-record-status').getByText(/시청 기록 저장 완료/).waitFor();
     assert.equal(progress, 1, '80% records without clicking record');
     assert.equal(await host.locator('[data-status]').innerText(), '🟢 자동 기록 중');
+    assert.equal(await panel.locator('#comment-input').isVisible(), false);
+    await panel.locator('.optional-review summary').click();
     await panel.locator('#comment-input').fill('작성 중인 감상');
     await page.waitForTimeout(1200);
     assert.equal(await panel.locator('#comment-input').inputValue(), '작성 중인 감상');
@@ -131,8 +133,8 @@ const artifacts = process.env.ASQ_ARTIFACT_DIR || os.tmpdir();
     assert.equal(await page.locator('a[href="/item/41666"]').evaluate((a) => a.style.display), 'block');
     assert.deepEqual(errors, []);
     assert.deepEqual(writes, [
-      { method: 'POST', path: '/api/watch/1516/progress', payload: { progress: 1 } },
-      { method: 'POST', path: '/api/watch/1516/progress', payload: { progress: 2 } },
+      { method: 'POST', path: '/api/watch/1516/progress', payload: { progress: 1, source: 'EXTENSION' } },
+      { method: 'POST', path: '/api/watch/1516/progress', payload: { progress: 2, source: 'EXTENSION' } },
     ]);
     console.log(JSON.stringify({ passed: true, writes, checked: ['compact panel/avatar/no email','paused 80% reason','live playback measurement','native video position','79% no write','80% automatic write','fixed logo text','panel outcome','comment retained','no duplicate','SPA old media blocked','closed panel refresh','React remount','non-player cleanup'], screenshot: path.join(artifacts, 'animesquad-laftel-auto.png') }));
   } finally {

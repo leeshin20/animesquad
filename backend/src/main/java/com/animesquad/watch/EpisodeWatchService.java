@@ -35,6 +35,7 @@ public class EpisodeWatchService {
 
     @Transactional
     public WatchEntry record(Long userId, Long animeId, int episode, String source) {
+        if (episode < 1) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "회차는 1 이상이어야 해요");
         String actualSource = source == null ? "UNKNOWN" : source;
         if (!Set.of("EXTENSION", "MANUAL", "UNKNOWN").contains(actualSource)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid recording source");

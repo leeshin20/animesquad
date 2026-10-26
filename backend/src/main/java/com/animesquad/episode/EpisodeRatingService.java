@@ -32,12 +32,18 @@ public class EpisodeRatingService {
     @Transactional
     public EpisodeRating upsertRating(Long userId, Long animeId,
                                       int episodeNumber, Integer score, String comment) {
+        return upsertRating(userId, animeId, episodeNumber, score, comment, "MANUAL");
+    }
+
+    @Transactional
+    public EpisodeRating upsertRating(Long userId, Long animeId, int episodeNumber,
+                                      Integer score, String comment, String source) {
         history.lockUser(userId);
         WatchEntry entry = watches.findByUserIdAndAnimeId(userId, animeId)
             .orElseThrow(() -> new IllegalArgumentException(
                 "watch entry not found — add the anime to your list first"));
 
-        history.record(userId, animeId, episodeNumber, "MANUAL");
+        history.record(userId, animeId, episodeNumber, source == null ? "MANUAL" : source);
         EpisodeRating rating = ratings.findByUserIdAndAnimeIdAndEpisodeNumber(
                 userId, animeId, episodeNumber)
             .map(existing -> {

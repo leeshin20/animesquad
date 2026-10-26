@@ -135,7 +135,7 @@ async function asqAutoRecord(sender) {
   }
   let response;
   try {
-    response = await apiFetch(`/api/watch/${anime.id}/progress`, { method: 'POST', body: { progress: state.ep } });
+    response = await apiFetch(`/api/watch/${anime.id}/progress`, { method: 'POST', body: { progress: state.ep, source: 'EXTENSION' } });
   } catch {
     await asqQueueAutoPending(pending, state.episodeUrl);
     return { status: 'failed' };

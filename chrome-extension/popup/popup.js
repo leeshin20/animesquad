@@ -265,8 +265,8 @@ $('btn-record').addEventListener('click', async () => {
   const animeId = selectedAnime.id;
   const wasManualMatch = manualMatch;
 
-  const ep = parseInt($('ep-input').value);
-  if (!ep || ep < 1) { alert('화수를 입력해주세요.'); return; }
+  const ep = Number($('ep-input').value);
+  if (!Number.isSafeInteger(ep) || ep < 1) { alert('화수를 입력해주세요.'); return; }
 
   const comment = $('comment-input').value.trim();
   const recordButton = $('btn-record');
@@ -293,13 +293,13 @@ $('btn-record').addEventListener('click', async () => {
     if (selectedRating != null || comment) {
       const res = await apiFetch(`/api/watch/${animeId}/episodes/${ep}`, {
         method: 'PUT',
-        body: { score: selectedRating, comment: comment || null },
+        body: { score: selectedRating, comment: comment || null, source: 'EXTENSION' },
       });
       if (!res.ok) throw new Error(`API ${res.status}`);
     } else {
-      const res = await apiFetch(`/api/watch/${animeId}`, {
-        method: 'PATCH',
-        body: { progress: ep },
+      const res = await apiFetch(`/api/watch/${animeId}/progress`, {
+        method: 'POST',
+        body: { progress: ep, source: 'EXTENSION' },
       });
       if (!res.ok) throw new Error(`API ${res.status}`);
     }
@@ -331,7 +331,7 @@ $('btn-record').addEventListener('click', async () => {
     recordStatus.classList.remove('hidden');
   } finally {
     recordButton.disabled = false;
-    recordButton.textContent = '기록하기';
+    recordButton.textContent = '시청함';
   }
 });
 

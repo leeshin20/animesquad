@@ -21,7 +21,7 @@ function harness({ mapped = true, results = [], auth = 200, write = 200, link = 
       }
       if (request.path.includes('/search')) return { ok: true, json: async () => results };
       const status = request.path.endsWith('/progress') ? write : link;
-      return { ok: status < 300, status, json: async () => ({ progress: 1 }) };
+      return { ok: status < 300, status, json: async () => ({ progress: 1, source: 'EXTENSION' }) };
     },
     chrome: {
       runtime: { getURL: (p) => 'chrome-extension://test/' + p, onMessage: { addListener: (fn) => { listener = fn; } } },
@@ -47,7 +47,7 @@ function harness({ mapped = true, results = [], auth = 200, write = 200, link = 
 test('80% automatic record uses trusted ID/episode and advance-only endpoint', async () => {
   const h = harness();
   assert.equal((await h.record())?.status, 'saved');
-  assert.deepEqual(h.writes.map((r) => [r.path, JSON.parse(r.body)]), [['/api/watch/1516/progress', { progress: 1 }]]);
+  assert.deepEqual(h.writes.map((r) => [r.path, JSON.parse(r.body)]), [['/api/watch/1516/progress', { progress: 1, source: 'EXTENSION' }]]);
   assert.equal(h.requests.some((r) => r.path.includes('/search')), false);
 });
 test('unknown ID permits one exact alias match instead of first spinoff result', async () => {
@@ -104,6 +104,6 @@ test('SPA messages keep original sender URL but use current verified tab episode
     const next = 'https://laftel.net/player/41666/65124';
     h.state.episodeUrl = next; h.state.ep = 2;
     assert.equal((await h.record({ url: original, frameId: 0, tab: { id: 1, url: next } }))?.status, 'saved');
-    assert.deepEqual(JSON.parse(h.writes[0].body), { progress: 2 });
+    assert.deepEqual(JSON.parse(h.writes[0].body), { progress: 2, source: 'EXTENSION' });
   }
 });
