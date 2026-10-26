@@ -58,6 +58,12 @@ function asqSelectMainVideo(videos, getStyle = getComputedStyle) {
     .sort((left, right) => right.area - left.area)[0]?.video ?? null;
 }
 
+function asqIsAutoRecordPosition({ currentTime, duration, paused, seeking, readyState, ended }) {
+  return Number.isFinite(duration) && duration >= ASQ_MIN_VIDEO_SECONDS
+    && Number.isFinite(currentTime) && currentTime / duration >= 0.8
+    && (!paused || ended === true) && seeking === false && readyState >= 3;
+}
+
 function asqCreateProgressTracker() {
   let playedSeconds = 0;
   let lastTickAt = null;
@@ -123,5 +129,6 @@ if (typeof module !== 'undefined') {
     asqFindEndingControl,
     asqSelectMainVideo,
     asqCreateProgressTracker,
+    asqIsAutoRecordPosition,
   };
 }

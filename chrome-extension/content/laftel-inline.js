@@ -2,7 +2,6 @@ let asqInlineHost = null;
 let asqInlineAnchor = null;
 let asqInlineOriginalDisplay = null;
 let asqInlineCurrent = null;
-let asqInlineSavedUrl = null;
 
 function asqDisposeLaftelInline() {
   asqInlineHost?.remove();
@@ -25,12 +24,10 @@ function asqUpdateLaftelInline(state) {
   asqInlineCurrent = state;
   if (!state) {
     asqDisposeLaftelInline();
-    asqInlineSavedUrl = null;
     return;
   }
   if (previous?.episodeUrl !== state.episodeUrl) {
     asqDisposeLaftelInline();
-    asqInlineSavedUrl = null;
   }
   const workId = state.episodeUrl.match(/\/player\/([1-9]\d*)\//)?.[1];
   const anchor = document.querySelector(`a[href="/item/${workId}"]`)
@@ -61,7 +58,7 @@ function asqUpdateLaftelInline(state) {
         header button { border: 0; padding: 4px 8px; background: transparent; color: #525252; }
         iframe { display: block; width: 100%; border: 0; background: white; }
       </style>
-      <button type="button" data-action="toggle" aria-expanded="false" aria-controls="record-panel"><img alt="" /><span data-status>시청 중</span></button>
+      <button type="button" data-action="toggle" aria-expanded="false" aria-controls="record-panel"><img alt="" /><span data-status>🟢 자동 기록 중</span></button>
       <div id="record-panel" class="panel" hidden role="region" aria-label="AnimeSquad 기록 패널">
         <header><span>시청 기록</span><button type="button" data-action="close">닫기</button></header>
       </div>`;
@@ -71,7 +68,7 @@ function asqUpdateLaftelInline(state) {
     anchor.after(asqInlineHost);
   }
   const shadow = asqInlineHost.shadowRoot;
-  const label = asqInlineSavedUrl === state.episodeUrl ? '기록 완료' : state.readyToRecord ? '기록하기' : '시청 중';
+  const label = '🟢 자동 기록 중';
   const status = shadow.querySelector('[data-status]');
   if (status.textContent !== label) status.textContent = label;
   const button = shadow.querySelector('[data-action="toggle"]');
@@ -115,8 +112,4 @@ function asqCloseLaftelPanel() {
 function asqHandleLaftelInlineAction(message) {
   if (message.episodeUrl !== asqInlineCurrent?.episodeUrl) return;
   if (message.type === 'LAFTEL_INLINE_CLOSE') asqCloseLaftelPanel();
-  if (message.type === 'LAFTEL_INLINE_SAVED') {
-    asqInlineSavedUrl = message.episodeUrl;
-    asqUpdateLaftelInline(asqInlineCurrent);
-  }
 }

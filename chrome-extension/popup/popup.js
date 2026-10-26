@@ -44,10 +44,14 @@ async function init() {
   if (embedded) {
     document.body.classList.add('embedded');
     $('btn-dismiss').textContent = '닫기';
+    $('empty-heading').textContent = '80%에 도달하면 자동으로 기록해요';
+    $('empty-hint').textContent = '작품이 연결되어 있으면 별도 클릭 없이 해당 회차를 시청 기록에 반영해요.';
     try {
       const context = await chrome.runtime.sendMessage({ type: 'LAFTEL_INLINE_CONTEXT' });
       if (!context?.episodeUrl) throw new Error('No current episode');
       inlineEpisodeUrl = context.episodeUrl;
+      renderAutoRecordStatus(context);
+      setInterval(refreshInlineStatus, 1000);
       renderCurrentAnime(context.current);
       pending = context.pending;
     } catch {
@@ -95,15 +99,6 @@ function renderCurrentAnime(current) {
     : '지원하는 스트리밍 사이트의 재생 탭에서 확인해주세요.';
 }
 
-function exactAnimeMatch(results, title) {
-  const normalize = (value) => value.trim().toLowerCase().replace(/\s+/g, '');
-  const needle = normalize(title);
-  const matches = results.filter((anime) => [
-    anime.titleKorean, anime.titleRomaji, anime.titleNative, anime.titleEnglish,
-    ...(anime.searchKeywords ?? '').split(/,|\r?\n/),
-  ].some((value) => typeof value === 'string' && normalize(value) === needle));
-  return matches.length === 1 ? matches[0] : null;
-}
 
 async function loadRecord({ animeName, ep, results, platformLink: source, matchedByPlatform: resolved }) {
   platformLink = source ?? null;
@@ -112,7 +107,7 @@ async function loadRecord({ animeName, ep, results, platformLink: source, matche
   if (ep) $('ep-input').value = ep;
 
   const suggestion = platformLink && !matchedByPlatform
-    ? exactAnimeMatch(results ?? [], animeName)
+    ? asqExactAnimeMatch(results ?? [], animeName)
     : results?.[0];
   if (suggestion) {
     await selectAnime(suggestion);
@@ -336,6 +331,28 @@ $('btn-record').addEventListener('click', async () => {
     recordButton.textContent = '기록하기';
   }
 });
+
+function renderAutoRecordStatus(result) {
+  const labels = {
+    waiting: '전체 재생 시간의 80%에 도달하면 자동으로 기록해요.',
+    saving: '시청 기록을 자동 저장하고 있어요.',
+    saved: '시청 기록을 저장했어요. 별점과 한줄평도 남길 수 있어요.',
+    'needs-match': '작품을 자동으로 연결하지 못했어요. 아래에서 선택해 기록해주세요.',
+    'login-required': '자동 기록하려면 AnimeSquad에 다시 로그인해주세요.',
+    failed: '자동 기록에 실패했어요. 1분 후 재시도하거나 아래에서 직접 기록해주세요.',
+  };
+  $('auto-record-status').textContent = result.message || labels[result.status] || labels.waiting;
+  $('auto-record-status').classList.remove('hidden');
+}
+
+async function refreshInlineStatus() {
+  try {
+    const result = await chrome.runtime.sendMessage({ type: 'LAFTEL_INLINE_STATUS' });
+    if (result?.episodeUrl === inlineEpisodeUrl) renderAutoRecordStatus(result);
+  } catch {
+    // Navigation may detach the frame; retain the last known outcome.
+  }
+}
 
 async function closePopup() {
   if (embedded) {

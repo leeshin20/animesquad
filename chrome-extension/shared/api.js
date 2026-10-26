@@ -30,3 +30,13 @@ async function findPlatformAnime({ platform, platformAnimeId }) {
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();
 }
+
+function asqExactAnimeMatch(results, title) {
+  const normalize = (value) => value.trim().toLowerCase().replace(/\s+/g, '');
+  const needle = normalize(title);
+  const matches = results.filter((anime) => [
+    anime.titleKorean, anime.titleRomaji, anime.titleNative, anime.titleEnglish,
+    ...(anime.searchKeywords ?? '').split(/,|\r?\n/),
+  ].some((value) => typeof value === 'string' && normalize(value) === needle));
+  return matches.length === 1 ? matches[0] : null;
+}

@@ -1,17 +1,19 @@
-// Run with Playwright and an extension-capable Chromium; API writes stay on a disposable local server.
+// Run with Playwright, extension-capable Chromium and ffmpeg (or ASQ_VIDEO_FIXTURE).
+// All viewing writes target a disposable local server.
 const { chromium } = require(process.env.ASQ_PLAYWRIGHT_MODULE || 'playwright');
 const fs = require('node:fs');
 const http = require('node:http');
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const os = require('node:os');
+const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '../..');
 const artifacts = process.env.ASQ_ARTIFACT_DIR || os.tmpdir();
 (async () => {
   let context;
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'asq-inline-test-'));
-  let failRecord = true;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'asq-auto-test-'));
   const writes = [];
+  let progress = 0;
   const server = http.createServer(async (req, res) => {
     res.setHeader('content-type', 'application/json');
     if (req.method !== 'GET') {
@@ -19,16 +21,20 @@ const artifacts = process.env.ASQ_ARTIFACT_DIR || os.tmpdir();
       for await (const chunk of req) chunks.push(chunk);
       const payload = JSON.parse(Buffer.concat(chunks).toString() || '{}');
       writes.push({ method: req.method, path: req.url, payload });
-      if (req.url === '/api/watch/1516' && failRecord) { res.statusCode = 503; res.end('{}'); return; }
+      if (req.url === '/api/watch/1516/progress') progress = Math.max(progress, payload.progress);
     }
-    const value = req.url === '/api/me' ? { displayName: '프리렌팬', email: 'frieren@example.com' }
+    const value = req.url === '/api/me' ? { id: 7, displayName: '프리렌팬', email: 'frieren@example.com' }
       : req.url.includes('/platform-links/') ? { id: 1516, titleKorean: '장송의 프리렌' }
-      : req.url.includes('/search') ? [] : { progress: 0 };
+      : req.url.includes('/search') ? [] : { progress };
     res.end(JSON.stringify(value));
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${server.address().port}`;
   try {
+    const videoPath = process.env.ASQ_VIDEO_FIXTURE || path.join(dir, 'video.mp4');
+    if (!process.env.ASQ_VIDEO_FIXTURE) {
+      execFileSync(process.env.ASQ_FFMPEG || 'ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'color=c=black:s=32x32:r=1', '-t', '1440', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-an', '-movflags', '+faststart', videoPath]);
+    }
     const ext = path.join(dir, 'extension');
     fs.cpSync(root, ext, { recursive: true });
     const api = path.join(ext, 'shared/api.js');
@@ -42,62 +48,78 @@ const artifacts = process.env.ASQ_ARTIFACT_DIR || os.tmpdir();
       headless: true, viewport: { width: 1100, height: 900 },
       args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`, '--disable-gpu'],
     });
-    await context.route('https://laftel.net/**', (route) => route.fulfill({ contentType: 'text/html', body: `<!doctype html><html><head><meta charset="UTF-8"><title>(자막) 장송의 프리렌 1화 다시보기 | 라프텔</title><style>body{font-family:sans-serif;margin:24px}video{width:100%;height:280px;background:#111}a{color:#555}#details{padding:16px 0}h2{font-size:19px}</style></head><body><h2>LAFTEL</h2><video></video><div id="details"><a href="/item/41666" style="display:block">(자막) 장송의 프리렌</a><h2>1화 모험의 끝</h2></div><p>회차 설명</p></body></html>` }));
+    await context.route('https://laftel.net/**', (route) => {
+      if (route.request().url().includes('asq-fixture.mp4')) {
+        const bytes = fs.readFileSync(videoPath);
+        const range = route.request().headers().range?.match(/bytes=(\d+)-(\d*)/);
+        if (!range) return route.fulfill({ contentType: 'video/mp4', headers: { 'accept-ranges': 'bytes' }, body: bytes });
+        const start = Number(range[1]);
+        const end = range[2] ? Math.min(Number(range[2]), bytes.length - 1) : bytes.length - 1;
+        return route.fulfill({ status: 206, contentType: 'video/mp4', headers: {
+          'accept-ranges': 'bytes', 'content-range': `bytes ${start}-${end}/${bytes.length}`,
+        }, body: bytes.subarray(start, end + 1) });
+      }
+      return route.fulfill({ contentType: 'text/html', body: `<!doctype html><html><head><meta charset="UTF-8"><title>(자막) 장송의 프리렌 1화 다시보기 | 라프텔</title><style>body{font-family:sans-serif;margin:24px}video{width:100%;height:280px;background:#111}a{color:#555}#details{padding:16px 0}h2{font-size:19px}</style></head><body><h2>LAFTEL</h2><video muted preload="auto" src="/asq-fixture.mp4"></video><div id="details"><a href="/item/41666" style="display:block">(자막) 장송의 프리렌</a><h2>1화 모험의 끝</h2></div><p>회차 설명</p></body></html>` });
+    });
     await context.route('https://api.animesquad.me/**', (route) => route.abort());
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto('https://laftel.net/player/41666/65123');
-    await page.waitForTimeout(200);
+    await page.waitForFunction(() => document.querySelector('video').readyState >= 3);
     const host = page.locator('#animesquad-inline');
-    assert.equal(await host.count(), 1, 'logo control mounts next to title');
-    await host.locator('button[data-action="toggle"]').click();
+    await host.waitFor({ state: 'attached' });
+    assert.equal(await host.count(), 1);
+    assert.equal(await host.locator('[data-status]').innerText(), '🟢 자동 기록 중');
+    await host.locator('[data-action="toggle"]').click();
     const panel = page.frameLocator('#animesquad-inline iframe');
     await panel.locator('#account-name').getByText('프리렌팬').waitFor();
-    assert.equal(await panel.locator('#view-empty').isVisible(), true);
     assert.equal(await panel.locator('#current-anime-meta').innerText(), '라프텔 · 1화');
-    assert.equal(writes.length, 0);
-    await page.evaluate(() => { const button = document.createElement('button'); button.id = 'ending'; button.textContent = '엔딩 스킵'; document.body.appendChild(button); });
-    await panel.locator('#view-record').waitFor({ state: 'visible' });
-    await page.screenshot({ path: path.join(artifacts, 'animesquad-laftel-inline-form.png'), fullPage: true });
-    await panel.locator('#btn-record').click();
-    await panel.locator('#record-status').waitFor({ state: 'visible' });
-    assert.match(await host.locator('[data-status]').innerText(), /기록하기/);
-    failRecord = false;
-    await panel.locator('#btn-record').click();
-    await panel.locator('#view-done').waitFor({ state: 'visible' });
-    assert.equal(await host.locator('[data-status]').innerText(), '기록 완료');
-    await page.screenshot({ path: path.join(artifacts, 'animesquad-laftel-inline.png'), fullPage: true });
-    await page.evaluate(() => {
-      document.getElementById('ending').remove();
-      history.pushState({}, '', '/player/41666/65124');
-      document.title = '(자막) 장송의 프리렌 2화 다시보기 | 라프텔';
-    });
-    await page.waitForTimeout(150);
-    assert.equal(await host.locator('[data-status]').innerText(), '시청 중');
-    assert.equal(await host.locator('iframe').count(), 0, 'stale frame is removed');
+    assert.equal(await panel.locator('#view-empty').isVisible(), true);
+    const playAt = async (seconds) => {
+      await page.locator('video').evaluate(async (video, time) => { video.currentTime = time; await video.play(); }, seconds);
+      await page.waitForFunction(() => { const v = document.querySelector('video'); return !v.seeking && v.readyState >= 3 && !v.paused; });
+    };
+    await playAt(1440 * 0.79);
+    await page.waitForTimeout(1200);
+    assert.equal(writes.length, 0, '79% must not auto-record');
+    await playAt(1440 * 0.8);
+    await page.waitForTimeout(1500);
+    await panel.locator('#auto-record-status').getByText(/시청 기록을 저장했어요/).waitFor();
+    assert.equal(progress, 1, '80% records without clicking record');
+    assert.equal(await host.locator('[data-status]').innerText(), '🟢 자동 기록 중');
+    await panel.locator('#comment-input').fill('작성 중인 감상');
+    await page.waitForTimeout(1200);
+    assert.equal(await panel.locator('#comment-input').inputValue(), '작성 중인 감상');
+    assert.equal(writes.length, 1, 'repeated timeupdate events do not duplicate records');
+    await page.screenshot({ path: path.join(artifacts, 'animesquad-laftel-auto.png'), fullPage: true });
+    await page.evaluate(() => { history.pushState({}, '', '/player/41666/65124'); document.title = '(자막) 장송의 프리렌 2화 다시보기 | 라프텔'; });
+    await page.waitForTimeout(1200);
+    assert.equal(writes.length, 1, 'old 80% position must not record next episode');
+    assert.equal(await host.locator('iframe').count(), 0);
+    await playAt(0);
     await page.locator('#details').evaluate((element) => { element.innerHTML = '<a href="/item/41666" style="display:block">(자막) 장송의 프리렌</a><h2>2화 딱히 마법이 아니어도</h2>'; });
     await page.waitForTimeout(150);
-    assert.equal(await host.count(), 1, 'React replacement remounts once');
-    await host.locator('button[data-action="toggle"]').click();
-    await panel.locator('#current-anime-meta').getByText('라프텔 · 2화').waitFor();
-    assert.equal(await panel.locator('#view-empty').isVisible(), true);
-    await host.locator('[data-action="close"]').click();
-    await page.evaluate(() => { const button = document.createElement('button'); button.textContent = '엔딩 스킵'; document.body.appendChild(button); });
-    await host.locator('[data-status]').getByText('기록하기').waitFor();
+    assert.equal(await host.count(), 1, 'React title replacement remounts once');
     await host.locator('[data-action="toggle"]').click();
-    await panel.locator('#view-record').waitFor({ state: 'visible', timeout: 3000 });
-    assert.equal(await panel.locator('#ep-input').inputValue(), '2', 'closed waiting iframe refreshes after ending');
+    await panel.locator('#current-anime-meta').getByText('라프텔 · 2화').waitFor();
+    await host.locator('[data-action="close"]').click();
+    await playAt(1440 * 0.8);
+    await host.locator('[data-action="toggle"]').click();
+    await page.waitForTimeout(1200);
+    await panel.locator('#auto-record-status').getByText(/시청 기록을 저장했어요/).waitFor();
+    assert.equal(progress, 2);
+    assert.equal(await host.locator('[data-status]').innerText(), '🟢 자동 기록 중');
     await page.evaluate(() => { history.pushState({}, '', '/item/41666'); document.title = '(자막) 장송의 프리렌'; });
     await page.waitForTimeout(150);
-    assert.equal(await host.count(), 0, 'non-player navigation removes inline UI');
+    assert.equal(await host.count(), 0);
     assert.equal(await page.locator('a[href="/item/41666"]').evaluate((a) => a.style.display), 'block');
     assert.deepEqual(errors, []);
     assert.deepEqual(writes, [
-      { method: 'PATCH', path: '/api/watch/1516', payload: { progress: 1 } },
-      { method: 'PATCH', path: '/api/watch/1516', payload: { progress: 1 } },
+      { method: 'POST', path: '/api/watch/1516/progress', payload: { progress: 1 } },
+      { method: 'POST', path: '/api/watch/1516/progress', payload: { progress: 2 } },
     ]);
-    console.log(JSON.stringify({ passed: true, writes, checked: ['real extension iframe APIs and sender identity','account/current episode','pre-ending no write','inline ending refresh','failed write retry','saved status','SPA frame reset','React remount','closed waiting panel refresh','non-player removal'], screenshot: path.join(artifacts, 'animesquad-laftel-inline.png') }));
+    console.log(JSON.stringify({ passed: true, writes, checked: ['native video position','79% no write','80% automatic write','fixed logo text','panel outcome','comment retained','no duplicate','SPA old media blocked','closed panel refresh','React remount','non-player cleanup'], screenshot: path.join(artifacts, 'animesquad-laftel-auto.png') }));
   } finally {
     if (context) await context.close();
     server.close();

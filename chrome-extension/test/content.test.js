@@ -13,6 +13,7 @@ function createHarness({
   href = `https://${host}/watch/episode-11`,
   title = "Frieren: Beyond Journey's End - Episode 11 - The Real Hero",
   metadata = {},
+  autoResult = { status: 'saved' },
 }) {
   const controls = [];
   const messages = [];
@@ -93,6 +94,7 @@ function createHarness({
         onMessage: { addListener: (listener) => { messageListener = listener; } },
         sendMessage(message) {
           messages.push(plain(message));
+          return Promise.resolve(autoResult);
         },
       },
     },
@@ -258,7 +260,7 @@ test('SPA 회차 전환 중 계속 보이는 이전 엔딩 버튼은 사라졌�
 
 test('활성 비디오의 모든 미디어 이벤트를 바인딩하고 교체 시 이전 리스너를 제거한다', () => {
   const harness = createHarness({ host: 'www.crunchyroll.com' });
-  const eventTypes = ['durationchange', 'ended', 'pause', 'play', 'seeked', 'seeking', 'timeupdate'];
+  const eventTypes = ['durationchange', 'ended', 'loadedmetadata', 'pause', 'play', 'seeked', 'seeking', 'timeupdate'];
 
   assert.deepStrictEqual(harness.video.listenerTypes(), eventTypes);
 
@@ -381,10 +383,47 @@ test('언어 경로가 포함된 크런치롤 재생 페이지에서도 현재 �
 test('inline readiness belongs to current Laftel episode and resets on navigation', () => {
   const h = createHarness({ host: 'laftel.net', href: 'https://laftel.net/player/41666/65123', title: '장송의 프리렌 1화' });
   assert.strictEqual(h.inlineState()?.readyToRecord, false);
-  h.video.dispatch('ended');
+  h.video.paused = false;
+  h.video.currentTime = 1120;
+  h.video.dispatch('timeupdate');
   assert.strictEqual(h.inlineState().readyToRecord, true);
   h.location.href = 'https://laftel.net/player/41666/65124';
   h.document.title = '장송의 프리렌 2화';
   assert.strictEqual(h.inlineState().readyToRecord, false);
   assert.strictEqual(h.inlineState().ep, 2);
+});
+
+
+function laftelAutoHarness(options = {}) {
+  return createHarness({ host: 'laftel.net', href: 'https://laftel.net/player/41666/65123', title: '(자막) 장송의 프리렌 1화 다시보기 | 라프텔', ...options });
+}
+test('Laftel automatically sends one record request at 80%, not 79%', async () => {
+  const h = laftelAutoHarness(); h.video.paused = false;
+  h.video.currentTime = 1106; h.video.dispatch('timeupdate');
+  assert.strictEqual(h.messages.length, 0);
+  h.video.currentTime = 1120; h.video.dispatch('timeupdate'); h.runInterval();
+  await new Promise((r) => setImmediate(r)); h.runInterval();
+  assert.deepStrictEqual(h.messages, [{ type: 'LAFTEL_AUTO_RECORD' }]);
+  assert.strictEqual(h.inlineState().autoRecordStatus, 'saved');
+});
+test('paused or seeking 80% samples do not automatically record', () => {
+  for (const sample of [{ paused: true }, { paused: false, seeking: true }, { paused: false, readyState: 1 }]) {
+    const h = laftelAutoHarness(); Object.assign(h.video, { currentTime: 1120 }, sample); h.video.dispatch('timeupdate');
+    assert.strictEqual(h.messages.length, 0);
+  }
+});
+test('failed automatic records retry no more than once per minute', async () => {
+  const h = laftelAutoHarness({ autoResult: { status: 'failed' } });
+  h.video.paused = false; h.video.currentTime = 1120; h.tick(0);
+  await new Promise((r) => setImmediate(r)); h.tick(59999);
+  assert.strictEqual(h.messages.length, 1);
+  h.tick(60000); assert.strictEqual(h.messages.length, 2);
+});
+test('SPA retains old media position until new episode media resets before arming auto record', async () => {
+  const h = laftelAutoHarness(); h.video.paused = false; h.video.currentTime = 1120; h.tick(0);
+  await new Promise((r) => setImmediate(r));
+  h.location.href = 'https://laftel.net/player/41666/65124'; h.document.title = '(자막) 장송의 프리렌 2화'; h.tick(1000);
+  assert.strictEqual(h.messages.length, 1);
+  h.video.currentTime = 0; h.tick(2000); h.video.currentTime = 1120; h.tick(3000);
+  assert.strictEqual(h.messages.length, 2);
 });

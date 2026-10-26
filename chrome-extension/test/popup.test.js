@@ -76,6 +76,7 @@ function popupContext(apiFetch, {
     'ep-input', 'comment-input', 'btn-login', 'btn-dismiss', 'btn-record',
     'btn-change-anime', 'record-status', 'session-panel', 'account-name',
     'account-email', 'current-anime-title', 'current-anime-meta',
+    'auto-record-status', 'empty-heading', 'empty-hint',
   ];
   const elements = Object.fromEntries(ids.map((id) => [id, new FakeElement()]));
   const stars = Array.from({ length: 5 }, (_, index) => {
@@ -102,6 +103,7 @@ function popupContext(apiFetch, {
         return response;
       },
       asqIsInvalidNetflixTitle: sharedApiContext.asqIsInvalidNetflixTitle,
+      asqExactAnimeMatch: sharedApiContext.asqExactAnimeMatch,
       searchAnime: async () => searchResults,
       WEB_BASE: 'https://animesquad.me',
       location: { search: embeddedContext ? '?embedded=1' : '' },
@@ -115,6 +117,7 @@ function popupContext(apiFetch, {
         runtime: { sendMessage: async (message) => {
           inlineMessages.push(JSON.parse(JSON.stringify(message)));
           if (message.type === 'LAFTEL_INLINE_CONTEXT') return embeddedContext;
+          if (message.type === 'LAFTEL_INLINE_STATUS') return embeddedContext;
           if (message.type === 'LAFTEL_INLINE_VALIDATE') return { ok: validateInline };
           if (message.type === 'LAFTEL_INLINE_SAVED' && completionError) throw new Error('frame gone');
           return { ok: true };
@@ -139,6 +142,7 @@ function popupContext(apiFetch, {
       alert: (message) => alerts.push(message),
       setTimeout: (callback) => { callback(); },
       clearTimeout: () => {},
+      setInterval: () => 1,
     },
   };
 }
@@ -880,4 +884,21 @@ test('embedded dismiss closes its panel without removing another pending', async
   await h.elements['btn-dismiss'].dispatch('click');
   assert.strictEqual(h.removedKey, undefined);
   assert.deepStrictEqual(h.inlineMessages.at(-1), { type: 'LAFTEL_INLINE_CLOSE', episodeUrl: inlineContext().episodeUrl });
+});
+
+
+test('inline panel explains 80% auto recording and displays actual saved outcome', async () => {
+  const h = await embeddedPopup({ embeddedContext: { ...inlineContext(), status: 'saved' } });
+  assert.match(h.elements['auto-record-status'].textContent, /저장/);
+  assert.strictEqual(h.elements['auto-record-status'].classNames.has('hidden'), false);
+  assert.match(h.elements['empty-heading'].textContent, /80%/);
+});
+test('auto status polling preserves a comment being typed while reporting failure', async () => {
+  const info = { ...inlineContext(), status: 'saving' };
+  const h = await embeddedPopup({ embeddedContext: info });
+  h.elements['comment-input'].value = '작성 중인 감상';
+  info.status = 'failed';
+  await h.context.refreshInlineStatus();
+  assert.match(h.elements['auto-record-status'].textContent, /실패/);
+  assert.strictEqual(h.elements['comment-input'].value, '작성 중인 감상');
 });
